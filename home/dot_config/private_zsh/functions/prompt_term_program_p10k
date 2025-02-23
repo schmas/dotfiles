@@ -1,0 +1,5 @@
+#!/usr/bin/env zsh
+
+if [[ "$TERM_PROGRAM" != "" ]]; then
+    p10k segment -f 241 -t "(${TERM_PROGRAM})"
+fi

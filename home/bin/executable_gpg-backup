@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+set -e
+set -u
+set -o pipefail
+
+# Define file paths
+private_keys="${HOME}/.gnupg/bkp/private.gpg"
+pub_keys="${HOME}/.gnupg/bkp/public.gpg"
+owner_trust="${HOME}/.gnupg/bkp/trust.gpg"
+
+mkdir -p "${HOME}/.gnupg/bkp"
+rm -f "${private_keys}" "${pub_keys}" "${owner_trust}"
+
+gpg --export --export-options backup --output "${pub_keys}"
+gpg --export-secret-keys --export-options backup --output "${private_keys}"
+gpg --export-ownertrust > "${owner_trust}"
+
+gpg-upload-op
+
+rm -rf "$private_keys" "$pub_keys" "$owner_trust"

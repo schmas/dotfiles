@@ -1,0 +1,9 @@
+##############################
+# COMMON PATH's
+##############################
+# Add all bin directories to PATH
+for path in $HOME/bin/*/ $HOME/bin
+    fish_add_path -g $path
+end
+
+fish_add_path -g $HOME/.local/bin

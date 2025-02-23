@@ -1,0 +1,38 @@
+# `sheldon` configuration file
+# ----------------------------
+#
+# You can modify this file directly or you can use one of the following
+# `sheldon` commands which are provided to assist in editing the config file:
+#
+# - `sheldon add` to add a new plugin to the config file
+# - `sheldon edit` to open up the config file in the default editor
+# - `sheldon remove` to remove a plugin from the config file
+#
+# See the documentation for more https://github.com/rossmacarthur/sheldon#readme
+
+shell = "bash"
+
+[templates]
+fzf-bind = "bind -x '\"\t\": fzf_bash_completion' >/dev/null 2>&1"
+
+[plugins]
+#################################################
+# asdf - java, maven, node, gradle, python, etc
+#################################################
+[plugins.asdf]
+github = 'asdf-vm/asdf'
+use = ["asdf.sh", "completions/asdf.bash"]
+
+[plugins.zoxide-loader]
+inline = 'command -v zoxide &>/dev/null && eval "$(zoxide init bash)" || true'
+
+[plugins.thefuck]
+inline = 'command -v thefuck &>/dev/null && eval "$(thefuck --alias)" || true'
+
+[plugins.fzf-loader]
+inline = '[ -f ~/.fzf.bash ] && source ~/.fzf.bash'
+
+[plugins.fzf-bash-completion]
+github = 'lincheney/fzf-tab-completion'
+use = ["bash/fzf-bash-completion.sh"]
+apply = ["source", "fzf-bind"]

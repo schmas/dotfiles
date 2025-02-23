@@ -1,0 +1,8 @@
+{{ if eq .chezmoi.os "linux" }}
+#!/usr/bin/env bash
+
+export PATH="${HOME}/bin/linux:/var/lib/snapd/snap/bin:/snap/bin:$PATH"
+
+export PATH="${HOME}/bin/linux:$PATH"
+
+{{ end }}

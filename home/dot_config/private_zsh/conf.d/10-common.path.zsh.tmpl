@@ -1,0 +1,13 @@
+#!/usr/bin/env zsh
+
+##############################
+# COMMON PATH's
+##############################
+# Add all subdirectories of ~/bin to PATH
+for dir in ${HOME}/bin/*(/N); do
+    path=($dir $path)
+done
+
+# Add main bin directories
+path=(${HOME}/bin $path)
+path=(${HOME}/.local/bin $path)

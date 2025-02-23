@@ -1,0 +1,139 @@
+#!/usr/bin/env bash
+
+#########################
+#       Aliases         #
+#########################
+alias opsignin='eval $(op signin)'
+alias asdfupdate="asdf update && asdf plugin update --all && asdf-install-plugins"
+
+alias dotfiles="code ${HOME}/.local/share/chezmoi"
+alias dotfiles-applied="code ${HOME}/.config/dotfiles"
+
+alias upchezmoi-fetch="chezmoi git pull -- --rebase && chezmoi diff"
+alias upchezmoi="chezmoi update"
+
+alias upprecleanup='echo "No cleanup"'
+alias osupdate='echo "osupdate: OS not supported"' # overrided by os-specific alias
+alias upall='asdfupdate && upchezmoi && upprecleanup && upzshplugin && osupdate'
+
+#################
+#    MISC       #
+#################
+alias print-colors-palette='for i in {0..255}; do print -Pn "%K{$i}  %k%F{$i}${(l:3::0:)i}%f " ${${(M)$((i%6)):#3}:+"\n"}; done'
+# alias vim="nvim"
+alias t='tail -f'
+
+# Sudo Passing aliases: https://wiki.archlinux.org/index.php/Sudo#Passing_aliases
+alias sudo='sudo '
+alias dup="du -h --max-depth=1 | sort"
+alias df="df -h"
+alias watch="watch -c "
+
+alias tm="start_tmux"
+alias stmux="tmux -2 attach || tmux -2 new-session"
+
+if [[ $TMUX ]]; then
+  alias clear='clear && tmux clear-history'
+fi
+
+###############
+#     GIT     #
+###############
+# alias g='git'
+alias bfg="java -jar ${HOME}/bin/git-scripts/bfg.jar"
+
+alias gpg-kill-agent="gpgconf --kill gpg-agent"
+
+###############
+#     CD      #
+###############
+alias cd..="cd .."
+alias cd...="cd ../.."
+alias cd....="cd ../../.."
+alias cd.....="cd ../../../.."
+alias cd......="cd ../../../../.."
+
+alias ..="cd .."
+alias ...="cd ../.."
+alias ....="cd ../../.."
+alias .....="cd ../../../.."
+alias ......="cd ../../../../.."
+
+# alias ..='cd .. 2>/dev/null || cd "$(dirname $PWD)"' # Allows leaving from deleted directories
+alias -- -='__dircycle_update_cycled +1 || true'
+alias -- +='__dircycle_update_cycled -0 || true'
+
+###########################
+# List directory contents #
+###########################
+alias lsa='ls -lah'
+alias l='ls -lah'
+alias ll="ls -lah"
+alias la='ls -lAh'
+
+#################
+#     DOCKER    #
+#################
+alias dspall="docker system prune --all --volumes -f"
+
+#################
+#     PIP       #
+#################
+alias pipupdate="pip freeze --local | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 pip install -U"
+alias pip3update="pip3 freeze --local | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 pip3 install -U"
+
+#################
+#    NETWORK    #
+#################
+alias openports="lsof -i" # lsof -i :8080 for a specific port
+
+#################
+#    FZF        #
+#################
+alias fzfp='fzf --preview "bat --style=numbers --color=always --line-range :500 {}"'
+alias fzftp='fzf-tmux --preview "bat --style=numbers --color=always --line-range :500 {}"'
+
+#########################
+# 1password
+#########################
+alias op-create='f(){ op create document $1 --tags chezmoi --title $1;  unset -f f; }; f'
+
+{{- if eq .chezmoi.os "darwin" }}
+#################################
+# MacOS
+#################################
+ls --color=auto &>/dev/null && alias ls='ls --color=auto' || alias ls='ls -G'
+# alias showfiles="defaults write com.apple.finder AppleShowAllFiles YES && killall Finder"
+# alias hidefiles="defaults write com.apple.finder AppleShowAllFiles NO && killall Finder"
+alias brewup="brew update && brew upgrade && brew cleanup"
+alias osupdate="brewup"
+
+{{- else if (eq .chezmoi.os "linux") }}
+#################################
+# Linux
+#################################
+alias ls="ls --color=auto"
+# alias open="gio open"
+alias brewup="brew update && brew upgrade && brew cleanup"
+
+{{  if eq .os_id_like "linux-ubuntu" }}
+# Ubuntu
+alias osupdate="sudo apt update -y && sudo apt upgrade -y && sudo apt autoremove -y && brewup"
+{{  else if eq .chezmoi.osRelease.idLike "arch" }}
+# Archlinux
+alias update-pacman-mirrors="sudo pacman-mirrors --country Brazil,United_States"
+alias osupdate="yay -Syu --noconfirm && flatpak update && brewup"
+{{  end }}
+
+{{- end }}
+
+################################
+# List directory lsd if exists #
+################################
+# Export variables when connected via SSH
+if [[ -n $SSH_CONNECTION ]]; then
+  # export DISPLAY=:0
+  lsd &>/dev/null && alias ls='lsd --group-dirs=first --icon=never' || true
+else
+  lsd &>/dev/null && alias ls='lsd --group-dirs=first' || true
+fi

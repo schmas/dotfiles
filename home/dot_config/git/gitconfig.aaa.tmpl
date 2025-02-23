@@ -1,0 +1,10 @@
+[user]
+name = {{ onepasswordRead "op://dotfiles/dotfiles_data/git/name" }}
+email = {{ onepasswordRead "op://dotfiles/dotfiles_data/aaa_git/email" }}
+signingkey = {{ onepasswordRead "op://dotfiles/dotfiles_data/aaa_git/signingkey" }}
+
+[gpg]
+  format = openpgp
+
+[commit]
+  gpgsign = true

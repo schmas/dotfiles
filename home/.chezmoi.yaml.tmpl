@@ -1,0 +1,54 @@
+# Used to customize configuration when doing a `chezmoi init`.
+#
+# This template file will trigger prompts to fill-in machine-specific
+# templateable values. The resulting file is then created at
+# `~/.config/chezmoi/chezmoi.toml`
+# See https://www.chezmoi.io/docs/reference/#special-files-and-directories
+
+{{- /* Questions */}}
+{{- $profileChoices := list "1-main" "2-ct" "3-aaa-local" "4-server" -}}
+{{- $profile := promptChoice "Profile" $profileChoices -}}
+{{- $profile = regexReplaceAll "^\\d-" $profile "" -}}
+
+{{- $using_nix := promptBool "Are you using NIX-CONFIG" true -}}
+
+{{- $editorChoices := list "1-none"  "2-nvim" "3-zed" "4-code" -}}
+{{- $defaultEditor := promptChoice "Choose default editor" $editorChoices "2-nvim" -}}
+{{- $defaultEditor = regexReplaceAll "^\\d-" $defaultEditor "" -}}
+
+{{- /* Variables */}}
+{{ $is_p_main := eq $profile "main" -}}
+{{ $is_p_server := eq $profile "server" -}}
+{{ $is_p_ct := or (eq $profile "ct") -}}
+{{ $is_p_aaa := or (eq $profile "aaa") (eq $profile "aaa-local") -}}
+
+{{- /* os_id variable: i.e. linux-ubuntu */}}
+{{- $os_id := .chezmoi.os -}}
+{{- if hasKey .chezmoi.osRelease "id" -}}
+  {{-   $os_id = printf "%s-%s" .chezmoi.os .chezmoi.osRelease.id -}}
+{{- end -}}
+
+{{- /* os_id_like variable: i.e. linux-ubuntu */}}
+{{- $os_id_like := .chezmoi.os -}}
+{{- if hasKey .chezmoi.osRelease "idLike" -}}
+  {{- $idLikeList := splitList " " .chezmoi.osRelease.idLike -}}
+  {{- $firstIdLike := index $idLikeList 0 -}}
+  {{- $os_id_like = printf "%s-%s" .chezmoi.os $firstIdLike -}}
+{{- end -}}
+
+data:
+  os_id: {{ $os_id | quote }}
+  os_id_like: {{ $os_id_like | quote }}
+  using_nix: {{ $using_nix }}
+  profile: {{ $profile | quote }}
+  is_p_main: {{ $is_p_main }}
+  is_p_server: {{ $is_p_server }}
+  is_p_ct: {{ $is_p_ct }}
+  is_p_csaa: false
+  is_p_aaa: {{ $is_p_aaa }}
+
+{{- if (ne $defaultEditor "none") }}
+edit:
+  command: "{{ $defaultEditor }}"
+  args: ["--wait"]
+{{ end -}}

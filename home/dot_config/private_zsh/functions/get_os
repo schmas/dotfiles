@@ -1,0 +1,6 @@
+#!/usr/bin/env zsh
+
+for os in osx ubuntu archlinux cygwin; do
+  is_$os
+  [[ "$?" == "${1:-0}" ]] && echo $os
+done

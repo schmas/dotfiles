@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+
+set -e
+set -u
+set -o pipefail
+
+# Create main configuration files if they do not exist
+if [ ! -f ~/.config/git/config ]; then
+  echo "Creating ~/.config/git/config"
+  cp ~/.config/etc/gitconfig.template ~/.config/git/config
+fi
+
+# SSH config section
+if [ ! -d ~/.ssh ]; then
+  echo "Creating ~/.ssh directory"
+  mkdir -p ~/.ssh
+  chmod 700 ~/.ssh
+fi
+
+if [ ! -f ~/.ssh/config ]; then
+  echo "Creating ~/.ssh/config"
+  cp ~/.config/etc/ssh_config.template ~/.ssh/config
+  chmod 600 ~/.ssh/config
+fi
+
+# GnuPG section
+if [ ! -d ~/.gnupg ]; then
+  echo "Creating ~/.gnupg directory"
+  mkdir -p ~/.gnupg
+  chmod 700 ~/.gnupg
+fi
+
+if [ ! -f ~/.gnupg/gpg-agent.conf ]; then
+  echo "Creating ~/.gnupg/gpg-agent.conf"
+  cp ~/.config/etc/gpg-agent.conf.template ~/.gnupg/gpg-agent.conf
+  chmod 600 ~/.gnupg/gpg-agent.conf
+fi
+
+if [ ! -f ~/.npmrc ]; then
+  if [ -f ~/.config/etc/npmrc.template ]; then
+    echo "Creating ~/.npmrc from template"
+    cp ~/.config/etc/npmrc.template ~/.npmrc
+  fi
+fi
+
+if [ ! -f ~/.config/fish/config_local.fish ]; then
+  echo "Creating ~/.config/fish/config_local.fish"
+  cp ~/.config/fish/config_local.template.fish ~/.config/fish/config_local.fish
+fi
+
+if [ ! -f ~/.config/bash/bashrc_local ]; then
+  echo "Creating ~/.config/bash/bashrc_local"
+  cp ~/.config/bash/bashrc_local.template ~/.config/bash/bashrc_local
+fi
+
+if [ ! -f ~/.config/zsh/zshrc_local ]; then
+  echo "Creating ~/.config/zsh/zshrc_local"
+  cp ~/.config/zsh/zshrc_local.template ~/.config/zsh/zshrc_local
+fi

@@ -1,0 +1,28 @@
+#!/usr/bin/env fish
+
+{{ if eq .chezmoi.os "darwin" -}}
+  if type -q mas
+      echo "Checking Mac App Store updates..."
+      mas outdated
+      mas upgrade
+  end
+
+  echo -e "\nMacOs no command to update OS..."
+{{- end }}
+
+{{ if eq .os_id_like "linux-ubuntu" -}}
+  echo -e "\nUpdating Ubuntu..."
+  sudo apt update -y && sudo apt upgrade -y && sudo apt autoremove -y
+{{- end }}
+
+{{ if eq .os_id "linux-rhel" -}}
+  echo -e "\nUpdating Ubuntu..."
+  sudo dnf update -y
+{{- end }}
+
+{{ if eq .os_id "linux-arch" -}}
+  echo -e "\nUpdating Archlinux..."
+  sudo pacman-mirrors --country Brazil,United_States
+  yay -Syu --noconfirm && flatpak update
+{{- end }}
+

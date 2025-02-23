@@ -1,0 +1,5 @@
+#!/usr/bin/env zsh
+
+rm -rfv ~/.zcomp*
+find ~/.zinit -maxdepth 1 -mindepth 1 -type d ! -name '*plugins*' -exec rm -rfv {} \;
+find ~/.zinit/plugins -maxdepth 1 -mindepth 1 -type d ! -name '*_local---config-files*' -exec rm -rfv {} \;

@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+set -e
+set -u
+set -o pipefail
+
+# Define file paths
+private_keys="${HOME}/.gnupg/bkp/private.gpg"
+pub_keys="${HOME}/.gnupg/bkp/public.gpg"
+owner_trust="${HOME}/.gnupg/bkp/trust.gpg"
+
+# Check if all files exist
+if [[ ! -f "$private_keys" || ! -f "$pub_keys" || ! -f "$owner_trust" ]]; then
+    exit 0
+fi
+
+op document edit "GPG - Private" --vault Dotfiles "$private_keys"
+op document edit "GPG - Public" --vault Dotfiles "$pub_keys"
+op document edit "GPG - Trust" --vault Dotfiles "$owner_trust"

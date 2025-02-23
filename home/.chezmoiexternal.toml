@@ -1,0 +1,6 @@
+# [".config/nvim"]
+# type = "archive"
+# url = "https://github.com/schmas/nvim_lazy/archive/master.tar.gz"
+# exact = false
+# stripComponents = 1
+# refreshPeriod = "168h"
