@@ -9,7 +9,26 @@ set -o nounset
 echo "Restore apps"
 echo "-----------"
 
-cp -fv ~/Documents/00_Backups/pl.maketheweb.cleanshotx.plist ~/Library/Preferences/
-cp -fv ~/Documents/00_Backups/pl.maketheweb.pixelsnap2.plist ~/Library/Preferences/
+cp -fv ~/Documents/00_Backups/apps/pl.maketheweb.cleanshotx.plist ~/Library/Preferences/ || true
+cp -fv ~/Documents/00_Backups/apps/pl.maketheweb.pixelsnap2.plist ~/Library/Preferences/ || true
+
+# Bartender
+cp -fv ~/Documents/00_Backups/apps/com.surteesstudios.Bartender.plist ~/Library/Preferences/ || true
+cp -fv ~/Documents/00_Backups/apps/com.surteesstudios.Bartender-setapp.plist ~/Library/Preferences/ || true
+cp -fv ~/Documents/00_Backups/apps/Bartender.BartenderPreferences ~/Library/Application\ Support/Bartender/ || true
+
+# iStat Menus
+cp -fv ~/Documents/00_Backups/apps/com.bjango.istatmenus.plist ~/Library/Preferences/ || true
+cp -fv ~/Documents/00_Backups/apps/com.bjango.istatmenus.status.plist ~/Library/Preferences/ || true
+cp -fv ~/Documents/00_Backups/apps/com.bjango.istatmenus5.extras.plist ~/Library/Preferences/ || true
+cp -fv ~/Documents/00_Backups/apps/com.bjango.istatmenus6.extras.plist ~/Library/Preferences/ || true
+
+# Logitech Options
+# cp -fv ~/Documents/00_Backups/apps/com.logitech.manager.setting.ffff.plist ~/Library/Preferences/ || true
+
+# AltTab
+cp -fv ~/Documents/00_Backups/apps/com.lwouis.alt-tab-macos.plist ~/Library/Preferences/ || true
+
+echo ""
 
 echo ""
