@@ -1,0 +1,14 @@
+# 2 days default cache
+default-cache-ttl 172800
+
+# 5 days max cache
+max-cache-ttl 432000
+
+{{ if eq .chezmoi.os "darwin" }}
+{{ $pinentryPath := output "which" "pinentry-mac" | trim }}
+{{ if $pinentryPath }}
+pinentry-program {{ $pinentryPath }}
+{{ else }}
+# pinentry-mac not found in PATH
+{{ end }}
+{{ end }}

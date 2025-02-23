@@ -1,0 +1,34 @@
+#!/usr/bin/env zsh
+
+# https://stevenvanbael.com/profiling-zsh-startup
+zmodload zsh/zprof
+
+if [[ -f /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]]; then
+  . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+fi
+
+##############################
+# DOTFILES
+##############################
+export DOTFILES_DIR="$HOME/.config/zsh"
+export DOTFILES_BIN="$HOME/bin"
+export DOTFILES_FUNCTIONS="$DOTFILES_DIR/functions"
+
+##############################
+# Autoload personal functions
+##############################
+fpath=("$DOTFILES_FUNCTIONS" "$fpath[@]")
+autoload -Uz $fpath[1]/*(.:t)
+
+# source all files in the config.d directory and its subdirectories
+while read -d $'\0' file; do
+  source "$file"
+done < <(find $DOTFILES_DIR/conf.d -type f -name "*.zsh" -print0)
+
+# load bashrc_local
+[ -f "$DOTFILES_DIR/zshrc_local" ] && source "$DOTFILES_DIR/zshrc_local" || true
+
+##############################
+# The End - Open on last dir #
+##############################
+# trap @shexit EXIT

@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+#-----------------------------------------------------------------------------
+# Removing all GONE Branches
+#-----------------------------------------------------------------------------
+
+# git remote prune origin
+for branch in $(git branch -v | grep -Ev "(\*|( )*master)" | grep -E "\[gone\]" | awk '{print($1)}'); do
+    echo "Removing branch '${branch}'"
+    git branch -D ${branch};
+done

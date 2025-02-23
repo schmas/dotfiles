@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Bash3 Boilerplate. Copyright (c) 2014, kvz.io
+
+set -o errexit
+set -o pipefail
+set -o nounset
+# set -o xtrace
+
+echo "Restore apps"
+echo "-----------"
+
+cp -fv ~/Documents/00_Backups/pl.maketheweb.cleanshotx.plist ~/Library/Preferences/
+cp -fv ~/Documents/00_Backups/pl.maketheweb.pixelsnap2.plist ~/Library/Preferences/
+
+echo ""

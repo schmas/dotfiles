@@ -1,0 +1,16 @@
+[tools]
+age = "latest"
+bun = "latest"
+"cargo:cargo-update" = "latest"
+"cargo:rust-script" = "latest"
+direnv = "latest"
+node = "lts"
+"npm:aicommit2" = "latest"
+"npm:prettier" = "latest"
+rust = "latest"
+sops = "latest"
+usage = "latest"
+zig = "latest"
+
+[settings]
+experimental = true

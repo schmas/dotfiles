@@ -1,0 +1,38 @@
+# This is an INI configuration file
+
+# theme
+theme = "Builtin Pastel Dark"
+#theme = "Dark Pastel"
+#window-theme = ghostty
+macos-icon = official
+#macos-icon = custom-style
+#macos-icon-ghost-color = #BCBEC4
+#macos-icon-screen-color = #00FF00
+background-opacity = 0.9
+
+# font
+font-family = "JetBrainsMono Nerd Font Mono"
+font-family = "GeistMono Nerd Font"
+font-family = "MesloLGL Nerd Font Mono"
+font-size = 16
+font-feature = -liga
+font-thicken = true
+
+# cursor
+cursor-style = block
+cursor-style-blink = false
+shell-integration-features = no-cursor
+
+# initial size
+window-width = 130
+window-height = 40
+
+# updates
+auto-update = download
+
+# misc
+confirm-close-surface = false
+window-save-state = always
+
+# macos
+macos-option-as-alt = true

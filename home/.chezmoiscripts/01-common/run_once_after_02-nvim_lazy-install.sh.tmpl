@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -e
+set -u
+set -o pipefail
+
+NVIM_DIR="${HOME}/.config/nvim"
+
+if [ ! -d "${NVIM_DIR}" ]; then
+  echo "Installing nvim_lazy"
+  git clone https://github.com/schmas/nvim_lazy.git ${NVIM_DIR}
+fi

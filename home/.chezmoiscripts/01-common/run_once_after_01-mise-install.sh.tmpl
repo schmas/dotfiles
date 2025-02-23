@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+set -e
+set -u
+set -o pipefail
+
+if command -v mise >/dev/null 2>&1; then
+  mise use -g usage
+  mise completion fish >~/.config/fish/completions/mise.fish
+
+  max_attempts=5
+  attempt=1
+
+  while [ $attempt -le $max_attempts ]; do
+    if mise install; then
+      echo "mise install succeeded on attempt $attempt"
+      break
+    else
+      echo "mise install failed on attempt $attempt of $max_attempts"
+      if [ $attempt -eq $max_attempts ]; then
+        echo "Warning: mise install failed after $max_attempts attempts"
+        break
+      fi
+      attempt=$((attempt + 1))
+      sleep 2  # Add a small delay between attempts
+    fi
+  done
+fi

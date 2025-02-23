@@ -1,0 +1,152 @@
+# `sheldon` configuration file
+# ----------------------------
+#
+# You can modify this file directly or you can use one of the following
+# `sheldon` commands which are provided to assist in editing the config file:
+#
+# - `sheldon add` to add a new plugin to the config file
+# - `sheldon edit` to open up the config file in the default editor
+# - `sheldon remove` to remove a plugin from the config file
+#
+# See the documentation for more https://github.com/rossmacarthur/sheldon#readme
+
+shell = "zsh"
+
+[templates]
+OMZPATH = 'export ZSH="${SHELDON_CONFIG_DIR}/repos/github.com/ohmyzsh/ohmyzsh"'
+OMZP = 'plugins=(1password colorize command-not-found docker-compose extract git gradle macos mvn pip sudo aws)'
+asdf-completion = 'fpath=(${ASDF_DIR}/completions $fpath)'
+
+[plugins]
+
+#################################################
+# oh-my-zsh
+#################################################
+[plugins.oh-my-zsh]
+github = 'ohmyzsh/ohmyzsh'
+apply = ["OMZPATH", "OMZP", "source"]
+
+#################################################
+# fzf-tab competion
+#################################################
+[plugins.fzf-tab]
+github = 'Aloxaf/fzf-tab'
+
+#################################################
+# zsh-autocomplete competion
+#################################################
+# [plugins.marlonrichert_zsh-autocomplete]
+# github = "marlonrichert/zsh-autocomplete"
+
+#################################################
+# smart cd - z
+#################################################
+[plugins.zoxide]
+github = 'ajeetdsouza/zoxide'
+
+#################################################
+# colors
+#################################################
+[plugins.base16]
+github = "chriskempson/base16-shell"
+
+[plugins.zpm-zsh-colors]
+github = 'zpm-zsh/colors'
+
+[plugins.dircolors-neutral]
+github = 'schmas/dircolors-neutral'
+
+#################################################
+# asdf - java, maven, node, gradle, python, etc
+#################################################
+[plugins.asdf]
+github = 'asdf-vm/asdf'
+apply = ["source", "asdf-completion"]
+
+#################################################
+# completions
+#################################################
+[plugins.yarn-completion]
+github = "BuonOmo/yarn-completion"
+
+[plugins.zsh-better-npm-completion]
+github = "lukechilds/zsh-better-npm-completion"
+
+[plugins.pnpm-shell-completion]
+github = 'g-plane/pnpm-shell-completion'
+
+[plugins.nx-completion]
+github = 'jscutlery/nx-completion'
+
+#################################################
+# git plugins
+#################################################
+[plugins.git-ignore]
+github = 'laggardkernel/git-ignore'
+
+[plugins.zsh-diff-so-fancy]
+github = 'zdharma-continuum/zsh-diff-so-fancy'
+
+[plugins.git-fuzzy]
+github = 'bigH/git-fuzzy'
+dir = "bin"
+apply = ["PATH"]
+
+[plugins.forgit]
+github = 'wfxr/forgit'
+
+[plugins.git-open]
+github = 'paulirish/git-open'
+
+[plugins.git-extras-completion]
+remote = "https://raw.githubusercontent.com/tj/git-extras/master/etc/git-extras-completion.zsh"
+
+[plugins.gita-completion]
+remote = "https://raw.githubusercontent.com/nosarthur/gita/master/auto-completion/zsh/.gita-completion.zsh"
+
+#################################################
+# AI
+#################################################
+[plugins.example]
+inline = 'if command -v github-copilot-cli &> /dev/null; then eval "$(github-copilot-cli alias -- "$0")"; fi'
+
+[plugins.example.hooks]
+pre = "npm install -g @githubnext/github-copilot-cli"
+
+#################################################
+# thefuck
+#################################################
+[plugins.zsh-thefuck]
+github = "laggardkernel/zsh-thefuck"
+
+#################################################
+# pretty shell plugins
+#################################################
+[plugins.zsh-autopair]
+github = "hlissner/zsh-autopair"
+
+[plugins.zsh-syntax-highlighting]
+github = "zdharma-continuum/fast-syntax-highlighting"
+
+[plugins.zsh-autosuggestions]
+github = "zsh-users/zsh-autosuggestions"
+use = ["{{ name }}.zsh"]
+
+[plugins.history-search-multi-word]
+github = "zdharma-continuum/history-search-multi-word"
+
+[plugins.zsh-history-substring-search]
+github = "zsh-users/zsh-history-substring-search"
+
+# Must be the last one
+#################################################
+# zsh-completions
+#################################################
+#[plugins.custom-completion]
+#inline = 'fpath=(${DOTFILES_DIR}/completions $fpath)'
+
+[plugins.zsh-completions]
+github = "zsh-users/zsh-completions"
+
+[plugins.compinit]
+inline = 'zicompinit_fast && compdef _dirs d'

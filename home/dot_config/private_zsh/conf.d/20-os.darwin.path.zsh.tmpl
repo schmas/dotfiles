@@ -1,0 +1,14 @@
+{{ if eq .chezmoi.os "darwin" }}
+#!/usr/bin/env zsh
+##########################
+# MacOS
+##########################
+path=(/usr/local/sbin $path)
+
+## openssl@1.1 for python #
+#path=(/usr/local/opt/openssl@1.1/bin $path)
+#export LDFLAGS="-L/usr/local/opt/openssl@1.1/lib"
+#export CPPFLAGS="-I/usr/local/opt/openssl@1.1/include"
+#export PKG_CONFIG_PATH="/usr/local/opt/openssl@1.1/lib/pkgconfig"
+
+{{ end }}

@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+set -e
+set -u
+set -o pipefail
+
+# Update chezmoi repo URL
+CHEZMOI_DIR="${HOME}/.local/share/chezmoi"
+if [ -d "${CHEZMOI_DIR}/.git" ]; then
+  echo "Updating chezmoi repo URL to SSH..."
+  cd "${CHEZMOI_DIR}"
+  git remote set-url origin git@github.com:schmas/dotfiles.git
+fi
+
+# Update dotfiles_nix repo URL
+DOTFILES_NIX_DIR="${HOME}/.config/nix-config"
+if [ -d "${DOTFILES_NIX_DIR}/.git" ]; then
+  echo "Updating dotfiles_nix repo URL to SSH..."
+  cd "${DOTFILES_NIX_DIR}"
+  git remote set-url origin git@github.com:schmas/nix-config.git
+fi
+
+# Update dotfiles_nix repo URL
+NVIM_DIR="${HOME}/.config/nvim"
+if [ -d "${NVIM_DIR}/.git" ]; then
+  echo "Updating nvim repo URL to SSH..."
+  cd "${NVIM_DIR}"
+  git remote set-url origin git@github.com:schmas/nvim_lazy.git
+fi

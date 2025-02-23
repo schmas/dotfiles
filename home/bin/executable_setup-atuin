@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+set -e
+set -u
+set -o pipefail
+
+if command -v atuin >/dev/null 2>&1; then
+  if [ ! -f "${HOME}/.local/share/atuin/key" ]; then
+    echo "Configuring Atuin..."
+    atuin login
+    atuin import auto
+    eval "$(atuin init bash)"
+    atuin sync
+  fi
+fi

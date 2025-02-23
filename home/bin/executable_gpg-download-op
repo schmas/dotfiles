@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+set -e
+set -u
+set -o pipefail
+
+# Define file paths
+private_keys="${HOME}/.gnupg/bkp/private.gpg"
+pub_keys="${HOME}/.gnupg/bkp/public.gpg"
+owner_trust="${HOME}/.gnupg/bkp/trust.gpg"
+
+mkdir -p ${HOME}/.gnupg/bkp
+
+op document get "GPG - Private" --force --vault Dotfiles --file-mode 600 --out-file "$private_keys"
+op document get "GPG - Public" --force --vault Dotfiles --file-mode 644 --out-file "$pub_keys"
+op document get "GPG - Trust" --force --vault Dotfiles --file-mode 644 --out-file "$owner_trust"

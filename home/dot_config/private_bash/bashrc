@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+# Source global definitions
+if [ -f /etc/bashrc ]; then
+  . /etc/bashrc
+fi
+
+if [[ -f /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]]; then
+  . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+fi
+
+##############################
+# DOTFILES
+##################################
+export DOTFILES_DIR="$HOME/.config/bash"
+export DOTFILES_BIN="$HOME/bin"
+export DOTFILES_FUNCTIONS="$DOTFILES_DIR/functions"
+
+# source all files in the config.d directory and its subdirectories
+while read -d $'\0' file; do
+  source "$file"
+done < <(find $DOTFILES_DIR/conf.d -type f -name "*.bash" -print0)
+
+# load bashrc_local
+[ -f "$DOTFILES_DIR/bashrc_local" ] && source "$DOTFILES_DIR/bashrc_local" || true

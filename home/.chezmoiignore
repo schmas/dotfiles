@@ -1,0 +1,14 @@
+README.md
+docs/
+etc/
+__*
+
+{{ if ne .chezmoi.os "darwin" }}
+bin/macos
+.config/karabiner/assets/complex_modifications
+Library
+{{ end }}
+
+{{ if ne .chezmoi.os "linux" }}
+bin/linux
+{{ end }}
