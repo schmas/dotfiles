@@ -1,2 +1,18 @@
 # Hosts keys are configure by 1password
 Include ~/.ssh/1Password/config
+
+# GitHub
+Host github.com
+	HostName github.com
+	User git
+	IdentityFile ~/.ssh/id_github.pub
+	IdentitiesOnly yes
+
+{{ if eq .is_p_aaa true -}}
+# AAA Bitbucket
+Host bitbucket.org
+	HostName bitbucket.org
+	User git
+	IdentityFile ~/.ssh/id_bitbucket_aaa.pub
+	IdentitiesOnly yes
+{{ end -}}
