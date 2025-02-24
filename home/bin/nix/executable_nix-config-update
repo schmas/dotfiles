@@ -4,6 +4,9 @@ set -e
 set -u
 set -o pipefail
 
+# Set SSH command with reduced timeout (15 seconds)
+export GIT_SSH_COMMAND="ssh -o ConnectTimeout=15 -o ServerAliveInterval=15"
+
 echo -e "\nUpdating nix-config..."
 cd ~/.config/nix-config
 
