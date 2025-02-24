@@ -6,6 +6,7 @@ set -o pipefail
 
 echo -e "\nUpdating nix-config..."
 cd ~/.config/nix-config
+git pull
 nix flake update
 git add -A .
 git commit -m "chore: update nix-config flake lock"
