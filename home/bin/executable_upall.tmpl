@@ -7,6 +7,7 @@ if command -v osupdate >/dev/null 2>&1
     osupdate
 end
 
+{{ if eq .using_nix true -}}
 if test -d ~/.config/nix-config
     echo -e "\nUpdating nix-config..."
     cd ~/.config/nix-config
@@ -17,12 +18,24 @@ if test -d ~/.config/nix-config
     # darwin-rebuild switch --flake ~/.config/nix-config#{$hostname}
     darwin-rebuild switch --flake ~/.config/nix-config#{$hostname}-test
 end
+{{ else -}}
+if type brew >/dev/null 2>&1
+    echo -e "\nUpdating brew..."
+    brewup
+end
+{{ end }}
 
 if command -q mise
     echo -e "\nUpdating mise..."
     # mise self-update --yes
-    mise completion fish >~/.config/fish/completions/mise.fish
     mise up
+    mise completion fish >~/.config/fish/completions/mise.fish
+else
+  if type rustup >/dev/null 2>&1
+      echo -e "\nUpdating rust and cargo deps..."
+      rustup update
+      cargo install-update -a
+  end
 end
 
 if command -q chezmoi
@@ -33,22 +46,6 @@ end
 if functions -q fisher
     echo -e "\nUpdating fisher..."
     fisher update
-end
-
-# if type brew >/dev/null 2>&1
-#     echo -e "\nUpdating brew..."
-#     brewup
-# end
-
-# if type rustup >/dev/null 2>&1
-#     echo -e "\nUpdating rust and cargo deps..."
-#     rustup update
-#     cargo install-update -a
-# end
-
-echo -e "\nOS Update..."
-if command -v osupdate >/dev/null 2>&1
-    osupdate
 end
 
 echo -e "\nUpdating finished..."
