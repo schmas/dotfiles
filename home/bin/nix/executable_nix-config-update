@@ -1,27 +1,25 @@
-#!/usr/bin/env bash
+#!/usr/bin/env fish
 
-set -e
-set -u
-set -o pipefail
 
 # Set SSH command with reduced timeout (15 seconds)
-export GIT_SSH_COMMAND="ssh -o ConnectTimeout=15 -o ServerAliveInterval=15"
+set -x GIT_SSH_COMMAND "ssh -o ConnectTimeout=15 -o ServerAliveInterval=15"
 
-echo -e "\nUpdating nix-config..."
+echo
+echo "Updating nix-config..."
 cd ~/.config/nix-config
 
 # Pull with rebase, accepting remote changes in case of conflicts
-git pull --rebase -X theirs || true
+git pull --rebase -X theirs; or true
 
 nix flake update
 
 # Add all changes and commit only if there are changes
 git add -A .
-git diff --quiet --cached || git commit -m "chore: update nix-config flake lock"
+git diff --quiet --cached; or git commit -m "chore: update nix-config flake lock"
 
 # Push changes if any were made
-git push || true
+git push; or true
 
-# darwin-rebuild switch --flake ~/.config/nix-config#{$hostname}
-darwin-rebuild switch --flake ~/.config/nix-config#$hostname-test
+# Run darwin-rebuild
+darwin-rebuild switch --flake ~/.config/nix-config#(hostname)
 nix profile upgrade --all
