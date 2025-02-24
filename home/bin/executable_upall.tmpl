@@ -9,14 +9,7 @@ end
 
 {{ if eq .using_nix true -}}
 if test -d ~/.config/nix-config
-    echo -e "\nUpdating nix-config..."
-    cd ~/.config/nix-config
-    nix flake update
-    git add -A .
-    git commit -m "chore: update nix-config flake lock"
-    git push
-    # darwin-rebuild switch --flake ~/.config/nix-config#{$hostname}
-    darwin-rebuild switch --flake ~/.config/nix-config#{$hostname}-test
+    nix-config-update
 end
 {{ else -}}
 if type brew >/dev/null 2>&1

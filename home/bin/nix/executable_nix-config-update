@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+set -e
+set -u
+set -o pipefail
+
+echo -e "\nUpdating nix-config..."
+cd ~/.config/nix-config
+nix flake update
+git add -A .
+git commit -m "chore: update nix-config flake lock"
+git push
+# darwin-rebuild switch --flake ~/.config/nix-config#{$hostname}
+darwin-rebuild switch --flake ~/.config/nix-config#$hostname-test
+nix profile upgrade --all

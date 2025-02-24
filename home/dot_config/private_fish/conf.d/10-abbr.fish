@@ -178,9 +178,11 @@ if status is-interactive
     abbr --add cgup 'cargo install-update -a'
 
     # nix
-    abbr --add up-nix-flake 'nix flake update --flake ~/.config/nix-config'
-    abbr --add up-nix-mac 'git -C ~/.config/nix-config pull && darwin-rebuild switch --flake ~/.config/nix-config#{$hostname}'
-    abbr --add up-nix-mac-test 'git -C ~/.config/nix-config pull && darwin-rebuild switch --flake ~/.config/nix-config#{$hostname}-test'
+    abbr --add nix-flake-up 'nix flake update --flake ~/.config/nix-config'
+    abbr --add nix-config-up 'git -C ~/.config/nix-config pull && darwin-rebuild switch --flake ~/.config/nix-config#{$hostname}'
+    abbr --add nix-config-test 'git -C ~/.config/nix-config pull && darwin-rebuild switch --flake ~/.config/nix-config#{$hostname}-test'
+    abbr --add nix-profile-update 'nix profile upgrade --all'
+    abbr --add nix-channel-update 'nix-channel --update'
 
     # misc
     abbr --add cl clear

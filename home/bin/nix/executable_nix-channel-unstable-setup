@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+set -e
+set -u
+set -o pipefail
+
+nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs-unstable
+nix-channel --update nixpkgs-unstable
