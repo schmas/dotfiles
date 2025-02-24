@@ -6,11 +6,19 @@ set -o pipefail
 
 echo -e "\nUpdating nix-config..."
 cd ~/.config/nix-config
-git pull
+
+# Pull with rebase, accepting remote changes in case of conflicts
+git pull --rebase -X theirs || true
+
 nix flake update
+
+# Add all changes and commit only if there are changes
 git add -A .
-git commit -m "chore: update nix-config flake lock"
-git push
+git diff --quiet --cached || git commit -m "chore: update nix-config flake lock"
+
+# Push changes if any were made
+git push || true
+
 # darwin-rebuild switch --flake ~/.config/nix-config#{$hostname}
 darwin-rebuild switch --flake ~/.config/nix-config#$hostname-test
 nix profile upgrade --all
