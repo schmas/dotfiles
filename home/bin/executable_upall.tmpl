@@ -3,7 +3,7 @@
 echo -e "Updating all the things..."
 
 echo -e "\nOS Update..."
-if command -v osupdate >/dev/null 2>&1
+if command -q osupdate
     osupdate
 end
 
@@ -12,7 +12,7 @@ if test -d ~/.config/nix-config
     nix-config-update
 end
 {{ else -}}
-if type brew >/dev/null 2>&1
+if command -q brew
     echo -e "\nUpdating brew..."
     brewup
 end
@@ -23,12 +23,13 @@ if command -q mise
     # mise self-update --yes
     mise up
     mise completion fish >~/.config/fish/completions/mise.fish
-else
-  if type rustup >/dev/null 2>&1
-      echo -e "\nUpdating rust and cargo deps..."
-      rustup update
-      cargo install-update -a
-  end
+end
+
+if command -q rustup
+    echo -e "\nUpdating rust and cargo deps..."
+    rustup self update
+    rustup update
+    cargo install-update -a
 end
 
 if command -q chezmoi
