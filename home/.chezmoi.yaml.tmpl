@@ -6,8 +6,8 @@
 # See https://www.chezmoi.io/docs/reference/#special-files-and-directories
 
 {{- /* Questions */}}
-{{- $profileChoices := list "1-main" "2-ct" "3-aaa-local" "4-server" -}}
-{{- $profile := promptChoice "Profile" $profileChoices -}}
+{{- $profileChoices := list "1-default" "2-server" -}}
+{{- $profile := promptChoice "Profile" $profileChoices "1-default" -}}
 {{- $profile = regexReplaceAll "^\\d-" $profile "" -}}
 
 {{- $using_nix := promptBool "Are you using NIX-CONFIG" true -}}
@@ -17,7 +17,7 @@
 {{- $defaultEditor = regexReplaceAll "^\\d-" $defaultEditor "" -}}
 
 {{- /* Variables */}}
-{{ $is_p_main := eq $profile "main" -}}
+{{ $is_p_default := eq $profile "default" -}}
 {{ $is_p_server := eq $profile "server" -}}
 {{ $is_p_ct := or (eq $profile "ct") -}}
 {{ $is_p_aaa := or (eq $profile "aaa") (eq $profile "aaa-local") -}}
@@ -41,7 +41,7 @@ data:
   os_id_like: {{ $os_id_like | quote }}
   using_nix: {{ $using_nix }}
   profile: {{ $profile | quote }}
-  is_p_main: {{ $is_p_main }}
+  is_p_default: {{ $is_p_default }}
   is_p_server: {{ $is_p_server }}
   is_p_ct: {{ $is_p_ct }}
   is_p_csaa: false
