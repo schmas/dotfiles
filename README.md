@@ -9,5 +9,5 @@ dotfiles
 ## ToDo
 
 - [x] Do the local files (gitconfig), use /config/git
-- [ ] nvim setup (nix)
-- [ ] create upall script and not by shell
+- [x] nvim setup (nix)
+- [x] create upall script and not by shell
