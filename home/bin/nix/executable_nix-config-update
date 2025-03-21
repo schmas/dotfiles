@@ -14,10 +14,10 @@ set -l test_mode false
 
 for arg in $argv
     switch $arg
-        case "-h" "--help"
+        case -h --help
             show_help
             exit 0
-        case "--test"
+        case --test
             set test_mode true
         case "*"
             echo "Unknown option: $arg"
@@ -29,17 +29,21 @@ end
 # Run darwin-rebuild with appropriate hostname suffix
 set -l host_suffix ""
 if test $test_mode = true
-    set host_suffix "-test"
+    set host_suffix -test
     echo -n "Using test configuration for host: "
-    set_color green; echo -n (hostname); set_color yellow; echo " [TEST]"; set_color normal
+    set_color green
+    echo -n (hostname)
+    set_color yellow
+    echo " [TEST]"
+    set_color normal
 else
     echo -n "Using configuration for host: "
-    set_color green; echo (hostname); set_color normal
+    set_color green
+    echo (hostname)
+    set_color normal
 end
 
 echo $host_suffix
-
-exit 0
 
 # Set SSH command with reduced timeout (15 seconds)
 set -x GIT_SSH_COMMAND "ssh -o ConnectTimeout=15 -o ServerAliveInterval=15"
@@ -60,5 +64,5 @@ git diff --quiet --cached; or git commit -m "chore: update nix-config flake lock
 # Push changes if any were made
 git push; or true
 
-# darwin-rebuild switch --flake ~/.config/nix-config#(hostname)$host_suffix
+darwin-rebuild switch --flake ~/.config/nix-config#(hostname)$host_suffix
 nix profile upgrade --all
