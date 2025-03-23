@@ -11,12 +11,14 @@ end
 if test -d ~/.config/nix-config
     nix-config-update
 end
-{{ else -}}
+{{ end }}
+
 if command -q brew
     echo -e "\nUpdating brew..."
-    brewup
+    brew update
+    brew upgrade
+    brew cleanup
 end
-{{ end }}
 
 if command -q mise
     echo -e "\nUpdating mise..."
