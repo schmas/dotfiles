@@ -1,0 +1,9 @@
+# Repo Description
+
+This repository is managed with chezmoi and contains all configuration files (dotfiles) for your development environment. It is the single source of truth for your shell, editor, tool, and application settings, enabling reproducible and portable setups across machines.
+
+## Key features:
+
+Version-controlled dotfiles for fish, bash, zsh, tmux, git, editors, etc.
+All changes are tracked and can be deployed to any compatible system using chezmoi.
+Sensitive data and host-specific configuration can be managed securely with chezmoi’s templating and encryption features.
