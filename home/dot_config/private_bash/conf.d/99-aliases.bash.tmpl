@@ -119,6 +119,40 @@ alias brewup="brew update && brew upgrade && brew cleanup"
 {{  if eq .os_id_like "linux-ubuntu" }}
 # Ubuntu
 alias osupdate="sudo apt update -y && sudo apt upgrade -y && sudo apt autoremove -y && brewup"
+
+###############################
+# Added from Fish abbr (auto)
+###############################
+# ls
+alias lag='la --group-directories-first'
+alias lat='la --tree --level=2'
+alias lagt='la --group-directories-first --tree --level=2'
+# chezmoi
+alias czm='chezmoi'
+alias czmcd='chezmoi cd'
+alias czma='chezmoi apply'
+alias czmadd='chezmoi add'
+alias czmradd='chezmoi re-add'
+alias czmi='chezmoi init'
+alias czmu='chezmoi update'
+alias czmvc='bat ~/.config/chezmoi/chezmoi.yaml '
+# homebrew
+alias bi='brew install '
+alias binfo='brew info'
+alias brews='brew list'
+alias casks='brew list --cask'
+# directories
+alias home='~/'
+alias configd='~/.config/'
+alias locald='~/.local/'
+alias fishd='~/.config/fish'
+alias chezmoid='~/.local/share/chezmoi'
+# IDEs
+alias ij='idea'
+alias ws='webstorm'
+alias rr='rustrover'
+# github cli
+a...
 {{  else if eq .chezmoi.osRelease.idLike "arch" }}
 # Archlinux
 alias update-pacman-mirrors="sudo pacman-mirrors --country Brazil,United_States"

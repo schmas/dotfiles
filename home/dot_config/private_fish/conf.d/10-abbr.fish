@@ -85,6 +85,7 @@ if status is-interactive
     abbr --add gd 'git d'
     abbr --add gs 'git s'
     abbr --add gp 'git push'
+    abbr --add gpl 'git pull'
     abbr --add gpf 'git pf'
     abbr --add gpfr 'git pfr'
     abbr --add gdg 'git del-gone'
