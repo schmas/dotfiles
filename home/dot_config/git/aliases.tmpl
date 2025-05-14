@@ -1,0 +1,74 @@
+[alias]
+# View abbreviated SHA, description, and history graph of the latest 20 commits
+l = log --pretty=oneline -n 20 --graph --abbrev-commit --decorate --all
+lg = log --color --pretty=format:'%C(yellow)%h%Creset -%C(auto)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' -n 20 --graph --abbrev-commit --decorate --all
+
+# View the current working tree status using the short format
+s = status -s
+
+# Show the diff between the latest commit and the current state
+d = !"git diff-index --quiet HEAD -- || clear; git --no-pager diff --patch-with-stat"
+
+# `git di $number` shows the diff between the state `$number` revisions ago and the current state
+di = !"d() { git diff --patch-with-stat HEAD~$1; }; git diff-index --quiet HEAD -- || clear; d"
+
+# Pull in remote changes for the current repository and all its submodules
+p = !"git pull; git submodule foreach git pull origin master"
+
+# Clone a repository including all submodules
+c = clone --recursive
+
+# Commit all changes
+ca = !git add -A && git commit -av
+
+# Revert unstaged and not committed
+r = !"git clean -df; git reset HEAD --hard; git checkout ."
+
+# Switch to a branch, creating it if necessary
+go = "!f() { git checkout -b \"$1\" 2> /dev/null || git checkout \"$1\"; }; f"
+
+# Show verbose output about tags, branches or remotes
+tags = tag -l
+branches = branch -a
+remotes = remote -v
+
+# Amend the currently staged files to the latest commit
+amend = commit --amend --reuse-message=HEAD
+
+# Remove branches that have already been deleted in origin
+# a.k.a. 'delete gone'
+del-gone = !git-delete-gone-branch
+
+# Delete remote and local branch
+del-branch = "!f() { git push --delete origin \"$1\" && git branch -D \"$1\"; }; f"
+
+# Rename branch local and remotely. git rename OLD_BRANCH_NAME NEW_BRANCH_NAME
+rename = "!moveit() { git branch -m $1 $2; git push origin :$1; git push --set-upstream origin $2; }; moveit"
+
+# Full pull
+pull-full = pull --all --tags --prune --progress --verbose
+pf = pull --all --tags --prune --progress --verbose
+pfr = pull --all --tags --prune --progress --verbose --rebase
+
+# Fetch and merge develop branch
+up-merge-develop = !git fetch origin develop:develop --progress --prune && git merge develop
+
+copy-branch-name = "!f() { \
+  branch_name=$(git rev-parse --abbrev-ref HEAD); \
+  if [[ \"$(uname)\" == \"Darwin\" ]]; then \
+    echo \"$branch_name\" | pbcopy; \
+  else \
+    if command -v xclip &> /dev/null; then \
+      echo \"$branch_name\" | xclip -selection clipboard; \
+    elif command -v xsel &> /dev/null; then \
+      echo \"$branch_name\" | xsel --clipboard --input; \
+    else \
+      echo \"No clipboard utility found. Install xclip or xsel.\"; \
+    fi; \
+  fi; \
+}; f"
+
+# *********************
+# difftool
+dft = difftool
+dlog = "-c diff.external=difft log -p --ext-diff"

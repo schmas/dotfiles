@@ -90,6 +90,7 @@ if status is-interactive
     abbr --add gpfr 'git pfr'
     abbr --add gdg 'git del-gone'
     abbr --add gcbn 'git copy-branch-name'
+    abbr --add gumd 'git up-merge-develop'
 
     # Git Tools
     abbr --add lzg lazygit
