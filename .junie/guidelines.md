@@ -71,7 +71,7 @@ chezmoi update --pull
 
 - `home/` - The root directory for all dotfiles
 - `home/.chezmoiscripts/` - Scripts that run after applying dotfiles
-- `home/.config/` - Configuration files for various applications
+- `home/dot_config/` - Configuration files for various applications
 - `home/bin/` - Executable scripts
 
 ### Debugging Tips
@@ -86,6 +86,19 @@ chezmoi update --pull
 2. Test changes with `chezmoi apply --dry-run --verbose`
 3. Apply changes with `chezmoi apply`
 4. Commit and push changes to the repository
+
+### Documentation Maintenance
+
+#### SHELL-REFERENCE.md
+
+The `SHELL-REFERENCE.md` file serves as a comprehensive reference for all aliases, functions, and scripts defined in this repository, organized by shell.
+
+1. **Keep it updated**: Whenever you add, modify, or remove shell aliases, functions, or scripts, make sure to update the `SHELL-REFERENCE.md` file accordingly.
+2. **Follow the existing format**: Maintain the table format for consistency.
+3. **Organize by shell**: Ensure that new entries are added under the appropriate shell section.
+4. **Include descriptions**: Each entry should have a clear description of what it does.
+
+This document is essential for users to discover and understand the available shell commands and functions provided by the dotfiles.
 
 ### Integration with Nix
 

@@ -131,6 +131,7 @@ if status is-interactive
     abbr --add mi 'mvn install'
     abbr --add mt 'mvn test'
     abbr --add mci 'mvn clean install'
+    abbr --add mcist 'mvn clean install -DskipTests'
     abbr --add mcp 'mvn clean package'
     abbr --add mcp 'mvn clean compile'
     abbr --add mct 'mvn clean test'
