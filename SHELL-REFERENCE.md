@@ -91,6 +91,7 @@ execution.
 | `gdg`        | `git del-gone`                | Delete gone branches                 |
 | `gcbn`       | `git copy-branch-name`        | Copy branch name to clipboard        |
 | `gumd`       | `git up-merge-develop`        | Update and merge develop             |
+| `gud`        | `git update-develop`          | Update develop branch without checkout |
 | `lzg`        | `lazygit`                     | Launch lazygit                       |
 
 #### GitHub CLI

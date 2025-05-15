@@ -68,6 +68,9 @@ copy-branch-name = "!f() { \
   fi; \
 }; f"
 
+# Update develop branch without switching to it
+update-develop = !git fetch origin develop:develop --progress --prune
+
 # *********************
 # difftool
 dft = difftool

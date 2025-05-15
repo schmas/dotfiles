@@ -23,7 +23,7 @@ This document provides guidelines for developing and maintaining this dotfiles r
    ```bash
    chezmoi init --apply
    ```
-   
+
    During initialization, you'll be prompted to choose:
    - A profile (default or server)
    - Whether you're using NIX-CONFIG (recommended)
@@ -60,6 +60,30 @@ chezmoi update --pull
 
 - **Fish Scripts**:
   - Follow the [Fish shell style guide](https://fishshell.com/docs/current/style.html)
+
+- **Git Commit Messages**:
+  - Follow the [Conventional Commits](https://www.conventionalcommits.org/) specification
+  - Format: `<type>[optional scope]: <description>`
+  - Common types:
+    - `feat`: A new feature
+    - `fix`: A bug fix
+    - `docs`: Documentation only changes
+    - `style`: Changes that do not affect the meaning of the code (white-space, formatting, etc.)
+    - `refactor`: A code change that neither fixes a bug nor adds a feature
+    - `perf`: A code change that improves performance
+    - `test`: Adding missing tests or correcting existing tests
+    - `chore`: Changes to the build process or auxiliary tools and libraries
+  - Examples:
+    ```
+    feat: add new fish abbreviation for git status
+    fix(git): correct path in gitconfig template
+    docs: update SHELL-REFERENCE.md with new aliases
+    chore: update mise configuration
+    ```
+  - Breaking changes should be indicated by a `!` after the type/scope or by including `BREAKING CHANGE:` in the footer
+    ```
+    feat!: change default shell to fish
+    ```
 
 ### Chezmoi Templates
 
