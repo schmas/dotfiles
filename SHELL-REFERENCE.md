@@ -208,6 +208,7 @@ execution.
 | `nix-config-test`    | `git -C ~/.config/nix-config pull && darwin-rebuild switch --flake ~/.config/nix-config#{$hostname}-test` | Test Nix config    |
 | `nix-profile-update` | `nix profile upgrade --all`                                                                               | Update Nix profile |
 | `nix-channel-update` | `nix-channel --update`                                                                                    | Update Nix channel |
+| `nix-determinate-upgrade` | `sudo determinate-nixd upgrade`                                                                      | Upgrade determinate-nixd |
 
 #### Miscellaneous
 
