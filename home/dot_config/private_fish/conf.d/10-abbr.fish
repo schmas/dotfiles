@@ -183,8 +183,8 @@ if status is-interactive
 
     # nix
     abbr --add nix-flake-up 'nix flake update --flake ~/.config/nix-config'
-    abbr --add nix-config-up 'git -C ~/.config/nix-config pull && darwin-rebuild switch --flake ~/.config/nix-config#{$hostname}'
-    abbr --add nix-config-test 'git -C ~/.config/nix-config pull && darwin-rebuild switch --flake ~/.config/nix-config#{$hostname}-test'
+    abbr --add nix-config-up 'git -C ~/.config/nix-config pull && sudo darwin-rebuild switch --flake ~/.config/nix-config#{$hostname}'
+    abbr --add nix-config-test 'git -C ~/.config/nix-config pull && sudo darwin-rebuild switch --flake ~/.config/nix-config#{$hostname}-test'
     abbr --add nix-profile-update 'nix profile upgrade --all'
     abbr --add nix-channel-update 'nix-channel --update'
     abbr --add nix-determinate-upgrade 'sudo determinate-nixd upgrade'

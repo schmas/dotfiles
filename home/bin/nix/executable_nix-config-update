@@ -64,5 +64,5 @@ git diff --quiet --cached; or git commit -m "chore: update nix-config flake lock
 # Push changes if any were made
 git push; or true
 
-darwin-rebuild switch --flake ~/.config/nix-config#(hostname)$host_suffix
+sudo darwin-rebuild switch --flake ~/.config/nix-config#(hostname)$host_suffix
 nix profile upgrade --all
