@@ -13,7 +13,6 @@ node = "lts"
 rust = "latest"
 sops = "latest"
 usage = "latest"
-zig = "latest"
 
 [settings]
 experimental = true
