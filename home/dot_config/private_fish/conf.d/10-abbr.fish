@@ -196,6 +196,7 @@ if status is-interactive
     abbr --add watch "watch -c"
     abbr --add print-colors-palette 'for i in {0..255}; do print -Pn "%K{$i}  %k%F{$i}${(l:3::0:)i}%f " ${${(M)$((i%6)):#3}:+"\n"}; done'
     abbr --add t 'tail -f'
+    abbr --add sw 'clock-rs -c cyan stopwatch'
 
     #  abbr --add atm neofetch
     #  # abbr --add cls '$DROPBOX/Clients'
