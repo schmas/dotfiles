@@ -20,11 +20,16 @@ fi
 eval "$(sheldon source)"
 
 # Prompt Theme
-if [[ ! "$(command -v starship)" ]]; then
-  print -P "%F{33}▓▒░ %F{220}Installing starship…%f"
-  curl -sS https://starship.rs/install.sh | sh
+# Don't load starship if DISABLE_STARSHIP is 1
+if [[ "$DISABLE_STARSHIP" != "1" ]]; then
+    if [[ ! "$(command -v starship)" ]]; then
+      print -P "%F{33}▓▒░ %F{220}Installing starship…%f"
+      curl -sS https://starship.rs/install.sh | sh
+    fi
+    if command -v starship >/dev/null 2>&1; then
+        eval "$(starship init zsh)"
+    fi
 fi
-eval "$(starship init zsh)"
 
 # plugins additional configs
 

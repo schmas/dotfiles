@@ -1,18 +1,19 @@
 [tools]
 age = "latest"
 bun = "latest"
-"cargo:cargo-update" = "latest"
-"cargo:rust-script" = "latest"
 direnv = "latest"
 java = "corretto-23"
 maven = "3"
 node = "lts"
-"npm:aicommit2" = "latest"
-"npm:prettier" = "latest"
-"npm:@anthropic-ai/claude-code" = "latest"
 rust = "latest"
 sops = "latest"
 usage = "latest"
+"npm:aicommit2" = "latest"
+"npm:prettier" = "latest"
+"npm:@anthropic-ai/claude-code" = "latest"
+"npm:@google/gemini-cli" = "latest"
+"cargo:cargo-update" = "latest"
+"cargo:rust-script" = "latest"
 
 [settings]
 experimental = true
