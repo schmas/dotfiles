@@ -10,7 +10,7 @@
   echo -e "\nMacOs no command to update OS..."
 {{- end }}
 
-{{ if eq .os_id_like "linux-ubuntu" -}}
+{{ if (or (eq .os_id_like "linux-ubuntu") (eq .os_id_like "linux-debian")) -}}
   echo -e "\nUpdating Ubuntu..."
   sudo apt update -y && sudo apt upgrade -y && sudo apt autoremove -y
 {{- end }}
