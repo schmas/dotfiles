@@ -1,34 +1,76 @@
 # Shell Reference
 
-This document provides a comprehensive reference for all aliases, functions, and scripts defined in this dotfiles
-repository, organized by shell.
+This document provides a comprehensive reference for all aliases, functions, and scripts defined in this dotfiles repository. Commands are organized by functionality with shell availability indicated.
+
+## Shell Legend
+
+- **F** = Fish (abbreviations)
+- **B** = Bash (aliases)
+- **Z** = Zsh (aliases)
 
 ## Table of Contents
 
-- [Fish Shell](#fish-shell)
-  - [Abbreviations](#fish-abbreviations)
-  - [Functions](#fish-functions)
-- [Bash Shell](#bash-shell)
-  - [Aliases](#bash-aliases)
-- [Zsh Shell](#zsh-shell)
-  - [Aliases](#zsh-aliases)
-  - [Functions](#zsh-functions)
+- [File System Navigation](#file-system-navigation)
+- [Directory Shortcuts](#directory-shortcuts)
+- [Directory Listing](#directory-listing)
+- [Chezmoi](#chezmoi)
+- [Git](#git)
+- [GitHub CLI](#github-cli)
+- [Docker](#docker)
+- [Package Managers](#package-managers)
+- [Maven](#maven)
+- [Tmux](#tmux)
+- [IDEs](#ides)
+- [Shells](#shells)
+- [Rust/Cargo](#rustcargo)
+- [Nix](#nix)
+- [Miscellaneous](#miscellaneous)
+- [Shell-Specific Functions](#shell-specific-functions)
 - [Scripts](#scripts)
-  - [General Scripts](#general-scripts)
-  - [Git Scripts](#git-scripts)
-  - [GPG Scripts](#gpg-scripts)
 
-## Fish Shell
+## File System Navigation
 
-### Fish Abbreviations
+| Command    | Full Command                                       | Description                                          | Shells |
+| ---------- | -------------------------------------------------- | ---------------------------------------------------- | ------ |
+| `lag`      | `la --group-directories-first`                     | List all files with directories first                | F,B,Z  |
+| `lat`      | `la --tree --level=2`                              | List all files in a tree view with depth 2           | F,B,Z  |
+| `lagt`     | `la --group-directories-first --tree --level=2`    | List all files in a tree view with directories first | F,B,Z  |
+| `cd..`     | `cd ..`                                            | Navigate up one directory                            | B,Z    |
+| `cd...`    | `cd ../..`                                         | Navigate up two directories                          | B,Z    |
+| `cd....`   | `cd ../../..`                                      | Navigate up three directories                        | B,Z    |
+| `cd.....`  | `cd ../../../..`                                   | Navigate up four directories                         | B,Z    |
+| `cd......` | `cd ../../../../..`                                | Navigate up five directories                         | B,Z    |
+| `..`       | `cd ..` (via multicd function in Fish)             | Navigate up one directory                            | F,B,Z  |
+| `...`      | `cd ../..` (via multicd function in Fish)          | Navigate up two directories                          | F,B,Z  |
+| `....`     | `cd ../../..` (via multicd function in Fish)       | Navigate up three directories                        | F,B,Z  |
+| `.....`    | `cd ../../../..` (via multicd function in Fish)    | Navigate up four directories                         | F,B,Z  |
+| `......`   | `cd ../../../../..` (via multicd function in Fish) | Navigate up five directories                         | F,B,Z  |
+| `-`        | `__dircycle_update_cycled +1`                      | Navigate to previous directory in stack              | B,Z    |
+| `+`        | `__dircycle_update_cycled -0`                      | Navigate to next directory in stack                  | B,Z    |
 
-Fish shell uses abbreviations instead of aliases. Abbreviations expand as you type them, showing the full command before
-execution.
+## Directory Shortcuts
+
+| Command    | Path                     | Description                       | Shells |
+| ---------- | ------------------------ | --------------------------------- | ------ |
+| `home`     | `~/`                     | Shortcut to home directory        | F,B,Z  |
+| `configd`  | `~/.config/`             | Shortcut to config directory      | F,B,Z  |
+| `locald`   | `~/.local/`              | Shortcut to local directory       | F,B,Z  |
+| `fishd`    | `~/.config/fish`         | Shortcut to fish config directory | F,B,Z  |
+| `chezmoid` | `~/.local/share/chezmoi` | Shortcut to chezmoi directory     | F,B,Z  |
+
+## Directory Listing
+
+| Command | Full Command | Description                                     | Shells |
+| ------- | ------------ | ----------------------------------------------- | ------ |
+| `lsa`   | `ls -lah`    | List all files with human-readable sizes        | B,Z    |
+| `l`     | `ls -lah`    | List all files with human-readable sizes        | B,Z    |
+| `ll`    | `ls -lah`    | List all files with human-readable sizes        | B,Z    |
+| `la`    | `ls -lAh`    | List almost all files with human-readable sizes | B,Z    |
 
 #### File System Navigation
 
 | Abbreviation | Command                                         | Description                                          |
-|--------------|-------------------------------------------------|------------------------------------------------------|
+| ------------ | ----------------------------------------------- | ---------------------------------------------------- |
 | `lag`        | `la --group-directories-first`                  | List all files with directories first                |
 | `lat`        | `la --tree --level=2`                           | List all files in a tree view with depth 2           |
 | `lagt`       | `la --group-directories-first --tree --level=2` | List all files in a tree view with directories first |
@@ -46,7 +88,7 @@ execution.
 #### Chezmoi
 
 | Abbreviation | Command                              | Description                        |
-|--------------|--------------------------------------|------------------------------------|
+| ------------ | ------------------------------------ | ---------------------------------- |
 | `czm`        | `chezmoi`                            | Shortcut for chezmoi               |
 | `czmcd`      | `chezmoi cd`                         | Change to chezmoi source directory |
 | `czma`       | `chezmoi apply`                      | Apply chezmoi changes              |
@@ -58,46 +100,46 @@ execution.
 
 #### Git
 
-| Abbreviation | Command                       | Description                          |
-|--------------|-------------------------------|--------------------------------------|
-| `g`          | `git`                         | Shortcut for git                     |
-| `gaa`        | `git add -A .`                | Add all changes                      |
-| `gdd`        | `git add -A .`                | Add all changes (alias)              |
-| `gadd`       | `git add -A .`                | Add all changes (alias)              |
-| `gc`         | `git commit`                  | Commit changes                       |
-| `gcm`        | `git commit -m "%"`           | Commit with message (cursor at %)    |
-| `gcmc`       | `git commit -m "chore: %"`    | Commit chore with message            |
-| `gcmr`       | `git commit -m "refactor: %"` | Commit refactor with message         |
-| `gcmf`       | `git commit -m "feat: %"`     | Commit feature with message          |
-| `gcmi`       | `git commit -m "fix: %"`      | Commit fix with message              |
-| `gcmt`       | `git commit -m "test: %"`     | Commit test with message             |
-| `gcma`       | `git commit --amend`          | Amend previous commit                |
-| `gco`        | `git checkout`                | Checkout branch                      |
-| `gcod`       | `git checkout develop`        | Checkout develop branch              |
-| `gcom`       | `git checkout main`           | Checkout main branch                 |
-| `gsw`        | `git switch`                  | Switch branch                        |
-| `gswd`       | `git switch develop`          | Switch to develop branch             |
-| `gswm`       | `git switch main`             | Switch to main branch                |
-| `gmod`       | `git merge origin/develop`    | Merge origin/develop                 |
-| `gmom`       | `git merge origin/main`       | Merge origin/main                    |
-| `grod`       | `git rebase origin/develop`   | Rebase on origin/develop             |
-| `grom`       | `git rebase origin/main`      | Rebase on origin/main                |
-| `gd`         | `git d`                       | Git diff (custom alias)              |
-| `gs`         | `git s`                       | Git status (custom alias)            |
-| `gp`         | `git push`                    | Push changes                         |
-| `gpl`        | `git pull`                    | Pull changes                         |
-| `gpf`        | `git pf`                      | Force push (custom alias)            |
-| `gpfr`       | `git pfr`                     | Force push with lease (custom alias) |
-| `gdg`        | `git del-gone`                | Delete gone branches                 |
-| `gcbn`       | `git copy-branch-name`        | Copy branch name to clipboard        |
-| `gumd`       | `git up-merge-develop`        | Update and merge develop             |
+| Abbreviation | Command                       | Description                            |
+| ------------ | ----------------------------- | -------------------------------------- |
+| `g`          | `git`                         | Shortcut for git                       |
+| `gaa`        | `git add -A .`                | Add all changes                        |
+| `gdd`        | `git add -A .`                | Add all changes (alias)                |
+| `gadd`       | `git add -A .`                | Add all changes (alias)                |
+| `gc`         | `git commit`                  | Commit changes                         |
+| `gcm`        | `git commit -m "%"`           | Commit with message (cursor at %)      |
+| `gcmc`       | `git commit -m "chore: %"`    | Commit chore with message              |
+| `gcmr`       | `git commit -m "refactor: %"` | Commit refactor with message           |
+| `gcmf`       | `git commit -m "feat: %"`     | Commit feature with message            |
+| `gcmi`       | `git commit -m "fix: %"`      | Commit fix with message                |
+| `gcmt`       | `git commit -m "test: %"`     | Commit test with message               |
+| `gcma`       | `git commit --amend`          | Amend previous commit                  |
+| `gco`        | `git checkout`                | Checkout branch                        |
+| `gcod`       | `git checkout develop`        | Checkout develop branch                |
+| `gcom`       | `git checkout main`           | Checkout main branch                   |
+| `gsw`        | `git switch`                  | Switch branch                          |
+| `gswd`       | `git switch develop`          | Switch to develop branch               |
+| `gswm`       | `git switch main`             | Switch to main branch                  |
+| `gmod`       | `git merge origin/develop`    | Merge origin/develop                   |
+| `gmom`       | `git merge origin/main`       | Merge origin/main                      |
+| `grod`       | `git rebase origin/develop`   | Rebase on origin/develop               |
+| `grom`       | `git rebase origin/main`      | Rebase on origin/main                  |
+| `gd`         | `git d`                       | Git diff (custom alias)                |
+| `gs`         | `git s`                       | Git status (custom alias)              |
+| `gp`         | `git push`                    | Push changes                           |
+| `gpl`        | `git pull`                    | Pull changes                           |
+| `gpf`        | `git pf`                      | Force push (custom alias)              |
+| `gpfr`       | `git pfr`                     | Force push with lease (custom alias)   |
+| `gdg`        | `git del-gone`                | Delete gone branches                   |
+| `gcbn`       | `git copy-branch-name`        | Copy branch name to clipboard          |
+| `gumd`       | `git up-merge-develop`        | Update and merge develop               |
 | `gud`        | `git update-develop`          | Update develop branch without checkout |
-| `lzg`        | `lazygit`                     | Launch lazygit                       |
+| `lzg`        | `lazygit`                     | Launch lazygit                         |
 
 #### GitHub CLI
 
 | Abbreviation | Command                                          | Description                           |
-|--------------|--------------------------------------------------|---------------------------------------|
+| ------------ | ------------------------------------------------ | ------------------------------------- |
 | `ghw`        | `gh repo view --web`                             | Open repository in web browser        |
 | `ghpr`       | `gh pr create -a "@me" --fill`                   | Create a PR assigned to yourself      |
 | `ghm`        | `gh pr merge % --merge`                          | Merge PR (cursor at %)                |
@@ -108,14 +150,14 @@ execution.
 #### Docker
 
 | Abbreviation | Command                                  | Description                |
-|--------------|------------------------------------------|----------------------------|
+| ------------ | ---------------------------------------- | -------------------------- |
 | `dspall`     | `docker system prune --all --volumes -f` | Prune all Docker resources |
 | `lzd`        | `lazydocker`                             | Launch lazydocker          |
 
 #### Package Managers
 
 | Abbreviation | Command                             | Description                             |
-|--------------|-------------------------------------|-----------------------------------------|
+| ------------ | ----------------------------------- | --------------------------------------- |
 | `bi`         | `brew install`                      | Install package with Homebrew           |
 | `binfo`      | `brew info`                         | Show package info with Homebrew         |
 | `brews`      | `brew list`                         | List installed Homebrew packages        |
@@ -144,11 +186,12 @@ execution.
 | `nsv`        | `npm show % versions`               | Show npm package versions (cursor at %) |
 | `nrsb`       | `npm run storybook`                 | Run npm storybook script                |
 | `nxsva`      | `npx standard-version --release-as` | Run standard-version                    |
+| `nrd`        | `npm run dev`                       | Run npm dev script                      |
 
 #### Maven
 
 | Abbreviation | Command                          | Description                        |
-|--------------|----------------------------------|------------------------------------|
+| ------------ | -------------------------------- | ---------------------------------- |
 | `mc`         | `mvn clean`                      | Maven clean                        |
 | `mco`        | `mvn compile`                    | Maven compile                      |
 | `mp`         | `mvn package`                    | Maven package                      |
@@ -168,17 +211,17 @@ execution.
 #### Tmux
 
 | Abbreviation | Command                | Description                  |
-|--------------|------------------------|------------------------------|
+| ------------ | ---------------------- | ---------------------------- | -------------------- | -------------------------------------------- |
 | `amux`       | `tmux at -t base`      | Attach to base tmux session  |
 | `tkill`      | `tmux kill-session -t` | Kill tmux session            |
 | `nmux`       | `tmux new -s "base"`   | Create new base tmux session |
-| `stmux`      | `tmux -2 attach        |                              | tmux -2 new-session` | Attach to tmux or create new session |
+| `stmux`      | `tmux -2 attach        |                              | tmux -2 new-session` | Attach to tmux or create new session         |
 | `st`         | `tmux -2 attach        |                              | tmux -2 new-session` | Attach to tmux or create new session (alias) |
 
 #### Shells
 
 | Abbreviation | Command                 | Description          |
-|--------------|-------------------------|----------------------|
+| ------------ | ----------------------- | -------------------- |
 | `usebash`    | `chsh -s $(which bash)` | Switch to bash shell |
 | `usezsh`     | `chsh -s $(which zsh)`  | Switch to zsh shell  |
 | `usefish`    | `chsh -s $(which fish)` | Switch to fish shell |
@@ -186,7 +229,7 @@ execution.
 #### Rust/Cargo
 
 | Abbreviation | Command                   | Description                     |
-|--------------|---------------------------|---------------------------------|
+| ------------ | ------------------------- | ------------------------------- |
 | `rtup`       | `rustup update`           | Update Rust                     |
 | `cgr`        | `cargo run`               | Run Cargo project               |
 | `cgt`        | `cargo test`              | Test Cargo project              |
@@ -201,19 +244,19 @@ execution.
 
 #### Nix
 
-| Abbreviation         | Command                                                                                                   | Description        |
-|----------------------|-----------------------------------------------------------------------------------------------------------|--------------------|
-| `nix-flake-up`       | `nix flake update --flake ~/.config/nix-config`                                                           | Update Nix flake   |
-| `nix-config-up`      | `git -C ~/.config/nix-config pull && sudo darwin-rebuild switch --flake ~/.config/nix-config#{$hostname}`      | Update Nix config  |
-| `nix-config-test`    | `git -C ~/.config/nix-config pull && sudo darwin-rebuild switch --flake ~/.config/nix-config#{$hostname}-test` | Test Nix config    |
-| `nix-profile-update` | `nix profile upgrade --all`                                                                               | Update Nix profile |
-| `nix-channel-update` | `nix-channel --update`                                                                                    | Update Nix channel |
-| `nix-determinate-upgrade` | `sudo determinate-nixd upgrade`                                                                      | Upgrade determinate-nixd |
+| Abbreviation              | Command                                                                                                        | Description              |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| `nix-flake-up`            | `nix flake update --flake ~/.config/nix-config`                                                                | Update Nix flake         |
+| `nix-config-up`           | `git -C ~/.config/nix-config pull && sudo darwin-rebuild switch --flake ~/.config/nix-config#{$hostname}`      | Update Nix config        |
+| `nix-config-test`         | `git -C ~/.config/nix-config pull && sudo darwin-rebuild switch --flake ~/.config/nix-config#{$hostname}-test` | Test Nix config          |
+| `nix-profile-update`      | `nix profile upgrade --all`                                                                                    | Update Nix profile       |
+| `nix-channel-update`      | `nix-channel --update`                                                                                         | Update Nix channel       |
+| `nix-determinate-upgrade` | `sudo determinate-nixd upgrade`                                                                                | Upgrade determinate-nixd |
 
 #### Miscellaneous
 
 | Abbreviation           | Command                                                                                               | Description                 |
-|------------------------|-------------------------------------------------------------------------------------------------------|-----------------------------|
+| ---------------------- | ----------------------------------------------------------------------------------------------------- | --------------------------- | ---------------------- |
 | `cl`                   | `clear`                                                                                               | Clear terminal              |
 | `dup`                  | `du -h --max-depth=1                                                                                  | sort`                       | Show disk usage sorted |
 | `df`                   | `df -h`                                                                                               | Show disk free space        |
@@ -234,7 +277,7 @@ execution.
 ### Fish Functions
 
 | Function                     | Description                                                                        |
-|------------------------------|------------------------------------------------------------------------------------|
+| ---------------------------- | ---------------------------------------------------------------------------------- |
 | `multicd`                    | Converts multiple dots into cd commands with the appropriate number of "../" paths |
 | `multicd2`                   | Similar to multicd but for "cd.." syntax                                           |
 | `yy`                         | Wrapper for the yazi file manager that allows changing the current directory       |
@@ -254,25 +297,25 @@ execution.
 
 #### File System Navigation
 
-| Alias      | Command                      | Description                   |
-|------------|------------------------------|-------------------------------|
-| `cd..`     | `cd ..`                      | Navigate up one directory     |
-| `cd...`    | `cd ../..`                   | Navigate up two directories   |
-| `cd....`   | `cd ../../..`                | Navigate up three directories |
-| `cd.....`  | `cd ../../../..`             | Navigate up four directories  |
-| `cd......` | `cd ../../../../..`          | Navigate up five directories  |
-| `..`       | `cd ..`                      | Navigate up one directory     |
-| `...`      | `cd ../..`                   | Navigate up two directories   |
-| `....`     | `cd ../../..`                | Navigate up three directories |
-| `.....`    | `cd ../../../..`             | Navigate up four directories  |
-| `......`   | `cd ../../../../..`          | Navigate up five directories  |
-| `-`        | `__dircycle_update_cycled +1 |                               | true` | Navigate to previous directory in stack |
-| `+`        | `__dircycle_update_cycled -0 |                               | true` | Navigate to next directory in stack |
+| Alias      | Command                        | Description                   |
+| ---------- | ------------------------------ | ----------------------------- | ----- | --------------------------------------- |
+| `cd..`     | `cd ..`                        | Navigate up one directory     |
+| `cd...`    | `cd ../..`                     | Navigate up two directories   |
+| `cd....`   | `cd ../../..`                  | Navigate up three directories |
+| `cd.....`  | `cd ../../../..`               | Navigate up four directories  |
+| `cd......` | `cd ../../../../..`            | Navigate up five directories  |
+| `..`       | `cd ..`                        | Navigate up one directory     |
+| `...`      | `cd ../..`                     | Navigate up two directories   |
+| `....`     | `cd ../../..`                  | Navigate up three directories |
+| `.....`    | `cd ../../../..`               | Navigate up four directories  |
+| `......`   | `cd ../../../../..`            | Navigate up five directories  |
+| `-`        | `\_\_dircycle_update_cycled +1 |                               | true` | Navigate to previous directory in stack |
+| `+`        | `\_\_dircycle_update_cycled -0 |                               | true` | Navigate to next directory in stack     |
 
 #### Directory Listing
 
 | Alias | Command   | Description                                     |
-|-------|-----------|-------------------------------------------------|
+| ----- | --------- | ----------------------------------------------- |
 | `lsa` | `ls -lah` | List all files with human-readable sizes        |
 | `l`   | `ls -lah` | List all files with human-readable sizes        |
 | `ll`  | `ls -lah` | List all files with human-readable sizes        |
@@ -281,7 +324,7 @@ execution.
 #### Chezmoi
 
 | Alias              | Command                                        | Description                      |
-|--------------------|------------------------------------------------|----------------------------------|
+| ------------------ | ---------------------------------------------- | -------------------------------- |
 | `dotfiles`         | `code ${HOME}/.local/share/chezmoi`            | Open dotfiles in VS Code         |
 | `dotfiles-applied` | `code ${HOME}/.config/dotfiles`                | Open applied dotfiles in VS Code |
 | `upchezmoi-fetch`  | `chezmoi git pull -- --rebase && chezmoi diff` | Update chezmoi and show diff     |
@@ -290,34 +333,40 @@ execution.
 #### Git
 
 | Alias            | Command                                     | Description          |
-|------------------|---------------------------------------------|----------------------|
+| ---------------- | ------------------------------------------- | -------------------- |
 | `bfg`            | `java -jar ${HOME}/bin/git-scripts/bfg.jar` | Run BFG Repo Cleaner |
 | `gpg-kill-agent` | `gpgconf --kill gpg-agent`                  | Kill GPG agent       |
 
 #### Docker
 
 | Alias    | Command                                  | Description                |
-|----------|------------------------------------------|----------------------------|
+| -------- | ---------------------------------------- | -------------------------- |
 | `dspall` | `docker system prune --all --volumes -f` | Prune all Docker resources |
 
 #### Package Managers
 
 | Alias        | Command                                                                                | Description              |
-|--------------|----------------------------------------------------------------------------------------|--------------------------|
+| ------------ | -------------------------------------------------------------------------------------- | ------------------------ |
 | `pipupdate`  | `pip freeze --local \| grep -v '^\-e' \| cut -d = -f 1  \| xargs -n1 pip install -U`   | Update all pip packages  |
 | `pip3update` | `pip3 freeze --local \| grep -v '^\-e' \| cut -d = -f 1  \| xargs -n1 pip3 install -U` | Update all pip3 packages |
+
+#### NPM
+
+| Alias | Command       | Description        |
+| ----- | ------------- | ------------------ |
+| `nrd` | `npm run dev` | Run npm dev script |
 
 #### Tmux
 
 | Alias   | Command                                   | Description                          |
-|---------|-------------------------------------------|--------------------------------------|
+| ------- | ----------------------------------------- | ------------------------------------ |
 | `tm`    | `start_tmux`                              | Start tmux                           |
 | `stmux` | `tmux -2 attach \|\| tmux -2 new-session` | Attach to tmux or create new session |
 
 #### Miscellaneous
 
 | Alias                  | Command                                                                                               | Description                            |
-|------------------------|-------------------------------------------------------------------------------------------------------|----------------------------------------|
+| ---------------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------- |
 | `opsignin`             | `eval $(op signin)`                                                                                   | Sign in to 1Password                   |
 | `asdfupdate`           | `asdf update && asdf plugin update --all && asdf-install-plugins`                                     | Update asdf and all plugins            |
 | `upprecleanup`         | `echo "No cleanup"`                                                                                   | Placeholder for cleanup before updates |
@@ -343,7 +392,7 @@ Zsh includes all the Bash aliases plus the following:
 #### Zsh-specific
 
 | Alias            | Command                                              | Description                         |
-|------------------|------------------------------------------------------|-------------------------------------|
+| ---------------- | ---------------------------------------------------- | ----------------------------------- |
 | `zsh-clean-comp` | `rm -rf ~/.zcompcache ~/.zcompdump*`                 | Clean zsh completion cache          |
 | `upprecleanup`   | `{ zsh-clean-comp \|\| true }`                       | Clean zsh completion before updates |
 | `zsh-speedtest`  | `for i in $(seq 1 10); do time zsh -i -c exit; done` | Test zsh startup speed              |
@@ -352,7 +401,7 @@ Zsh includes all the Bash aliases plus the following:
 ### Zsh Functions
 
 | Function                   | Description                               |
-|----------------------------|-------------------------------------------|
+| -------------------------- | ----------------------------------------- |
 | `__dircycle_update_cycled` | Cycles through the directory stack        |
 | `__sudo`                   | Adds sudo to the beginning of the command |
 | `@shexit`                  | Handles shell exit                        |
@@ -375,7 +424,7 @@ Zsh includes all the Bash aliases plus the following:
 ### General Scripts
 
 | Script                         | Description                           |
-|--------------------------------|---------------------------------------|
+| ------------------------------ | ------------------------------------- |
 | `brewup`                       | Updates Homebrew packages             |
 | `fix-zsh-insecure`             | Fixes zsh insecure directory warnings |
 | `osupdate.tmpl`                | OS-specific update script template    |
@@ -387,7 +436,7 @@ Zsh includes all the Bash aliases plus the following:
 ### Git Scripts
 
 | Script                    | Description                                         |
-|---------------------------|-----------------------------------------------------|
+| ------------------------- | --------------------------------------------------- |
 | `git-amend`               | Amends the previous commit                          |
 | `git-copy-branch-name`    | Copies the current branch name to the clipboard     |
 | `git-delete-gone-branch`  | Deletes branches that no longer exist on the remote |
@@ -399,7 +448,7 @@ Zsh includes all the Bash aliases plus the following:
 ### GPG Scripts
 
 | Script               | Description                       |
-|----------------------|-----------------------------------|
+| -------------------- | --------------------------------- |
 | `gpg-backup`         | Backs up GPG keys                 |
 | `gpg-download-op`    | Downloads GPG keys from 1Password |
 | `gpg-restore-backup` | Restores GPG keys from backup     |

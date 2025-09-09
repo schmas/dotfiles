@@ -6,7 +6,8 @@
 alias opsignin='eval $(op signin)'
 alias asdfupdate="asdf update && asdf plugin update --all && asdf-install-plugins"
 
-alias dotfiles="code ${HOME}/.local/share/chezmoi"
+alias dotfiles="webstorm ${HOME}/.local/share/chezmoi"
+alias dotfilesf="webstorm ${HOME}/.config/fish"
 alias dotfiles-applied="code ${HOME}/.config/dotfiles"
 
 alias upchezmoi-fetch="chezmoi git pull -- --rebase && chezmoi diff"
@@ -22,6 +23,8 @@ alias upall='asdfupdate && upchezmoi && upprecleanup && upzshplugin && osupdate'
 alias print-colors-palette='for i in {0..255}; do print -Pn "%K{$i}  %k%F{$i}${(l:3::0:)i}%f " ${${(M)$((i%6)):#3}:+"\n"}; done'
 # alias vim="nvim"
 alias t='tail -f'
+alias cl='clear'
+alias sw='clock-rs -c cyan stopwatch'
 
 # Sudo Passing aliases: https://wiki.archlinux.org/index.php/Sudo#Passing_aliases
 alias sudo='sudo '
@@ -30,7 +33,11 @@ alias df="df -h"
 alias watch="watch -c "
 
 alias tm="start_tmux"
+alias amux='tmux at -t base'
+alias tkill='tmux kill-session -t'
+alias nmux='tmux new -s "base"'
 alias stmux="tmux -2 attach || tmux -2 new-session"
+alias st="tmux -2 attach || tmux -2 new-session"
 
 if [[ $TMUX ]]; then
   alias clear='clear && tmux clear-history'
@@ -39,7 +46,42 @@ fi
 ###############
 #     GIT     #
 ###############
-# alias g='git'
+alias g='git'
+alias gaa='git add -A .'
+alias gdd='git add -A .'
+alias gadd='git add -A .'
+alias gc='git commit'
+alias gcm='git commit -m'
+alias gcmc='git commit -m "chore:"'
+alias gcmr='git commit -m "refactor:"'
+alias gcmf='git commit -m "feat:"'
+alias gcmi='git commit -m "fix:"'
+alias gcmt='git commit -m "test:"'
+alias gcma='git commit --amend'
+alias gco='git checkout'
+alias gcod='git checkout develop'
+alias gcom='git checkout main'
+alias gsw='git switch'
+alias gswd='git switch develop'
+alias gswm='git switch main'
+alias gmod='git merge origin/develop'
+alias gmom='git merge origin/main'
+alias grod='git rebase origin/develop'
+alias grom='git rebase origin/main'
+alias gd='git d'
+alias gs='git s'
+alias gp='git push'
+alias gpl='git pull'
+alias gpf='git pf'
+alias gpfr='git pfr'
+alias gdg='git del-gone'
+alias gcbn='git copy-branch-name'
+alias gumd='git up-merge-develop'
+alias gud='git update-develop'
+
+# Git Tools
+alias lzg='lazygit'
+
 alias bfg="java -jar ${HOME}/bin/git-scripts/bfg.jar"
 
 alias gpg-kill-agent="gpgconf --kill gpg-agent"
@@ -75,6 +117,7 @@ alias la='ls -lAh'
 #     DOCKER    #
 #################
 alias dspall="docker system prune --all --volumes -f"
+alias lzd='lazydocker'
 
 #################
 #     PIP       #
@@ -92,6 +135,125 @@ alias openports="lsof -i" # lsof -i :8080 for a specific port
 #################
 alias fzfp='fzf --preview "bat --style=numbers --color=always --line-range :500 {}"'
 alias fzftp='fzf-tmux --preview "bat --style=numbers --color=always --line-range :500 {}"'
+
+#################
+#      NPM       #
+#################
+alias ni='npm install'
+alias nis='npm install --save'
+alias nisd='npm install --save-dev'
+alias nr='npm run'
+alias nrs='npm run start'
+alias nrsd='npm run start:dev'
+alias nrt='npm run test'
+alias nrtc='npm run test:coverage'
+alias nrc='npm run coverage'
+alias nrb='npm run build'
+alias nru='npm run update'
+alias nrdd='npm-run-deploy-dev'
+alias nout='npm outdated'
+alias nup='npm update'
+alias nupg='npm upgrade'
+alias nrm='npm uninstall'
+alias npb='npm publish'
+alias npbb='npm publish --tag beta'
+alias nls='npm ls'
+alias nver='npm version'
+alias ncache='npm cache clean --force'
+alias nsv='npm show'
+alias nrsb='npm run storybook'
+alias nxsva='npx standard-version --release-as'
+alias nrd='npm run dev'
+
+#################
+#   HOMEBREW    #
+#################
+alias bi='brew install '
+alias binfo='brew info'
+alias brews='brew list'
+alias casks='brew list --cask'
+
+#################
+# DIRECTORIES   #
+#################
+alias home='~/'
+alias configd='~/.config/'
+alias locald='~/.local/'
+alias fishd='~/.config/fish'
+alias chezmoid='~/.local/share/chezmoi'
+
+#################
+#     IDEs      #
+#################
+alias ij='idea'
+alias ws='webstorm'
+alias rr='rustrover'
+
+#################
+#  GITHUB CLI   #
+#################
+alias ghw='gh repo view --web'
+alias ghpr='gh pr create -a "@me" --fill'
+alias ghm='gh pr merge'
+alias ghr='gh release create'
+alias ghcs='gh copilot suggest'
+alias ghce='gh copilot explain'
+
+#################
+#    MAVEN      #
+#################
+alias mc='mvn clean'
+alias mco='mvn compile'
+alias mp='mvn package'
+alias mi='mvn install'
+alias mt='mvn test'
+alias mci='mvn clean install'
+alias mcist='mvn clean install -DskipTests'
+alias mcp='mvn clean package'
+alias mct='mvn clean test'
+alias mcv='mvn clean verify'
+alias mup='mvn versions:update-properties'
+alias mdu='mvn dependency:unresolve'
+alias msa='mvn spotless:apply'
+alias msc='mvn spotless:check'
+alias msct='mvn spotless:apply clean test'
+
+#################
+#    SHELLS     #
+#################
+alias usebash='chsh -s $(which bash)'
+alias usezsh='chsh -s $(which zsh)'
+alias usefish='chsh -s $(which fish)'
+
+#################
+#  RUST/CARGO   #
+#################
+alias rtup='rustup update'
+alias cgr='cargo run'
+alias cgt='cargo test'
+alias cgb='cargo build'
+alias cgbi='cargo build --release'
+alias cgc='cargo check'
+alias cgu='cargo update'
+alias cgs='cargo search'
+alias cgin='cargo install'
+alias cga='cargo add'
+alias cgup='cargo install-update -a'
+
+#################
+#      NIX      #
+#################
+alias nix-flake-up='nix flake update --flake ~/.config/nix-config'
+alias nix-config-up='git -C ~/.config/nix-config pull && sudo darwin-rebuild switch --flake ~/.config/nix-config#{$hostname}'
+alias nix-config-test='git -C ~/.config/nix-config pull && sudo darwin-rebuild switch --flake ~/.config/nix-config#{$hostname}-test'
+alias nix-profile-update='nix profile upgrade --all'
+alias nix-channel-update='nix-channel --update'
+alias nix-determinate-upgrade='sudo determinate-nixd upgrade'
+
+#################
+#      VIM      #
+#################
+alias vim='lvim'
 
 #########################
 # 1password

@@ -124,6 +124,7 @@ if status is-interactive
     abbr --add nsv --set-cursor 'npm show % versions'
     abbr --add nrsb 'npm run storybook'
     abbr --add nxsva 'npx standard-version --release-as'
+    abbr --add nrd 'npm run dev'
 
     # Maven
     abbr --add mc 'mvn clean'
