@@ -14,6 +14,7 @@ usage = "latest"
 "npm:@google/gemini-cli" = "latest"
 "cargo:cargo-update" = "latest"
 "cargo:rust-script" = "latest"
+go = "latest"
 
 [settings]
 experimental = true
