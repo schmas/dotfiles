@@ -11,10 +11,12 @@ usage = "latest"
 "npm:aicommit2" = "latest"
 "npm:prettier" = "latest"
 "npm:@anthropic-ai/claude-code" = "latest"
-"npm:@google/gemini-cli" = "latest"
 "cargo:cargo-update" = "latest"
 "cargo:rust-script" = "latest"
 go = "latest"
+"npm:@google/gemini-cli" = "latest"
+"npm:rulesync" = "latest"
+"npm:@fission-ai/openspec" = "latest"
 
 [settings]
 experimental = true
