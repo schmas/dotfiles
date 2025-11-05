@@ -5,6 +5,12 @@
 ##########################
 path=(/usr/local/sbin $path)
 
+# Homebrew coreutils gnubin (use GNU tools without 'g' prefix)
+# Only add if directory exists
+if [ -d "/opt/homebrew/opt/coreutils/libexec/gnubin" ]; then
+    path=(/opt/homebrew/opt/coreutils/libexec/gnubin $path)
+fi
+
 ## openssl@1.1 for python #
 #path=(/usr/local/opt/openssl@1.1/bin $path)
 #export LDFLAGS="-L/usr/local/opt/openssl@1.1/lib"
