@@ -57,3 +57,11 @@ if [ ! -f ~/.config/zsh/zshrc_local ]; then
   echo "Creating ~/.config/zsh/zshrc_local"
   cp ~/.config/zsh/zshrc_local.template ~/.config/zsh/zshrc_local
 fi
+
+{{- if eq .chezmoi.os "darwin" }}
+if [ ! -f /Library/LaunchDaemons/limit.maxfiles.plist ]; then
+  echo "Creating /Library/LaunchDaemons/limit.maxfiles.plist"
+  sudo cp ~/.config/etc/limit.maxfiles.plist /Library/LaunchDaemons/limit.maxfiles.plist
+  sudo chmod 644 /Library/LaunchDaemons/limit.maxfiles.plist
+fi
+{{- end }}
