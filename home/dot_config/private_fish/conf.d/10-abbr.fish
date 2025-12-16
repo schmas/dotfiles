@@ -91,7 +91,11 @@ if status is-interactive
     abbr --add gdg 'git del-gone'
     abbr --add gcbn 'git copy-branch-name'
     abbr --add gumd 'git up-merge-develop'
+    abbr --add gumm 'git up-merge-main'
+    abbr --add gumb --set-cursor 'git up-merge-branch %'
     abbr --add gud 'git update-develop'
+    abbr --add gum 'git update-main'
+    abbr --add gub --set-cursor 'git update-branch %'
 
     # Git Tools
     abbr --add lzg lazygit
