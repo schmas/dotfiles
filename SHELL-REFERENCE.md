@@ -289,7 +289,7 @@ This document provides a comprehensive reference for all aliases, functions, and
 | `install-fisher`             | Installs the Fisher package manager for fish                                       |
 | `install-rust`               | Installs Rust                                                                      |
 | `my_fish_setup`              | Sets up fish shell                                                                 |
-| `setup-fifc-fzf`             | Sets up FIFC and FZF integration                                                   |
+| `setup-fzf-completions`      | Sets up FZF completions configuration                                              |
 
 ## Bash Shell
 
