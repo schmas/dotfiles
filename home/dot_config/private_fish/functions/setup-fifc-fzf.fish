@@ -11,4 +11,7 @@ function setup-fifc-fzf
   
   # Always show hidden files/directories (custom fork feature)
   set -U fifc_show_hidden true
+  
+  # Case-insensitive completion matching (custom fork feature)
+  set -U fifc_case_insensitive true
 end
