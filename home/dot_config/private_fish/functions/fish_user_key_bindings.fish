@@ -9,4 +9,12 @@ function fish_user_key_bindings
     # resetting all bindings.
     # The argument specifies the initial mode (insert, "default" or visual).
     fish_vi_key_bindings --no-erase insert
+
+    # Bind fifc (fzf tab completion) for both default and insert modes
+    if functions -q _fifc
+        for mode in default insert
+            bind --mode $mode \t _fifc
+            bind --mode $mode \cx _fifc
+        end
+    end
 end
