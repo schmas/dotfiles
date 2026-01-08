@@ -1,14 +1,14 @@
-function setup-fzf-completions
-  set -Ux fzf_completions_editor nvim
+function setup-fifc-fzf
+  set -Ux fifc_editor nvim
 
   # Bind fzf completions to ctrl-x (uncommented to avoid conflict with carapace)
-  set -U fzf_completions_keybinding \cx
+  set -U fifc_keybinding \cx
 
-  set -U fzf_completions_bat_opts --style=numbers
+  set -U fifc_bat_opts --style=numbers
 
-  # Limit depth to 3 levels for speed, exclude large directories
-  set -U fzf_completions_fd_opts --max-depth 3 --exclude .git --exclude node_modules --exclude .cache --exclude target --exclude build
+  # Limit depth to 3 levels for speed, exclude .git
+  set -U fifc_fd_opts --max-depth 3 --exclude .git
   
-  # Show hidden files/directories but exclude the large ones above
-  set -U fzf_completions_show_hidden true
+  # Always show hidden files/directories (custom fork feature)
+  set -U fifc_show_hidden true
 end
