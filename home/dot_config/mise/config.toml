@@ -18,6 +18,7 @@ go = "latest"
 "npm:rulesync" = "latest"
 "npm:@fission-ai/openspec" = "latest"
 "npm:opencode-ai" = "latest"
+"npm:claudekit-cli" = "latest"
 
 [settings]
 experimental = true
