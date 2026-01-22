@@ -3,127 +3,158 @@
 ![License](https://img.shields.io/github/license/schmas/dotfiles)
 ![Last Commit](https://img.shields.io/github/last-commit/schmas/dotfiles)
 
-> 🏠 Welcome to my personal dotfiles repository! This is where I manage my system configuration and keep my development environment consistent across machines.
+Personal dotfiles repository managed by **chezmoi** for cross-platform shell configuration, development tools, and system setup across macOS and Linux machines.
+
+## Quick Links
+
+- **Getting Started:** [Deployment & Installation Guide](./docs/deployment-guide.md)
+- **Project Overview:** [Project Overview & PDR](./docs/project-overview-pdr.md)
+- **Architecture:** [System Architecture](./docs/system-architecture.md)
+- **Code Standards:** [Development Guidelines](./docs/code-standards.md)
+- **Roadmap:** [Project Roadmap & Status](./docs/project-roadmap.md)
+- **Codebase:** [Codebase Summary](./docs/codebase-summary.md)
+- **Aliases & Functions:** [Shell Reference](SHELL-REFERENCE.md)
 
 ## What are Dotfiles?
 
-Dotfiles are configuration files in Unix-like systems that begin with a dot (.) and control the behavior of various applications and system components. Managing these files in a repository offers several benefits:
+Dotfiles are configuration files in Unix-like systems that begin with a dot (.) and control the behavior of various applications and system components. This repository maintains:
 
-- **Backup and restoration**: Never lose your carefully crafted configurations
-- **Synchronization**: Keep your settings consistent across multiple machines
-- **Version control**: Track changes and revert when needed
-- **Sharing**: Learn from others and share your setup with the community
-- **Automation**: Streamline the setup of new machines
+- **Multi-shell configuration** (Fish, Zsh, Bash) with unified aliases
+- **Terminal environment** (Starship prompt, Tmux, Zellij multiplexers)
+- **Developer tools** (Git with SSH signing, Atuin history, FZF completions)
+- **Editor configurations** (IdeaVim, Zed, LunarVim, Vim)
+- **1Password integration** for secure secrets management
+- **Chezmoi profile system** for per-machine customization
 
 ## Repository Structure
 
-This repository is organized as follows:
-
-- `home/` - The root directory for all dotfiles
-  - `bin/` - Executable scripts and utilities
-  - `.config/` - Configuration files for various applications
-    - `fish/` - Fish shell configuration
-    - `bash/` - Bash shell configuration
-    - `zsh/` - Zsh shell configuration
-    - `git/` - Git configuration
-    - `nvim/` - Neovim configuration
-    - And many more...
-  - `.chezmoiscripts/` - Scripts that run after applying dotfiles
-
-For a comprehensive reference of all aliases, functions, and scripts defined in this repository, see the [Shell Reference](SHELL-REFERENCE.md) document.
-
-## Prerequisites
-
-Before setting up these dotfiles, you'll need:
-
-- [chezmoi](https://www.chezmoi.io/) - The dotfiles manager used by this repository
-- [mise](https://mise.jdx.dev/) - Used for managing development tool versions
-- [Fish shell](https://fishshell.com/) - One of the supported shells
-- [Nix](https://nixos.org/) - Optional but recommended for a consistent environment
-
-## Installation
-
-### Quick Start
-
-> **Optional**: First provision with nix repository: [my nix-config](https://github.com/schmas/nix-config)
-
-```bash
-# Install chezmoi
-sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply schmas
-
-# Or if you prefer to clone first
-git clone https://github.com/schmas/dotfiles.git
-cd dotfiles
-chezmoi init --apply
+```
+home/                          # Chezmoi source root
+├── private_fish/             # Fish shell configuration
+├── private_zsh/              # Zsh shell configuration
+├── private_bash/             # Bash shell configuration
+├── dot_config/               # Application configs
+│   ├── git/, tmux/, zellij/, atuin/, yazi/, lazygit/
+│   ├── starship.toml, mise/, karabiner/, editors/
+│   └── ghostty/, readline, ssh, gpg-agent configs
+├── bin/                       # Custom utility scripts
+├── .chezmoiscripts/           # Installation scripts
+│   ├── 00-run-before/        # Pre-apply setup (1Password)
+│   └── 01-common/            # Post-apply setup (tools)
+└── .chezmoiignore            # OS-specific excludes
 ```
 
-### Setup Process
+For detailed structure, see [Codebase Summary](./docs/codebase-summary.md).
 
-During initialization, you'll be prompted to choose:
-- A profile (default or server)
-- Whether you're using NIX-CONFIG (recommended)
-- Your default editor (nvim, zed, code, or none)
+## Getting Started (5 minutes)
 
-### Post-Installation
-
-After applying the dotfiles, several scripts will run automatically:
-- Sets up mise and installs configured tools
-- Installs Fisher (Fish shell package manager)
-- Installs the Neovim configuration
-
-## Updating Your Dotfiles
-
-To update your dotfiles after making changes to the repository:
+### Quick Install
 
 ```bash
-chezmoi update
+# Initialize and apply in one command
+chezmoi init --apply https://github.com/schmas/dotfiles.git
+
+# Or step-by-step with preview
+chezmoi init https://github.com/schmas/dotfiles.git
+chezmoi apply --dry-run --verbose  # Preview changes
+chezmoi apply                        # Apply configuration
 ```
 
-To pull the latest changes from the repository and apply them:
+### Initial Setup Prompts
+
+During `chezmoi init`, you'll select:
+1. **Profile** - default (full dev setup), server (minimal), ct, or aaa
+2. **Editor** - nvim (default), zed, code, or none
+3. **Nix integration** - yes (recommended) or no
+
+### Post-Apply Setup
+
+Automatic scripts handle:
+- 1Password CLI setup and login
+- Mise tool installation and configuration
+- Fisher (Fish) plugin installation
+- Neovim configuration cloning
+
+For detailed setup instructions, see **[Deployment & Installation Guide](./docs/deployment-guide.md)**
+
+## Key Features
+
+- **Multi-shell support** - Fish, Zsh, Bash with consistent aliases (~230 abbreviations)
+- **1Password integration** - Secure secrets for git signing, SSH, GPG, API tokens
+- **Profile system** - Specialized setups (default, server, ct, aaa)
+- **Modern tools** - Starship prompt, Tmux, Atuin history, FZF completions, Yazi file manager
+- **Version management** - Mise for Node, Python, Go, Java, Rust, and more
+- **Editor setup** - IdeaVim, Zed, LunarVim configurations pre-configured
+- **Cross-platform** - Works on macOS and Linux with OS-specific configurations
+
+## Documentation
+
+Comprehensive documentation organized by topic:
+
+| Document | Purpose |
+|----------|---------|
+| [Deployment Guide](./docs/deployment-guide.md) | Installation, setup, and troubleshooting |
+| [Project Overview](./docs/project-overview-pdr.md) | Goals, features, design principles, PDR |
+| [Code Standards](./docs/code-standards.md) | Naming conventions, templates, patterns |
+| [System Architecture](./docs/system-architecture.md) | Technical design, data flow, plugins |
+| [Project Roadmap](./docs/project-roadmap.md) | Current status, planned improvements |
+| [Codebase Summary](./docs/codebase-summary.md) | File structure, statistics, dependencies |
+| [Shell Reference](SHELL-REFERENCE.md) | All aliases, functions, abbreviations |
+
+## Customization & Maintenance
+
+### Local Customizations (Don't Edit Repo)
+
+Each shell supports local overrides without modifying repo files:
 
 ```bash
-chezmoi update --pull
+# Fish
+~/.config/fish/config_local.fish
+
+# Zsh
+~/.config/zsh/zshrc_local
+
+# Bash
+~/.config/bash/bashrc_local
 ```
 
-## Customization
+### Template System
 
-### Adding Your Own Configurations
+Files with `.tmpl` suffix use Go text/template syntax:
+- Variables: `{{ .profile }}`, `{{ .chezmoi.os }}`
+- Secrets: `{{ onepasswordRead "op://vault/item/field" }}`
+- Conditions: `{{ if eq .chezmoi.os "darwin" }} ... {{ end }}`
 
-1. Make changes to the source files in the repository
-2. Test changes with `chezmoi apply --dry-run --verbose`
-3. Apply changes with `chezmoi apply`
-4. Commit and push changes to the repository
+### Updating Configuration
 
-### Using Templates
+```bash
+# Preview changes
+chezmoi status
 
-This repository uses Chezmoi's templating system:
-- Template files use Go's text/template syntax
-- Variables are defined in `.chezmoi.yaml.tmpl`
-- Use conditional logic to handle different profiles and operating systems
+# Pull latest changes
+chezmoi pull
 
-## Best Practices for Version-Controlling Dotfiles
+# Apply updates
+chezmoi apply
 
-1. **Don't include sensitive information**: Use templates and separate private data
-2. **Document your configurations**: Add comments to explain non-obvious settings
-3. **Use a consistent style**: Follow established style guides for shell scripts
-4. **Test before committing**: Ensure your changes work as expected
-5. **Keep it modular**: Organize configurations by application or purpose
-6. **Regular updates**: Periodically update and clean up your dotfiles
+# Update all tools
+upall
+```
 
-## Integration with Nix
+## Unresolved Questions
 
-This dotfiles repository is designed to work with Nix. If you're using Nix:
+See **[Project Roadmap](./docs/project-roadmap.md)** for:
+- Atuin sync status across machines
+- Zellij vs Tmux multiplexer selection
+- Profile purposes (ct, aaa clarification)
+- Custom plugin fork maintenance strategy
 
-1. Set up the Nix configuration repository: [nix-config](https://github.com/schmas/nix-config)
-2. Choose "Yes" when prompted about using NIX-CONFIG during chezmoi initialization
+## Related Repositories
 
-## Debugging
-
-If you encounter issues:
-
-- Use `chezmoi apply --dry-run --verbose` to see what changes would be made without applying them
-- Check the chezmoi source state: `chezmoi source-path`
-- Inspect the computed template output: `chezmoi execute-template < file.tmpl`
+- **[nix-config](https://github.com/schmas/nix-config)** - NixOS/nix-darwin configuration
+- **[nvim_lazy](https://github.com/schmas/nvim_lazy)** - Neovim lazy.nvim configuration
+- **[fifc](https://github.com/schmas/fifc)** - Custom Fish tab completion fork
+- **[dircolors-neutral](https://github.com/schmas/dircolors-neutral)** - Custom ls colors
 
 ## License
 
