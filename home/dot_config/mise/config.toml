@@ -18,6 +18,7 @@ go = "latest"
 "npm:@fission-ai/openspec" = "latest"
 "npm:opencode-ai" = "latest"
 "npm:claudekit-cli" = "latest"
+"npm:@mixedbread/mgrep" = "latest"
 
 [settings]
 experimental = true
