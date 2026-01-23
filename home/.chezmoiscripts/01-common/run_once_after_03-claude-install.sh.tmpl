@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -e
+set -u
+set -o pipefail
+
+# Check both PATH and direct location (PATH may not be loaded yet in run_once)
+if ! command -v claude >/dev/null 2>&1 && [ ! -x "$HOME/.local/bin/claude" ]; then
+  echo "Installing Claude Code CLI..."
+  if ! curl -fsSL https://claude.ai/install.sh | bash; then
+    echo "Warning: Claude CLI installation failed" >&2
+  fi
+fi

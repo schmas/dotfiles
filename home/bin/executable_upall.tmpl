@@ -1,50 +1,66 @@
-#!/usr/bin/env fish
+#!/usr/bin/env bash
+set -e
 
-echo -e "Updating all the things..."
+echo "Updating all the things..."
 
 # Ask for the administrator password upfront
 sudo -v -p "Enter your sudo password:"
 
-echo -e "\nOS Update..."
-if command -q osupdate
-    osupdate
-end
+# OS Update
+if command -v osupdate >/dev/null 2>&1; then
+  echo -e "\nOS Update..."
+  osupdate
+fi
 
 {{ if eq .using_nix true -}}
-if test -d ~/.config/nix-config
-    nix-config-update
-end
+# Nix config update
+if [ -d ~/.config/nix-config ]; then
+  echo -e "\nUpdating nix-config..."
+  nix-config-update
+fi
 {{ end }}
 
-if command -q brew
-    echo -e "\nUpdating brew..."
-    brew update
-    brew upgrade
-    brew cleanup
-end
+# Brew
+if command -v brew >/dev/null 2>&1; then
+  echo -e "\nUpdating brew..."
+  brew update
+  brew upgrade
+  brew cleanup
+fi
 
-if command -q mise
-    echo -e "\nUpdating mise..."
-    # mise self-update --yes
-    mise up
-    mise completion fish >~/.config/fish/completions/mise.fish
-end
+# Mise
+if command -v mise >/dev/null 2>&1; then
+  echo -e "\nUpdating mise..."
+  mise up
+fi
 
-if command -q rustup
-    echo -e "\nUpdating rust and cargo deps..."
-    rustup self update
-    rustup update
-    cargo install-update -a
-end
+# Rust
+if command -v rustup >/dev/null 2>&1; then
+  echo -e "\nUpdating rust and cargo deps..."
+  rustup self update
+  rustup update
+  cargo install-update -a
+fi
 
-if command -q chezmoi
-    echo -e "\nUpdating chezmoi..."
-    chezmoi update
-end
+# Chezmoi
+if command -v chezmoi >/dev/null 2>&1; then
+  echo -e "\nUpdating chezmoi..."
+  chezmoi update
+fi
 
-if functions -q fisher
-    echo -e "\nUpdating fisher..."
-    fisher update
-end
+# Claude CLI
+if command -v claude >/dev/null 2>&1; then
+  echo -e "\nUpdating claude..."
+  claude update
+elif [ -x "$HOME/.local/bin/claude" ]; then
+  echo -e "\nUpdating claude..."
+  "$HOME/.local/bin/claude" update
+fi
+
+# Fisher (fish only - run if fish is available and fisher is installed)
+if command -v fish >/dev/null 2>&1 && fish -c "functions -q fisher" 2>/dev/null; then
+  echo -e "\nUpdating fisher..."
+  fish -c "fisher update"
+fi
 
 echo -e "\nUpdating finished..."
