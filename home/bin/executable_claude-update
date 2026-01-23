@@ -1,22 +1,32 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "Updating Claude Code configuration..."
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[0;33m'
+NC='\033[0m'
+
+echo -e "${BLUE}Updating Claude Code configuration...${NC}"
+echo
 
 # Pull latest config
 cd ~/.claude
 git pull
+echo
 
 # Update Claude CLI
-echo "Updating Claude CLI..."
+echo -e "${YELLOW}Updating Claude CLI...${NC}"
 claude update
+echo
 
 # Update ClaudeKit
-echo "Updating ClaudeKit..."
+echo -e "${YELLOW}Updating ClaudeKit...${NC}"
 ck update --yes
+echo
 
 # Backup any local changes
-echo "Backing up..."
+echo -e "${YELLOW}Backing up...${NC}"
 claude-backup
+echo
 
-echo "Claude Code updated successfully"
+echo -e "${GREEN}Claude Code updated successfully${NC}"
