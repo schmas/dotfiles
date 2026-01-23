@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "Updating Claude Code configuration..."
+
+# Pull latest config
+cd ~/.claude
+git pull
+
+# Update Claude CLI
+echo "Updating Claude CLI..."
+claude update
+
+# Update ClaudeKit
+echo "Updating ClaudeKit..."
+ck update --yes
+
+# Backup any local changes
+echo "Backing up..."
+claude-backup
+
+echo "Claude Code updated successfully"
