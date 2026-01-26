@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+# Claude & Cursor Project Settings Backup Script
+# Backs up AI-related files (.claude/, .cursor/, CLAUDE.md, etc.) to central location
+# Usage: claude-project-backup
+
+set -euo pipefail
+
+BACKUP_BASE="$HOME/Documents/01.1_Projects/01_AAA_Connect+"
+PROJECTS_BASE="$HOME/projects/work/aaa"
+
+# Predefined AAA projects to backup
+PROJECTS=(
+  "connect-plus-data-migration"
+  "connect-plus-backend"
+  "connect-plus-frontend"
+)
+
+# Files/dirs to backup
+CLAUDE_FILES=(".claude" "CLAUDE.md" "CLAUDE.local.md")
+CURSOR_FILES=(".cursor" ".cursorrules" ".cursorignore")
+
+backup_project() {
+  local project_name="$1"
+  local project_path="$PROJECTS_BASE/$project_name"
+  local backup_dir="$BACKUP_BASE/$project_name"
+  local backed_up=()
+
+  if [[ ! -d "$project_path" ]]; then
+    echo "⚠ Project not found: $project_name"
+    return
+  fi
+
+  mkdir -p "$backup_dir"
+
+  # Backup Claude files
+  for item in "${CLAUDE_FILES[@]}"; do
+    if [[ -d "$project_path/$item" ]]; then
+      rsync -a --delete "$project_path/$item/" "$backup_dir/$item/"
+      backed_up+=("$item/")
+    elif [[ -f "$project_path/$item" ]]; then
+      cp "$project_path/$item" "$backup_dir/$item"
+      backed_up+=("$item")
+    fi
+  done
+
+  # Backup Cursor files
+  for item in "${CURSOR_FILES[@]}"; do
+    if [[ -d "$project_path/$item" ]]; then
+      rsync -a --delete "$project_path/$item/" "$backup_dir/$item/"
+      backed_up+=("$item/")
+    elif [[ -f "$project_path/$item" ]]; then
+      cp "$project_path/$item" "$backup_dir/$item"
+      backed_up+=("$item")
+    fi
+  done
+
+  # Report
+  if [[ ${#backed_up[@]} -eq 0 ]]; then
+    echo "⚪ $project_name: No AI files found"
+  else
+    echo "✓ $project_name: ${backed_up[*]}"
+  fi
+}
+
+echo "Backing up AI settings to: $BACKUP_BASE"
+echo "---"
+
+for project in "${PROJECTS[@]}"; do
+  backup_project "$project"
+done
+
+echo "---"
+echo "Done."
