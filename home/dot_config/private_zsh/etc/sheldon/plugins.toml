@@ -114,10 +114,10 @@ inline = 'if command -v github-copilot-cli &> /dev/null; then eval "$(github-cop
 pre = "npm install -g @githubnext/github-copilot-cli"
 
 #################################################
-# thefuck
+# pay-respects (thefuck replacement)
 #################################################
-[plugins.zsh-thefuck]
-github = "laggardkernel/zsh-thefuck"
+[plugins.pay-respects]
+inline = 'command -v pay-respects &>/dev/null && eval "$(pay-respects zsh)" || true'
 
 #################################################
 # pretty shell plugins
