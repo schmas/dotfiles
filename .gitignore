@@ -456,3 +456,6 @@ cython_debug/
 
 # Claude Code plans and reports
 plans/
+
+# Nix config (managed locally)
+home/dot_config/nix/nix.conf
