@@ -12,8 +12,8 @@ background-opacity = 0.9
 
 # font
 font-family = "MesloLGL Nerd Font Mono"
-#font-family = "JetBrainsMono Nerd Font Mono"
-#font-family = "GeistMono Nerd Font"
+font-family = "JetBrainsMono Nerd Font Mono"
+font-family = "GeistMono Nerd Font"
 font-size = 16
 font-feature = -liga
 font-thicken = true
@@ -58,7 +58,7 @@ keybind = cmd+d=new_split:right
 keybind = cmd+shift+d=new_split:down
 keybind = cmd+[=goto_split:previous
 keybind = cmd+]=goto_split:next
-keybind = cmd+shift+r=rename_tab
+# keybind = cmd+shift+r=rename_tab  # Not a valid Ghostty action
 keybind = cmd+1=goto_tab:1
 keybind = cmd+2=goto_tab:2
 keybind = cmd+3=goto_tab:3
