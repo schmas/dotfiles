@@ -41,8 +41,8 @@ macos-option-as-alt = true
 scrollback-limit = 10000
 
 # copy/paste
-copy-on-select = clipboard
-clipboard-paste-protection = false
+#copy-on-select = clipboard
+#clipboard-paste-protection = false
 
 # window padding
 window-padding-x = 8
