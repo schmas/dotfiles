@@ -4,6 +4,9 @@ function setup-fifc-fzf
   # Bind fzf completions to ctrl-x (uncommented to avoid conflict with carapace)
   set -U fifc_keybinding \cx
 
+  # fzf.fish keybindings: Tab=navigate, Ctrl+Space=toggle (consistent with fifc)
+  set -U fzf_directory_opts --bind='tab:down,shift-tab:up,ctrl-space:toggle'
+
   set -U fifc_bat_opts --style=numbers
 
   # Limit depth to 3 levels for speed, exclude .git
