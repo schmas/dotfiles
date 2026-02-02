@@ -4,8 +4,8 @@ function setup-fifc-fzf
   # Bind fzf completions to ctrl-x (uncommented to avoid conflict with carapace)
   set -U fifc_keybinding \cx
 
-  # fzf.fish keybindings: Tab=navigate, Ctrl+Space=toggle (consistent with fifc)
-  set -U fzf_directory_opts --bind='tab:down,shift-tab:up,ctrl-space:toggle'
+  # Global fzf keybindings: Tab=navigate, Ctrl+Space=toggle (all fzf usage)
+  set -Ux FZF_DEFAULT_OPTS '--bind=tab:down,shift-tab:up,ctrl-space:toggle'
 
   set -U fifc_bat_opts --style=numbers
 
