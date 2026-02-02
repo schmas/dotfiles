@@ -9,8 +9,8 @@ function setup-fifc-fzf
 
   set -U fifc_bat_opts --style=numbers
 
-  # Limit depth to 3 levels for speed, exclude .git
-  set -U fifc_fd_opts --max-depth 3 --exclude .git
+  # Limit depth to 3 levels for speed
+  set -U fifc_fd_opts --max-depth 3
   
   # Always show hidden files/directories (custom fork feature)
   set -U fifc_show_hidden true
