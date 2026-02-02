@@ -4,9 +4,6 @@ function setup-fifc-fzf
   # Bind fzf completions to ctrl-x (uncommented to avoid conflict with carapace)
   set -U fifc_keybinding \cx
 
-  # Multi-select keybinding: ctrl-space to toggle selection (tab navigates list)
-  set -U fifc_multi_keybinding ctrl-space
-
   set -U fifc_bat_opts --style=numbers
 
   # Limit depth to 3 levels for speed, exclude .git
