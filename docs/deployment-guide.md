@@ -219,6 +219,17 @@ atuin login
 atuin sync
 ```
 
+#### Claude Code Setup
+
+```bash
+# Run setup (installs CLI, clones config repo, runs initialization)
+setup-claude-code
+
+# After setup completes, open Claude Code and run:
+/install claude-plugins-official
+/install mgrep
+```
+
 #### GPG Key Setup
 
 ```bash
