@@ -23,6 +23,7 @@ do_backup() {
   # Compress once to temp dir, then copy to all backup locations
   local tmp_dir
   tmp_dir="$(mktemp -d)"
+  echo "Temp dir: $tmp_dir"
 
   echo "Compressing data-integration..."
   tar czf "$tmp_dir/data-integration.tar.gz" \
@@ -44,6 +45,7 @@ do_backup() {
   done
 
   rm -rf "$tmp_dir"
+  echo "Cleaned up: $tmp_dir"
 
   # Backup Claude & Cursor project settings
   echo "Backing up AI project settings..."
