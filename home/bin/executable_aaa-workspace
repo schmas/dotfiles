@@ -4,6 +4,13 @@
 
 set -euo pipefail
 
+# Colors (disabled if not a terminal)
+if [[ -t 1 ]]; then
+  BOLD='\033[1m' DIM='\033[2m' GREEN='\033[32m' RED='\033[31m' YELLOW='\033[33m' CYAN='\033[36m' RESET='\033[0m'
+else
+  BOLD='' DIM='' GREEN='' RED='' YELLOW='' CYAN='' RESET=''
+fi
+
 AAA_DIR="$HOME/projects/work/aaa"
 BACKUP_DIRS=(
   "$HOME/Documents/01.1_Projects/01_AAA_Connect+"
@@ -14,45 +21,52 @@ BB_ORG="aaa-national"
 REPOS=(connect-plus-backend connect-plus-frontend connectsuiteapps)
 
 do_backup() {
+  echo -e "${BOLD}=== AAA Workspace Backup ===${RESET}"
+  echo ""
+
   # Validate sources
   for src in "$AAA_DIR/tools/data-integration" "$AAA_DIR/connect-plus-db"; do
-    [[ ! -d "$src" ]] && { echo "⚠ Error: $src not found"; exit 1; }
+    [[ ! -d "$src" ]] && { echo -e "${RED}⚠ Error: $src not found${RESET}"; exit 1; }
   done
-  [[ ! -f "$AAA_DIR/mise.toml" ]] && { echo "⚠ Error: mise.toml not found"; exit 1; }
+  [[ ! -f "$AAA_DIR/mise.toml" ]] && { echo -e "${RED}⚠ Error: mise.toml not found${RESET}"; exit 1; }
 
   # Compress once to temp dir, then copy to all backup locations
   local tmp_dir
   tmp_dir="$(mktemp -d)"
-  echo "Temp dir: $tmp_dir"
 
-  echo "Compressing data-integration..."
+  echo -e "${CYAN}--- Compressing ---${RESET}"
+  echo -e "${DIM}Temp: $tmp_dir${RESET}"
+  echo "  data-integration..."
   tar czf "$tmp_dir/data-integration.tar.gz" \
     -C "$AAA_DIR/tools" data-integration
-
   # Exclude dumps/ (large DB exports, regenerated locally)
-  echo "Compressing connect-plus-db (excluding dumps/)..."
+  echo "  connect-plus-db (excluding dumps/)..."
   tar czf "$tmp_dir/connect-plus-db.tar.gz" \
     --exclude='dumps' \
     -C "$AAA_DIR" connect-plus-db
 
+  echo ""
+  echo -e "${CYAN}--- Copying to backup locations ---${RESET}"
   for backup_dir in "${BACKUP_DIRS[@]}"; do
-    echo "Copying to: $backup_dir"
     mkdir -p "$backup_dir"
     cp "$tmp_dir/data-integration.tar.gz" "$backup_dir/"
     cp "$tmp_dir/connect-plus-db.tar.gz" "$backup_dir/"
     cp "$AAA_DIR/mise.toml" "$backup_dir/mise.toml"
-    echo "✓ Done: $backup_dir"
+    echo -e "${GREEN}✓${RESET} $backup_dir"
   done
 
   rm -rf "$tmp_dir"
-  echo "Cleaned up: $tmp_dir"
+  echo -e "${DIM}✓ Temp cleaned: $tmp_dir${RESET}"
 
-  # Backup Claude & Cursor project settings
-  echo "Backing up AI project settings..."
+  echo ""
+  echo -e "${CYAN}--- AI project settings ---${RESET}"
   claude-project-backup backup
 }
 
 do_setup() {
+  echo -e "${BOLD}=== AAA Workspace Setup ===${RESET}"
+  echo ""
+
   # Use first available backup dir as restore source
   local restore_dir=""
   for dir in "${BACKUP_DIRS[@]}"; do
@@ -61,54 +75,54 @@ do_setup() {
       break
     fi
   done
-  [[ -z "$restore_dir" ]] && { echo "⚠ Error: No backup directory found"; exit 1; }
+  [[ -z "$restore_dir" ]] && { echo -e "${RED}⚠ Error: No backup directory found${RESET}"; exit 1; }
 
   # Validate backup files exist
   for f in data-integration.tar.gz connect-plus-db.tar.gz mise.toml; do
-    [[ ! -f "$restore_dir/$f" ]] && { echo "⚠ Error: Missing backup file: $restore_dir/$f"; exit 1; }
+    [[ ! -f "$restore_dir/$f" ]] && { echo -e "${RED}⚠ Error: Missing backup file: $restore_dir/$f${RESET}"; exit 1; }
   done
 
-  echo "Restoring from: $restore_dir"
-  echo "This will overwrite existing data in $AAA_DIR."
+  echo "Source: $restore_dir"
+  echo "Target: $AAA_DIR"
+  echo -e "${YELLOW}This will overwrite existing data.${RESET}"
   read -p "Continue? [y/N] " -n 1 -r
   echo ""
   [[ ! $REPLY =~ ^[Yy]$ ]] && { echo "Aborted."; exit 0; }
 
+  echo ""
+  echo -e "${CYAN}--- Cloning repos ---${RESET}"
   mkdir -p "$AAA_DIR/tools"
-
-  # Clone repos (skip if exists)
   for repo in "${REPOS[@]}"; do
     if [[ -d "$AAA_DIR/$repo" ]]; then
-      echo "⚪ Skip clone (exists): $repo"
+      echo -e "${DIM}⚪ Skip (exists): $repo${RESET}"
     else
       echo "  Cloning $repo..."
       if ! git clone "git@$BB_HOST:$BB_ORG/$repo.git" "$AAA_DIR/$repo"; then
-        echo "⚠ Failed to clone $repo (check SSH keys for $BB_HOST)"
+        echo -e "${RED}⚠ Failed to clone $repo (check SSH keys for $BB_HOST)${RESET}"
         exit 1
       fi
     fi
   done
 
-  # Restore from backup
+  echo ""
+  echo -e "${CYAN}--- Restoring data ---${RESET}"
   echo "  Extracting data-integration..."
   tar xzf "$restore_dir/data-integration.tar.gz" -C "$AAA_DIR/tools"
-
   echo "  Extracting connect-plus-db..."
   tar xzf "$restore_dir/connect-plus-db.tar.gz" -C "$AAA_DIR"
-
   echo "  Copying mise.toml..."
   cp "$restore_dir/mise.toml" "$AAA_DIR/mise.toml"
 
-  # Install tools
-  echo "  Running mise install..."
+  echo ""
+  echo -e "${CYAN}--- Installing tools ---${RESET}"
   (cd "$AAA_DIR" && mise install)
 
-  # Restore Claude & Cursor project settings
-  echo "Restoring AI project settings..."
+  echo ""
+  echo -e "${CYAN}--- AI project settings ---${RESET}"
   claude-project-backup restore
 
-  echo "---"
-  echo "✓ Setup complete."
+  echo ""
+  echo -e "${GREEN}✓ Setup complete.${RESET}"
 }
 
 case "${1:-}" in
@@ -121,5 +135,3 @@ case "${1:-}" in
     exit 1
     ;;
 esac
-
-echo "Done."
