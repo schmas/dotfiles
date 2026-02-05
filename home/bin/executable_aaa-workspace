@@ -44,6 +44,20 @@ do_backup() {
   tar czf "$tmp_dir/connect-plus-db.tar.gz" \
     --exclude='dumps' \
     -C "$AAA_DIR" connect-plus-db
+  echo "  git exclude files..."
+  mkdir -p "$tmp_dir/git-excludes"
+  for repo in "${REPOS[@]}"; do
+    local exclude_file="$AAA_DIR/$repo/.git/info/exclude"
+    if [[ -f "$exclude_file" ]]; then
+      cp "$exclude_file" "$tmp_dir/git-excludes/$repo.exclude"
+      echo -e "    ${GREEN}✓${RESET} $repo"
+    else
+      echo -e "    ${DIM}⚪ Skip (no exclude): $repo${RESET}"
+    fi
+  done
+  if ls "$tmp_dir/git-excludes"/*.exclude &>/dev/null; then
+    tar czf "$tmp_dir/git-excludes.tar.gz" -C "$tmp_dir" git-excludes
+  fi
 
   echo ""
   echo -e "${CYAN}--- Copying to backup locations ---${RESET}"
@@ -52,6 +66,7 @@ do_backup() {
     cp "$tmp_dir/data-integration.tar.gz" "$backup_dir/"
     cp "$tmp_dir/connect-plus-db.tar.gz" "$backup_dir/"
     cp "$AAA_DIR/mise.toml" "$backup_dir/mise.toml"
+    [[ -f "$tmp_dir/git-excludes.tar.gz" ]] && cp "$tmp_dir/git-excludes.tar.gz" "$backup_dir/"
     echo -e "${GREEN}✓${RESET} $backup_dir"
   done
 
@@ -112,6 +127,20 @@ do_setup() {
   tar xzf "$restore_dir/connect-plus-db.tar.gz" -C "$AAA_DIR"
   echo "  Copying mise.toml..."
   cp "$restore_dir/mise.toml" "$AAA_DIR/mise.toml"
+  if [[ -f "$restore_dir/git-excludes.tar.gz" ]]; then
+    echo "  Restoring git exclude files..."
+    local ext_dir
+    ext_dir="$(mktemp -d)"
+    tar xzf "$restore_dir/git-excludes.tar.gz" -C "$ext_dir"
+    for repo in "${REPOS[@]}"; do
+      if [[ -f "$ext_dir/git-excludes/$repo.exclude" ]]; then
+        mkdir -p "$AAA_DIR/$repo/.git/info"
+        cp "$ext_dir/git-excludes/$repo.exclude" "$AAA_DIR/$repo/.git/info/exclude"
+        echo -e "    ${GREEN}✓${RESET} $repo"
+      fi
+    done
+    rm -rf "$ext_dir"
+  fi
 
   echo ""
   echo -e "${CYAN}--- Installing tools ---${RESET}"
