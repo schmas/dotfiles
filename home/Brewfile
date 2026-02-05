@@ -5,10 +5,15 @@
 tap "homebrew/bundle"
 tap "homebrew/cask-fonts"
 
+# === Shells ===
+brew "bash"           # Bash 5.x (newer than macOS default)
+brew "fish"           # Friendly interactive shell
+brew "zsh"            # Zsh (newer than macOS default)
+brew "nushell"        # Modern shell
+
 # === Core Shell Tools ===
 brew "atuin"          # Shell history sync
 brew "carapace"       # Multi-shell completion
-brew "nushell"        # Modern shell
 brew "sheldon"        # Shell plugin manager
 brew "starship"       # Cross-shell prompt
 brew "tmux"           # Terminal multiplexer
@@ -91,6 +96,8 @@ brew "1password-cli"  # 1Password CLI
 # === Utilities ===
 brew "chezmoi"        # Dotfiles manager
 brew "mas"            # Mac App Store CLI
+brew "pay-respects"   # Command correction (f to fix)
+brew "reattach-to-user-namespace"  # tmux clipboard fix
 brew "shfmt"          # Shell formatter
 brew "xz"             # Compression
 brew "urlview"        # URL extractor
@@ -99,58 +106,84 @@ brew "dockutil"       # Dock management
 # === macOS Casks ===
 
 # Security & Privacy
-cask "1password"
-cask "gpg-suite-no-mail"
-cask "proton-pass"
-cask "protonvpn"
+cask "1password"                   # Password manager
+cask "gpg-suite-no-mail"           # GPG tools without Mail plugin
+cask "proton-pass"                 # Proton password manager
+cask "protonvpn"                   # Proton VPN client
+# cask "tunnelblick"                 # OpenVPN client
+cask "twingate"                    # Zero-trust network access
 
 # Productivity
-cask "alfred"
-cask "bartender"
-cask "cleanmymac"
-cask "cleanshot"
-cask "doll"
-cask "hammerspoon"
-cask "imageoptim"
-cask "keepingyouawake"
-cask "leader-key"
-cask "logi-options+"
-cask "monitorcontrol"
-cask "neohtop"
-cask "notion"
-cask "notion-calendar"
-cask "obsidian"
-cask "pixelsnap"
-cask "rectangle-pro"
-cask "transnomino"
-cask "clop"
+cask "alfred"                      # Launcher & productivity
+# cask "bartender"                   # Menu bar organizer
+# cask "betterdisplay"               # Display management & dummy displays
+# cask "cleanmymac"                  # System cleaner
+cask "cleanshot"                   # Screenshot tool
+# cask "clop"                        # Image/video/PDF optimizer
+cask "doll"                        # Notification management
+cask "grammarly-desktop"           # Writing assistant
+# cask "hammerspoon"                 # macOS automation
+# cask "imageoptim"                  # Image compression
+# cask "jordanbaird-ice"             # Menu bar manager
+# cask "karabiner-elements"          # Keyboard customizer
+cask "keepingyouawake"             # Prevent sleep
+# cask "keka"                        # Archive utility
+cask "leader-key"                  # Keyboard shortcuts
+# cask "logi-options+"               # Logitech device manager
+# cask "monitorcontrol"              # External display control
+cask "neohtop"                     # System monitor TUI
+cask "notion"                      # Notes & docs
+cask "notion-calendar"             # Calendar app
+cask "numi"                        # Calculator notepad
+cask "obsidian"                    # Markdown notes
+cask "pixelsnap"                   # Measure pixels
+cask "rectangle-pro"               # Window manager
+# cask "transnomino"                 # Batch file renamer
 
 # Development
-cask "ghostty"
-cask "jetbrains-toolbox"
-cask "podman-desktop"
-cask "postman"
-cask "visual-studio-code"
-cask "cursor"
-cask "zed"
+cask "claude"                      # AI assistant
+# cask "codexbar"                    # Menu bar snippets
+cask "cursor"                      # AI code editor
+# cask "dbeaver-community"           # Database management
+cask "ghostty"                     # Terminal emulator
+# cask "gitkraken"                   # Git GUI client
+cask "jetbrains-toolbox"           # JetBrains IDE manager
+cask "podman-desktop"              # Container GUI
+cask "postman"                     # API testing
+cask "visual-studio-code"          # Code editor
+cask "zed"                         # Fast code editor
 
 # Browsers & Communication
-cask "discord"
-cask "google-chrome"
-cask "slack"
-cask "vivaldi"
-cask "zoom"
+cask "brave-browser"               # Privacy-focused browser
+cask "discord"                     # Chat app
+cask "google-chrome"               # Browser
+cask "microsoft-teams"             # Team collaboration
+cask "slack"                       # Team chat
+cask "vivaldi"                     # Browser
+cask "zoom"                        # Video conferencing
 
 # Cloud Storage
-cask "google-drive"
-cask "proton-drive"
-cask "proton-mail"
+cask "google-drive"                # Cloud storage
+cask "proton-drive"                # Encrypted cloud storage
+cask "proton-mail"                 # Encrypted email
 
 # Media
-cask "spotify"
-cask "steam"
-cask "whisky"
-cask "heroic"
+# cask "heroic"                      # Epic/GOG game launcher
+cask "spotify"                     # Music streaming
+cask "steam"                       # Gaming platform
+cask "vlc"                         # Media player
+# cask "whisky"                      # Wine wrapper for macOS
 
 # Virtual Machines
-cask "utm"
+# cask "utm"                         # Virtual machines
+
+# === Mac App Store ===
+mas "1Password for Safari", id: 1569813296
+mas "iStat Menus", id: 6499559693
+mas "Perplexity", id: 6714467650
+mas "Telegram", id: 747648890
+mas "The Unarchiver", id: 425424353
+mas "WhatsApp", id: 310633997
+mas "Windows App", id: 1295203466
+mas "World Clock", id: 956377119
+mas "ZoneShare", id: 6743621581
