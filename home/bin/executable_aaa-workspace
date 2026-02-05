@@ -20,25 +20,28 @@ do_backup() {
   done
   [[ ! -f "$AAA_DIR/mise.toml" ]] && { echo "⚠ Error: mise.toml not found"; exit 1; }
 
+  # Compress once to temp dir, then copy to all backup locations
+  local tmp_dir
+  tmp_dir="$(mktemp -d)"
+  trap 'rm -rf "$tmp_dir"' EXIT
+
+  echo "Compressing data-integration..."
+  tar czf "$tmp_dir/data-integration.tar.gz" \
+    -C "$AAA_DIR/tools" data-integration
+
+  # Exclude dump/ (large DB exports, regenerated locally)
+  echo "Compressing connect-plus-db (excluding dump/)..."
+  tar czf "$tmp_dir/connect-plus-db.tar.gz" \
+    --exclude='dump' \
+    -C "$AAA_DIR" connect-plus-db
+
   for backup_dir in "${BACKUP_DIRS[@]}"; do
-    echo "Backing up to: $backup_dir"
+    echo "Copying to: $backup_dir"
     mkdir -p "$backup_dir"
-
-    # Exclude dump/ (large DB exports, regenerated locally)
-    echo "  Compressing data-integration (excluding dump/)..."
-    tar czf "$backup_dir/data-integration.tar.gz" \
-      --exclude='dump' \
-      -C "$AAA_DIR/tools" data-integration
-
-    echo "  Compressing connect-plus-db..."
-    tar czf "$backup_dir/connect-plus-db.tar.gz" \
-      -C "$AAA_DIR" connect-plus-db
-
-    echo "  Copying mise.toml..."
+    cp "$tmp_dir/data-integration.tar.gz" "$backup_dir/"
+    cp "$tmp_dir/connect-plus-db.tar.gz" "$backup_dir/"
     cp "$AAA_DIR/mise.toml" "$backup_dir/mise.toml"
-
     echo "✓ Done: $backup_dir"
-    echo "---"
   done
 
   # Backup Claude & Cursor project settings
