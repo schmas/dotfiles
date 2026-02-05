@@ -1,8 +1,10 @@
-# Phase 06: Testing and Validation
+# Phase 07: Testing and Validation (Manual)
 
 ## Status: pending
 
 ## Overview
+
+**Note:** This phase is performed manually by the user after implementation phases 01-06 are complete.
 
 Test the migration on fresh environments before merging to main.
 
@@ -34,8 +36,9 @@ brew bundle list --file=home/Brewfile
 
 Using UTM or similar:
 1. Create clean macOS VM
-2. Install only: Xcode CLI tools (`xcode-select --install`)
-3. Run: `sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply schmas --branch feat/nix-to-homebrew-migration`
+2. Run bootstrap: `curl -fsSL https://gist.githubusercontent.com/schmas/a604b0d433a836c5af8a877a3d0f37df/raw/bootstrap-chezmoi.sh | bash`
+3. Sign in to 1Password: `op signin`
+4. Run chezmoi: `sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply schmas --branch feat/nix-to-homebrew-migration`
 4. Verify:
    - Homebrew installed
    - All brew packages installed
