@@ -1,6 +1,6 @@
 # Phase 05: Add Homebrew + Pre-Chezmoi Bootstrap Scripts
 
-## Status: pending
+## Status: completed
 
 ## Overview
 

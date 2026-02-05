@@ -1,69 +1,3 @@
-# Phase 02: Add Brewfile with Packages
-
-## Status: completed
-
-## Overview
-
-Create `Brewfile` containing all packages currently managed by Nix. This provides declarative package management via `brew bundle`.
-
-## Source Analysis
-
-### From packages.nix (CLI tools)
-
-| Category | Packages |
-|----------|----------|
-| core | atuin, carapace, nushell, sheldon, starship, tmux, coreutils, moreutils, findutils, gnused, gnutar, fswatch, fh |
-| tools | bat, eza, fd, fzf, ripgrep, pay-respects, tree-sitter, unar, zoxide |
-| viewers | chafa, ffmpegthumbnailer, poppler, viu |
-| processing | gawk, jq, yq |
-| editors | vim, neovim |
-| dotfiles | chezmoi, mkalias |
-| utils | ast-grep, mas, nixfmt, shfmt, watch, xz, envsubst |
-| vcs | git, git-lfs, gitleaks, gh, lazygit, diff-so-fancy, difftastic |
-| monitoring | btop, neofetch |
-| network | curl, wget, inetutils, dig |
-| dev | mise, usage, python3, nixd |
-| container | podman, podman-tui, podman-compose |
-| security | age, openssl, gnupg, sshpass, pinentry, 1password-cli |
-| packaging | pkg-config, luarocks |
-
-### From packages-darwin.nix
-
-**Brews (already Homebrew):**
-- urlview, openssl, podman, podman-compose, coreutils, moreutils, findutils
-
-**Casks (GUI apps):**
-- 1password, gpg-suite-no-mail, proton-pass, protonvpn, tunnelblick
-- alfred, bartender, cleanmymac, cleanshot, doll, hammerspoon, imageoptim
-- keepingyouawake, leader-key, logi-options+, monitorcontrol, neohtop
-- notion, notion-calendar, obsidian, pixelsnap, rectangle-pro, transnomino, clop
-- ghostty, jetbrains-toolbox, podman-desktop, postman, visual-studio-code, cursor, zed
-- discord, google-chrome, slack, vivaldi, zoom
-- google-drive, proton-drive, proton-mail
-- spotify, steam, whisky, heroic
-- utm
-
-## Package Name Mappings
-
-Some packages have different names in Homebrew:
-
-| Nix Name | Homebrew Name |
-|----------|---------------|
-| gnused | gnu-sed |
-| gnutar | gnu-tar |
-| _1password-cli | 1password-cli |
-| yq-go | yq |
-| pay-respects | pay-respects |
-| unixtools.watch | watch |
-| pinentry-curses | pinentry |
-| pinentry_mac | pinentry-mac |
-| inetutils | inetutils |
-
-## Target File
-
-Create `home/Brewfile`:
-
-```ruby
 # Brewfile - Declarative package management
 # Run: brew bundle --file=~/Brewfile
 
@@ -108,7 +42,7 @@ brew "viu"            # Terminal image viewer
 # === Data Processing ===
 brew "jq"             # JSON processor
 brew "yq"             # YAML processor
-brew "envsubst"       # Environment variable substitution
+brew "gettext"        # GNU gettext (includes envsubst)
 
 # === Editors ===
 brew "vim"
@@ -160,7 +94,6 @@ brew "mas"            # Mac App Store CLI
 brew "shfmt"          # Shell formatter
 brew "xz"             # Compression
 brew "urlview"        # URL extractor
-brew "fh"             # FlakeHub CLI
 brew "dockutil"       # Dock management
 
 # === macOS Casks ===
@@ -170,7 +103,6 @@ cask "1password"
 cask "gpg-suite-no-mail"
 cask "proton-pass"
 cask "protonvpn"
-cask "tunnelblick"
 
 # Productivity
 cask "alfred"
@@ -222,23 +154,3 @@ cask "heroic"
 
 # Virtual Machines
 cask "utm"
-```
-
-## Implementation Steps
-
-1. Create `home/Brewfile` with content above
-2. Verify package names exist in Homebrew: `brew search <name>`
-3. Test locally: `brew bundle check --file=home/Brewfile`
-
-## Notes
-
-- Casks only install on macOS (Homebrew ignores on Linux)
-- `nixfmt` and `nixd` excluded (only needed with Nix)
-- `mkalias` excluded (Nix-specific, mac-app-util replacement)
-- `pay-respects` may need tap or alternative
-
-## Success Criteria
-
-- [ ] Brewfile created at `home/Brewfile`
-- [ ] All package names verified in Homebrew
-- [ ] `brew bundle check` passes (or lists only missing)

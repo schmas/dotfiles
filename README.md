@@ -48,16 +48,23 @@ For detailed structure, see [Codebase Summary](./docs/codebase-summary.md).
 
 ## Getting Started (5 minutes)
 
-### Quick Install
+### Fresh Machine Install (macOS)
 
 ```bash
-# Initialize and apply in one command
-chezmoi init --apply https://github.com/schmas/dotfiles.git
+# Single command - script will pause for 1Password SSH setup, then continue
+curl -fsSL https://gist.githubusercontent.com/schmas/a604b0d433a836c5af8a877a3d0f37df/raw/bootstrap-chezmoi.sh | bash
+```
 
-# Or step-by-step with preview
-chezmoi init https://github.com/schmas/dotfiles.git
-chezmoi apply --dry-run --verbose  # Preview changes
-chezmoi apply                        # Apply configuration
+The script will:
+1. Install Xcode CLI tools, Homebrew, 1Password app + CLI
+2. Open 1Password and wait for you to enable SSH Agent (Settings → Developer)
+3. Verify SSH access to GitHub
+4. Run `chezmoi init --apply` automatically
+
+### Existing Machine (chezmoi already installed)
+
+```bash
+chezmoi init --apply https://github.com/schmas/dotfiles.git
 ```
 
 ### Initial Setup Prompts
@@ -65,15 +72,16 @@ chezmoi apply                        # Apply configuration
 During `chezmoi init`, you'll select:
 1. **Profile** - default (full dev setup), server (minimal), ct, or aaa
 2. **Editor** - nvim (default), zed, code, or none
-3. **Nix integration** - yes (recommended) or no
 
-### Post-Apply Setup
+### What Gets Installed
 
 Automatic scripts handle:
-- 1Password CLI setup and login
-- Mise tool installation and configuration
-- Fisher (Fish) plugin installation
-- Neovim configuration cloning
+- **Homebrew packages** - CLI tools and macOS apps via `~/Brewfile`
+- **macOS defaults** - System preferences, Dock configuration, Touch ID sudo
+- **Linux setup** - Native packages, Homebrew on Linux, WSL integration
+- **1Password CLI** - Setup and account configuration
+- **Mise** - Dev runtime installation (Node, Python, etc.)
+- **Shell plugins** - Fisher (Fish), Sheldon (Zsh/Bash)
 
 For detailed setup instructions, see **[Deployment & Installation Guide](./docs/deployment-guide.md)**
 
@@ -151,10 +159,10 @@ See **[Project Roadmap](./docs/project-roadmap.md)** for:
 
 ## Related Repositories
 
-- **[nix-config](https://github.com/schmas/nix-config)** - NixOS/nix-darwin configuration
 - **[nvim_lazy](https://github.com/schmas/nvim_lazy)** - Neovim lazy.nvim configuration
 - **[fifc](https://github.com/schmas/fifc)** - Custom Fish tab completion fork
 - **[dircolors-neutral](https://github.com/schmas/dircolors-neutral)** - Custom ls colors
+- **[nix-config](https://github.com/schmas/nix-config)** - ⚠️ Deprecated (migrated to Homebrew)
 
 ## License
 
