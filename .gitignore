@@ -455,4 +455,4 @@ cython_debug/
 .idea/
 
 # Claude Code plans and reports
-plans/
+# plans/
