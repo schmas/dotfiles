@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# Setup Claude Code CLI and user configuration
+# Standalone script for manual execution (also embedded in chezmoi run_once script)
+
+set -e
+set -u
+set -o pipefail
+
+CLAUDE_CONFIG_DIR="$HOME/.claude"
+CLAUDE_CONFIG_REPO="git@github.com:schmas/claude-config.git"
+
+# Install Claude Code CLI
+install_claude_code() {
+  if command -v claude >/dev/null 2>&1 || [ -x "$HOME/.local/bin/claude" ]; then
+    echo "Claude Code CLI already installed"
+    return 0
+  fi
+
+  echo "Installing Claude Code CLI..."
+  if ! curl -fsSL https://claude.ai/install.sh | bash; then
+    echo "Error: Claude CLI installation failed" >&2
+    return 1
+  fi
+}
+
+# Setup Claude config repository
+setup_claude_config() {
+  if [ -d "$CLAUDE_CONFIG_DIR" ]; then
+    if [ -d "$CLAUDE_CONFIG_DIR/.git" ]; then
+      echo "Claude config repo exists, pulling latest..."
+      (cd "$CLAUDE_CONFIG_DIR" && git pull --rebase) || echo "Warning: git pull failed, continuing..." >&2
+    else
+      # Directory exists but not a git repo - backup and clone
+      local backup_dir="${CLAUDE_CONFIG_DIR}.backup.$(date +%Y%m%d%H%M%S)"
+      echo "Backing up existing $CLAUDE_CONFIG_DIR to $backup_dir..."
+      mv "$CLAUDE_CONFIG_DIR" "$backup_dir"
+      echo "Cloning claude-config repo..."
+      git clone "$CLAUDE_CONFIG_REPO" "$CLAUDE_CONFIG_DIR"
+    fi
+  else
+    echo "Cloning claude-config repo..."
+    git clone "$CLAUDE_CONFIG_REPO" "$CLAUDE_CONFIG_DIR"
+  fi
+}
+
+# Run setup script from config repo
+run_setup_script() {
+  if [ -x "$CLAUDE_CONFIG_DIR/setup.sh" ]; then
+    echo "Running Claude config setup.sh..."
+    (cd "$CLAUDE_CONFIG_DIR" && ./setup.sh)
+  elif [ -f "$CLAUDE_CONFIG_DIR/setup.sh" ]; then
+    echo "Running Claude config setup.sh..."
+    (cd "$CLAUDE_CONFIG_DIR" && bash setup.sh)
+  else
+    echo "Note: No setup.sh found in claude-config repo"
+  fi
+}
+
+# Display plugin installation instructions
+show_plugin_instructions() {
+  echo ""
+  echo "=== Claude Code Setup Complete ==="
+  echo "To install plugins, open Claude Code and run:"
+  echo "  /install claude-plugins-official"
+  echo "  /install mgrep"
+  echo ""
+}
+
+# Main execution
+main() {
+  echo "=== Claude Code Setup ==="
+  install_claude_code
+  setup_claude_config
+  run_setup_script
+  show_plugin_instructions
+}
+
+main "$@"
