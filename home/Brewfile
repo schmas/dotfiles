@@ -13,7 +13,6 @@ brew "nushell"        # Modern shell
 
 # === Core Shell Tools ===
 brew "atuin"          # Shell history sync
-brew "carapace"       # Multi-shell completion
 brew "sheldon"        # Shell plugin manager
 brew "starship"       # Cross-shell prompt
 brew "tmux"           # Terminal multiplexer
@@ -29,10 +28,12 @@ brew "watch"          # Execute program periodically
 
 # === File Tools ===
 brew "bat"            # Cat with syntax highlighting
+brew "dust"           # Modern du replacement
 brew "eza"            # Modern ls replacement
 brew "fd"             # Modern find replacement
 brew "fzf"            # Fuzzy finder
 brew "ripgrep"        # Fast grep replacement
+brew "sd"             # Modern sed replacement
 brew "tree-sitter"    # Parser generator
 brew "unar"           # Universal archive extractor
 brew "zoxide"         # Smarter cd command
@@ -59,16 +60,17 @@ brew "git-lfs"        # Large file storage
 brew "gitleaks"       # Secret scanner
 brew "gh"             # GitHub CLI
 brew "lazygit"        # Git TUI
+brew "git-delta"      # Git diff viewer
 brew "diff-so-fancy"  # Better git diffs
 brew "difftastic"     # Structural diff
 
 # === Development ===
-brew "mise"           # Dev runtime manager (replaces asdf)
-brew "usage"          # CLI usage parser
-brew "python@3"       # Python 3
-brew "pkg-config"     # Compiler helper
-brew "luarocks"       # Lua package manager
 brew "ast-grep"       # AST-based search
+brew "just"           # Task runner
+brew "luarocks"       # Lua package manager
+brew "mise"           # Dev runtime manager (replaces asdf)
+brew "pkg-config"     # Compiler helper
+brew "tokei"          # Code statistics
 
 # === Containers ===
 brew "podman"         # Container runtime
@@ -77,6 +79,7 @@ brew "podman-compose" # Docker compose for Podman
 # === Monitoring ===
 brew "btop"           # Resource monitor
 brew "neofetch"       # System info
+brew "procs"          # Modern ps replacement
 
 # === Networking ===
 brew "curl"
@@ -85,7 +88,6 @@ brew "inetutils"      # Network utilities
 brew "bind"           # DNS tools (dig)
 
 # === Security ===
-brew "age"            # Modern encryption
 brew "openssl"
 brew "gnupg"          # GPG
 brew "sshpass"        # SSH password auth
@@ -95,6 +97,7 @@ brew "1password-cli"  # 1Password CLI
 
 # === Utilities ===
 brew "chezmoi"        # Dotfiles manager
+brew "hyperfine"      # CLI benchmarking
 brew "mas"            # Mac App Store CLI
 brew "pay-respects"   # Command correction (f to fix)
 brew "reattach-to-user-namespace"  # tmux clipboard fix
