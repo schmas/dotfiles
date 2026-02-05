@@ -1,4 +1,4 @@
-# Phase 07: Documentation and Cleanup
+# Phase 06: Documentation and Cleanup
 
 ## Status: pending
 
@@ -27,7 +27,13 @@ Reflect new package management approach:
 
 New quick start:
 ```bash
-# macOS / Linux / WSL
+# Step 1: Run bootstrap script (public gist - works with private repo)
+curl -fsSL https://gist.githubusercontent.com/schmas/a604b0d433a836c5af8a877a3d0f37df/raw/bootstrap-chezmoi.sh | bash
+
+# Step 2: Sign in to 1Password
+op signin
+
+# Step 3: Apply dotfiles
 sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply schmas
 ```
 
