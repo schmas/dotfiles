@@ -55,7 +55,7 @@ cd ~/.config/nix-config
 # Pull with rebase, accepting remote changes in case of conflicts
 git pull --rebase -X theirs; or true
 
-nix flake update
+nix flake update --debug
 
 # Add all changes and commit only if there are changes
 git add -A .
