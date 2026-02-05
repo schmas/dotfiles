@@ -1,6 +1,6 @@
 # Plan: Migrate from Nix to Homebrew + Chezmoi
 
-## Status: pending
+## Status: in_progress
 
 ## Overview
 
@@ -18,15 +18,15 @@ sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply schmas
 
 ## Phases
 
-| Phase | Description                         | Status  | File                                                    |
-| ----- | ----------------------------------- | ------- | ------------------------------------------------------- |
-| 01    | Create feature branch               | pending | [phase-01](./phase-01-create-feature-branch.md)         |
-| 02    | Add Brewfile with packages          | pending | [phase-02](./phase-02-add-brewfile-with-packages.md)    |
-| 03    | Create macOS defaults script        | pending | [phase-03](./phase-03-create-macos-defaults-script.md)  |
-| 04    | Create Linux/WSL setup script       | pending | [phase-04](./phase-04-create-linux-wsl-setup-script.md) |
-| 05    | Add Homebrew + pre-chezmoi scripts  | pending | [phase-05](./phase-05-add-homebrew-bootstrap-script.md) |
-| 06    | Documentation and cleanup           | pending | [phase-06](./phase-06-documentation-and-cleanup.md)     |
-| 07    | Testing and validation (manual)     | pending | [phase-07](./phase-07-testing-and-validation.md)        |
+| Phase | Description                         | Status    | File                                                    |
+| ----- | ----------------------------------- | --------- | ------------------------------------------------------- |
+| 01    | Create feature branch               | completed | [phase-01](./phase-01-create-feature-branch.md)         |
+| 02    | Add Brewfile with packages          | completed | [phase-02](./phase-02-add-brewfile-with-packages.md)    |
+| 03    | Create macOS defaults script        | completed | [phase-03](./phase-03-create-macos-defaults-script.md)  |
+| 04    | Create Linux/WSL setup script       | completed | [phase-04](./phase-04-create-linux-wsl-setup-script.md) |
+| 05    | Add Homebrew + pre-chezmoi scripts  | completed | [phase-05](./phase-05-add-homebrew-bootstrap-script.md) |
+| 06    | Documentation and cleanup           | completed | [phase-06](./phase-06-documentation-and-cleanup.md)     |
+| 07    | Testing and validation (manual)     | pending   | [phase-07](./phase-07-testing-and-validation.md)        |
 
 ## Migration Summary
 
