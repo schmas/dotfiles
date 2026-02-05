@@ -29,10 +29,10 @@ do_backup() {
   tar czf "$tmp_dir/data-integration.tar.gz" \
     -C "$AAA_DIR/tools" data-integration
 
-  # Exclude dump/ (large DB exports, regenerated locally)
-  echo "Compressing connect-plus-db (excluding dump/)..."
+  # Exclude dumps/ (large DB exports, regenerated locally)
+  echo "Compressing connect-plus-db (excluding dumps/)..."
   tar czf "$tmp_dir/connect-plus-db.tar.gz" \
-    --exclude='dump' \
+    --exclude='dumps' \
     -C "$AAA_DIR" connect-plus-db
 
   for backup_dir in "${BACKUP_DIRS[@]}"; do
