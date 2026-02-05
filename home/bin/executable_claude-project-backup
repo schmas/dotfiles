@@ -18,19 +18,32 @@ PROJECTS=(
 
 AI_FILES=(".claude" "CLAUDE.md" "CLAUDE.local.md" ".cursor" ".cursorrules" ".cursorignore")
 
+RSYNC_EXCLUDES=(
+  ".venv"
+  "__pycache__"
+  "node_modules"
+  ".cache"
+  "*.pyc"
+)
+
 backup_project() {
   local project_name="$1"
   local backup_base="$2"
   local project_path="$PROJECTS_BASE/$project_name"
   local backup_dir="$backup_base/$project_name"
   local items=()
+  local exclude_args=()
+
+  for pattern in "${RSYNC_EXCLUDES[@]}"; do
+    exclude_args+=(--exclude "$pattern")
+  done
 
   [[ ! -d "$project_path" ]] && { echo "⚠ Project not found: $project_name"; return; }
   mkdir -p "$backup_dir"
 
   for item in "${AI_FILES[@]}"; do
     if [[ -d "$project_path/$item" ]]; then
-      rsync -a --delete "$project_path/$item/" "$backup_dir/$item/"
+      rsync -a --delete "${exclude_args[@]}" "$project_path/$item/" "$backup_dir/$item/"
       items+=("$item/")
     elif [[ -f "$project_path/$item" ]]; then
       cp "$project_path/$item" "$backup_dir/$item"
@@ -47,13 +60,18 @@ restore_project() {
   local project_path="$PROJECTS_BASE/$project_name"
   local backup_dir="$backup_base/$project_name"
   local items=()
+  local exclude_args=()
+
+  for pattern in "${RSYNC_EXCLUDES[@]}"; do
+    exclude_args+=(--exclude "$pattern")
+  done
 
   [[ ! -d "$backup_dir" ]] && { echo "⚠ No backup found: $project_name"; return; }
   [[ ! -d "$project_path" ]] && { echo "⚠ Project not found: $project_name"; return; }
 
   for item in "${AI_FILES[@]}"; do
     if [[ -d "$backup_dir/$item" ]]; then
-      rsync -a --delete "$backup_dir/$item/" "$project_path/$item/"
+      rsync -a --delete "${exclude_args[@]}" "$backup_dir/$item/" "$project_path/$item/"
       items+=("$item/")
     elif [[ -f "$backup_dir/$item" ]]; then
       cp "$backup_dir/$item" "$project_path/$item"
