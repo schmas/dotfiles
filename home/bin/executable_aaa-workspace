@@ -40,6 +40,10 @@ do_backup() {
     echo "✓ Done: $backup_dir"
     echo "---"
   done
+
+  # Backup Claude & Cursor project settings
+  echo "Backing up AI project settings..."
+  claude-project-backup backup
 }
 
 do_setup() {
@@ -92,6 +96,10 @@ do_setup() {
   # Install tools
   echo "  Running mise install..."
   (cd "$AAA_DIR" && mise install)
+
+  # Restore Claude & Cursor project settings
+  echo "Restoring AI project settings..."
+  claude-project-backup restore
 
   echo "---"
   echo "✓ Setup complete."
