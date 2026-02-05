@@ -1,12 +1,89 @@
-# Phase 05: Add Homebrew Bootstrap Script
+# Phase 05: Add Homebrew + Pre-Chezmoi Bootstrap Scripts
 
 ## Status: pending
 
 ## Overview
 
-Create a `run_before_` script to install Homebrew before other scripts run. This ensures `brew` is available for package installation.
+Create:
+1. **Standalone bootstrap script** - Run before `chezmoi init` to install prerequisites
+2. **Chezmoi `run_before_` scripts** - Install Homebrew and packages during `chezmoi apply`
 
 ## Target Files
+
+### Standalone Pre-Chezmoi Bootstrap
+
+**Public Gist:** https://gist.github.com/schmas/a604b0d433a836c5af8a877a3d0f37df
+
+Create `bin/bootstrap-chezmoi.sh` (also hosted as public gist for private repo access):
+
+```bash
+#!/usr/bin/env bash
+# Run BEFORE chezmoi init to install required prerequisites
+# Usage: curl -fsSL https://gist.githubusercontent.com/schmas/a604b0d433a836c5af8a877a3d0f37df/raw/bootstrap-chezmoi.sh | bash
+
+set -e
+
+echo "==> Chezmoi Bootstrap Script"
+echo "    Installing prerequisites before chezmoi init..."
+
+OS="$(uname -s)"
+
+# Install Xcode CLI Tools (macOS)
+if [[ "$OS" == "Darwin" ]]; then
+  if ! xcode-select -p &> /dev/null; then
+    echo "==> Installing Xcode Command Line Tools..."
+    xcode-select --install
+    echo "    Waiting for Xcode CLI tools installation..."
+    until xcode-select -p &> /dev/null; do
+      sleep 5
+    done
+  else
+    echo "    Xcode CLI tools already installed"
+  fi
+fi
+
+# Install Homebrew
+if ! command -v brew &> /dev/null; then
+  echo "==> Installing Homebrew..."
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+  # Add to current session
+  if [[ -f "/opt/homebrew/bin/brew" ]]; then
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+  elif [[ -f "/usr/local/bin/brew" ]]; then
+    eval "$(/usr/local/bin/brew shellenv)"
+  elif [[ -f "/home/linuxbrew/.linuxbrew/bin/brew" ]]; then
+    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+  fi
+else
+  echo "    Homebrew already installed"
+fi
+
+# Install 1Password CLI (required for chezmoi secrets)
+if ! command -v op &> /dev/null; then
+  echo "==> Installing 1Password CLI..."
+  if [[ "$OS" == "Darwin" ]]; then
+    brew install --cask 1password-cli
+  else
+    # Linux: use Homebrew version (simpler)
+    brew install 1password-cli
+  fi
+else
+  echo "    1Password CLI already installed"
+fi
+
+echo ""
+echo "==> Prerequisites installed!"
+echo "    Next steps:"
+echo "    1. Sign in to 1Password: op signin"
+echo "    2. Run chezmoi: sh -c \"\$(curl -fsLS get.chezmoi.io)\" -- init --apply schmas"
+echo ""
+```
+
+This script:
+- Installs Xcode CLI tools (macOS only)
+- Installs Homebrew (macOS/Linux)
+- Installs 1Password CLI (required for secrets in templates)
 
 ### macOS Bootstrap
 
@@ -114,9 +191,26 @@ The Brewfile installs tools that other scripts depend on:
 - Using hash in filename for `run_onchange_` would re-run on Brewfile changes
 - `--no-lock` prevents Brewfile.lock creation
 
+## Gist Auto-Sync
+
+The bootstrap script is hosted as a public gist (private repo workaround). Two sync options:
+
+**1. GitHub Action (automatic)**
+- File: `.github/workflows/sync-bootstrap-gist.yml`
+- Triggers on push to `main` when `home/bin/bootstrap-chezmoi.sh` changes
+- Requires `GIST_PAT` secret (PAT with `gist` scope)
+- Create token: https://github.com/settings/tokens/new?scopes=gist
+- Add to repo: Settings → Secrets → Actions → New repository secret
+
+**2. Manual script**
+- Run: `sync-bootstrap-gist.sh` (or `~/bin/sync-bootstrap-gist.sh`)
+- Requires `gh` CLI authenticated
+
 ## Success Criteria
 
-- [ ] Homebrew installs on fresh macOS
+- [ ] `bin/bootstrap-chezmoi.sh` installs Xcode CLI, Homebrew, 1Password CLI
+- [ ] Homebrew installs on fresh macOS via chezmoi scripts
 - [ ] Brewfile packages install before other scripts run
 - [ ] Scripts work on both Intel and Apple Silicon Macs
 - [ ] Linux is handled separately (exits early)
+- [ ] Bootstrap script accessible via public gist URL

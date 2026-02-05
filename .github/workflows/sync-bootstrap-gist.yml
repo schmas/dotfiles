@@ -1,0 +1,29 @@
+# Sync bootstrap-chezmoi.sh to public gist when changed
+# Gist: https://gist.github.com/schmas/a604b0d433a836c5af8a877a3d0f37df
+#
+# Required secret: GIST_PAT (Personal Access Token with 'gist' scope)
+# Create at: https://github.com/settings/tokens/new?scopes=gist
+
+name: Sync Bootstrap Gist
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'home/bin/executable_bootstrap-chezmoi.sh'
+  workflow_dispatch: # Manual trigger
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update gist
+        env:
+          GH_TOKEN: ${{ secrets.GIST_PAT }}
+        run: |
+          gh gist edit a604b0d433a836c5af8a877a3d0f37df \
+            --filename bootstrap-chezmoi.sh \
+            home/bin/executable_bootstrap-chezmoi.sh
+          echo "Gist updated successfully"

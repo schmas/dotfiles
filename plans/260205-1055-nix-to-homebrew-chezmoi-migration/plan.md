@@ -6,34 +6,45 @@
 
 Consolidate system setup from two repos (nix-config + chezmoi) into single chezmoi repo. Replace Nix package management with Homebrew Brewfile. Convert nix-darwin macOS settings to shell scripts.
 
-**Goal:** Single command setup on any platform: `chezmoi init --apply schmas`
+**Goal:** Two-step setup on any platform:
+```bash
+# 1. Bootstrap prerequisites (public gist)
+curl -fsSL https://gist.githubusercontent.com/schmas/a604b0d433a836c5af8a877a3d0f37df/raw/bootstrap-chezmoi.sh | bash
+
+# 2. Sign in to 1Password & apply dotfiles
+op signin
+sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply schmas
+```
 
 ## Phases
 
-| Phase | Description | Status | File |
-|-------|-------------|--------|------|
-| 01 | Create feature branch | pending | [phase-01](./phase-01-create-feature-branch.md) |
-| 02 | Add Brewfile with packages | pending | [phase-02](./phase-02-add-brewfile-with-packages.md) |
-| 03 | Create macOS defaults script | pending | [phase-03](./phase-03-create-macos-defaults-script.md) |
-| 04 | Create Linux/WSL setup script | pending | [phase-04](./phase-04-create-linux-wsl-setup-script.md) |
-| 05 | Add Homebrew bootstrap script | pending | [phase-05](./phase-05-add-homebrew-bootstrap-script.md) |
-| 06 | Testing and validation | pending | [phase-06](./phase-06-testing-and-validation.md) |
-| 07 | Documentation and cleanup | pending | [phase-07](./phase-07-documentation-and-cleanup.md) |
+| Phase | Description                         | Status  | File                                                    |
+| ----- | ----------------------------------- | ------- | ------------------------------------------------------- |
+| 01    | Create feature branch               | pending | [phase-01](./phase-01-create-feature-branch.md)         |
+| 02    | Add Brewfile with packages          | pending | [phase-02](./phase-02-add-brewfile-with-packages.md)    |
+| 03    | Create macOS defaults script        | pending | [phase-03](./phase-03-create-macos-defaults-script.md)  |
+| 04    | Create Linux/WSL setup script       | pending | [phase-04](./phase-04-create-linux-wsl-setup-script.md) |
+| 05    | Add Homebrew + pre-chezmoi scripts  | pending | [phase-05](./phase-05-add-homebrew-bootstrap-script.md) |
+| 06    | Documentation and cleanup           | pending | [phase-06](./phase-06-documentation-and-cleanup.md)     |
+| 07    | Testing and validation (manual)     | pending | [phase-07](./phase-07-testing-and-validation.md)        |
 
 ## Migration Summary
 
-| Source (nix-config) | Target (chezmoi) |
-|---------------------|------------------|
-| `packages.nix` (~60 CLI tools) | `home/Brewfile` brews section |
-| `packages-darwin.nix` casks (~40 GUI apps) | `home/Brewfile` casks section |
-| `settings.nix` (macOS defaults) | `run_once_after_00-darwin-system-defaults.sh.tmpl` |
-| `dock/default.nix` (Dock items) | Part of macOS defaults script |
-| Touch ID sudo | `run_once_after_00-darwin-touch-id-sudo.sh.tmpl` |
-| N/A (new) | `run_once_after_00-linux-system-setup.sh.tmpl` |
+| Source (nix-config)                        | Target (chezmoi)                                   |
+| ------------------------------------------ | -------------------------------------------------- |
+| `packages.nix` (~60 CLI tools)             | `home/Brewfile` brews section                      |
+| `packages-darwin.nix` casks (~40 GUI apps) | `home/Brewfile` casks section                      |
+| `settings.nix` (macOS defaults)            | `run_once_after_00-darwin-system-defaults.sh.tmpl` |
+| `dock/default.nix` (Dock items)            | Part of macOS defaults script                      |
+| Touch ID sudo                              | `run_once_after_00-darwin-touch-id-sudo.sh.tmpl`   |
+| N/A (new)                                  | `run_once_after_00-linux-system-setup.sh.tmpl`     |
 
 ## Target File Structure
 
 ```
+# Standalone pre-chezmoi bootstrap (run before `chezmoi init`)
+bin/bootstrap-chezmoi.sh                        # NEW - Install prerequisites
+
 home/
 ├── Brewfile                                    # All packages (brews + casks)
 ├── .chezmoiscripts/
