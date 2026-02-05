@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+# AAA Connect+ Workspace Backup & Setup Script
+# Usage: aaa-workspace [backup|setup]
+
+set -euo pipefail
+
+AAA_DIR="$HOME/projects/work/aaa"
+BACKUP_DIRS=(
+  "$HOME/Documents/01.1_Projects/01_AAA_Connect+"
+  "$HOME/ProtonDrive/00_Dev/01_AAA_Connect+"
+)
+BB_HOST="bitbucket-aaa"
+BB_ORG="aaa-national"
+REPOS=(connect-plus-backend connect-plus-frontend connectsuiteapps)
+
+do_backup() {
+  # Validate sources
+  for src in "$AAA_DIR/tools/data-integration" "$AAA_DIR/connect-plus-db"; do
+    [[ ! -d "$src" ]] && { echo "⚠ Error: $src not found"; exit 1; }
+  done
+  [[ ! -f "$AAA_DIR/mise.toml" ]] && { echo "⚠ Error: mise.toml not found"; exit 1; }
+
+  for backup_dir in "${BACKUP_DIRS[@]}"; do
+    echo "Backing up to: $backup_dir"
+    mkdir -p "$backup_dir"
+
+    # Exclude dump/ (large DB exports, regenerated locally)
+    echo "  Compressing data-integration (excluding dump/)..."
+    tar czf "$backup_dir/data-integration.tar.gz" \
+      --exclude='dump' \
+      -C "$AAA_DIR/tools" data-integration
+
+    echo "  Compressing connect-plus-db..."
+    tar czf "$backup_dir/connect-plus-db.tar.gz" \
+      -C "$AAA_DIR" connect-plus-db
+
+    echo "  Copying mise.toml..."
+    cp "$AAA_DIR/mise.toml" "$backup_dir/mise.toml"
+
+    echo "✓ Done: $backup_dir"
+    echo "---"
+  done
+}
+
+do_setup() {
+  # Use first available backup dir as restore source
+  local restore_dir=""
+  for dir in "${BACKUP_DIRS[@]}"; do
+    if [[ -d "$dir" ]]; then
+      restore_dir="$dir"
+      break
+    fi
+  done
+  [[ -z "$restore_dir" ]] && { echo "⚠ Error: No backup directory found"; exit 1; }
+
+  # Validate backup files exist
+  for f in data-integration.tar.gz connect-plus-db.tar.gz mise.toml; do
+    [[ ! -f "$restore_dir/$f" ]] && { echo "⚠ Error: Missing backup file: $restore_dir/$f"; exit 1; }
+  done
+
+  echo "Restoring from: $restore_dir"
+  echo "This will overwrite existing data in $AAA_DIR."
+  read -p "Continue? [y/N] " -n 1 -r
+  echo ""
+  [[ ! $REPLY =~ ^[Yy]$ ]] && { echo "Aborted."; exit 0; }
+
+  mkdir -p "$AAA_DIR/tools"
+
+  # Clone repos (skip if exists)
+  for repo in "${REPOS[@]}"; do
+    if [[ -d "$AAA_DIR/$repo" ]]; then
+      echo "⚪ Skip clone (exists): $repo"
+    else
+      echo "  Cloning $repo..."
+      if ! git clone "git@$BB_HOST:$BB_ORG/$repo.git" "$AAA_DIR/$repo"; then
+        echo "⚠ Failed to clone $repo (check SSH keys for $BB_HOST)"
+        exit 1
+      fi
+    fi
+  done
+
+  # Restore from backup
+  echo "  Extracting data-integration..."
+  tar xzf "$restore_dir/data-integration.tar.gz" -C "$AAA_DIR/tools"
+
+  echo "  Extracting connect-plus-db..."
+  tar xzf "$restore_dir/connect-plus-db.tar.gz" -C "$AAA_DIR"
+
+  echo "  Copying mise.toml..."
+  cp "$restore_dir/mise.toml" "$AAA_DIR/mise.toml"
+
+  # Install tools
+  echo "  Running mise install..."
+  (cd "$AAA_DIR" && mise install)
+
+  echo "---"
+  echo "✓ Setup complete."
+}
+
+case "${1:-}" in
+  backup) do_backup ;;
+  setup)  do_setup ;;
+  *)
+    echo "Usage: aaa-workspace [backup|setup]"
+    echo "  backup  Compress & copy workspace data to backup locations"
+    echo "  setup   Clone repos & restore data on a new machine"
+    exit 1
+    ;;
+esac
+
+echo "Done."
