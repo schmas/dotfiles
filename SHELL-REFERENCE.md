@@ -429,6 +429,7 @@ Zsh includes all the Bash aliases plus the following:
 | `fix-zsh-insecure`             | Fixes zsh insecure directory warnings |
 | `osupdate.tmpl`                | OS-specific update script template    |
 | `setup-atuin`                  | Sets up Atuin shell history           |
+| `setup-claude-code`            | Sets up Claude Code CLI & configuration |
 | `setup-dotfiles-repo-url`      | Sets up dotfiles repository URL       |
 | `show-zsh-startup-files-order` | Shows the order of zsh startup files  |
 | `upall.tmpl`                   | Updates everything (template)         |

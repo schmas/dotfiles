@@ -154,7 +154,7 @@ bashrc (sources)
 | **6. Tools** | 70-* | Tool-specific init (Zellij, Starship) | `70-zellij.fish`, `70-starship-init.fish` |
 | **7. Plugins** | 98-* | Plugin manager init | `98-sheldon.zsh`, `98-sheldon.bash` |
 | **8. Aliases** | 99-* | All aliases (always last) | `99-aliases.zsh.tmpl` |
-| **9. Late Load** | zzz-* | Fish post-load | `zzz-97-carapace.fish`, `zzz-98-mise-config.fish` |
+| **9. Late Load** | zzz-* | Fish post-load | `zzz-98-mise-config.fish` |
 
 ### Configuration Phases
 

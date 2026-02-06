@@ -1,68 +1,3 @@
-# Phase 03: Create macOS Defaults Script
-
-## Status: completed
-
-## Overview
-
-Convert nix-darwin `settings.nix` to a chezmoi script that applies macOS system preferences via `defaults write` commands.
-
-## Source Analysis
-
-From `~/.config/nix-config/hosts/common/darwin/settings.nix`:
-
-### NSGlobalDomain (System-wide)
-- Dark mode enabled
-- Scroll bars always visible
-- Disable animations
-- Expand save/print panels by default
-- Disable auto-correct features
-- Fast key repeat (2) and initial delay (15)
-- Function keys as standard
-
-### Dock
-- Autohide enabled
-- No recent apps
-- No launch animation
-- Fast expose animation (0.1)
-- Scale minimize effect
-- Show hidden apps translucent
-- Tile size 64
-- No MRU spaces reordering
-
-### Finder
-- Show all extensions
-- Show POSIX path in title
-- No extension change warning
-- Quit menu enabled
-- List view default
-- Show path/status bar
-- Auto-remove trash after 30 days
-- Search current folder
-- Folders on top
-
-### Trackpad
-- Tap to click
-- Right-click enabled
-
-### Activity Monitor
-- Open main window
-- CPU icon
-- Show all processes
-- Sort by CPU
-
-### Touch ID for sudo
-- Enabled via PAM
-
-### Dock Entries (via dockutil)
-- System Settings, Launchpad, Reminders
-- Ghostty
-- Downloads folder
-
-## Target File
-
-Create `home/.chezmoiscripts/01-common/run_once_after_00-darwin-system-defaults.sh.tmpl`:
-
-```bash
 #!/usr/bin/env bash
 {{ if ne .chezmoi.os "darwin" }}
 # Skip on non-macOS systems
@@ -86,6 +21,10 @@ defaults write NSGlobalDomain AppleShowScrollBars -string "Always"
 # Animations
 defaults write NSGlobalDomain NSUseAnimatedFocusRing -bool false
 defaults write NSGlobalDomain NSWindowResizeTime -float 0.001
+
+# Windows
+defaults write NSGlobalDomain NSShowAppCentricOpenPanelInsteadOfUntitledFile -bool false
+defaults write NSGlobalDomain AppleWindowTabbingMode -string "always"
 
 # Save/Print dialogs
 defaults write NSGlobalDomain NSNavPanelExpandedStateForSaveMode -bool true
@@ -194,62 +133,3 @@ killall SystemUIServer 2>/dev/null || true
 
 echo "macOS defaults applied successfully!"
 echo "Note: Some changes may require logout/restart to take effect."
-```
-
-## Touch ID for sudo
-
-Create separate script `home/.chezmoiscripts/01-common/run_once_after_00-darwin-touch-id-sudo.sh.tmpl`:
-
-```bash
-#!/usr/bin/env bash
-{{ if ne .chezmoi.os "darwin" }}
-exit 0
-{{ end }}
-
-set -e
-
-PAM_FILE="/etc/pam.d/sudo_local"
-
-# Check if Touch ID is already configured
-if [[ -f "$PAM_FILE" ]] && grep -q "pam_tid.so" "$PAM_FILE"; then
-  echo "Touch ID for sudo already configured"
-  exit 0
-fi
-
-echo "Configuring Touch ID for sudo..."
-echo "This requires administrator privileges."
-
-# Create sudo_local if it doesn't exist
-if [[ ! -f "$PAM_FILE" ]]; then
-  sudo bash -c 'cat > /etc/pam.d/sudo_local << EOF
-# sudo_local: local config file which survives system update
-auth       sufficient     pam_tid.so
-EOF'
-  echo "Touch ID for sudo enabled!"
-else
-  echo "sudo_local exists but pam_tid.so not found. Manual configuration may be needed."
-fi
-```
-
-## Implementation Steps
-
-1. Create `run_once_after_00-darwin-system-defaults.sh.tmpl`
-2. Create `run_once_after_00-darwin-touch-id-sudo.sh.tmpl`
-3. Test on current system: `chezmoi apply --dry-run`
-4. Apply and verify settings changed
-
-## Notes
-
-- Scripts use `run_once_after_` prefix - runs once after other files applied
-- Template guards ensure macOS-only execution
-- `killall` commands restart affected apps to apply changes
-- Some settings require logout/restart
-- dockutil section is conditional on dockutil being installed
-
-## Success Criteria
-
-- [ ] Both scripts created in correct location
-- [ ] Scripts only run on macOS (template guard works)
-- [ ] `defaults` commands match nix-darwin settings
-- [ ] Dock items configured correctly
-- [ ] Touch ID sudo works after apply

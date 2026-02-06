@@ -1,0 +1,191 @@
+# Brewfile - Declarative package management
+# Run: brew bundle --file=~/Brewfile
+
+# Taps
+tap "homebrew/bundle"
+tap "homebrew/cask-fonts"
+
+# === Shells ===
+brew "bash"           # Bash 5.x (newer than macOS default)
+brew "fish"           # Friendly interactive shell
+brew "zsh"            # Zsh (newer than macOS default)
+brew "nushell"        # Modern shell
+
+# === Core Shell Tools ===
+brew "atuin"          # Shell history sync
+brew "sheldon"        # Shell plugin manager
+brew "starship"       # Cross-shell prompt
+brew "tmux"           # Terminal multiplexer
+
+# === GNU Utilities ===
+brew "coreutils"      # GNU core utilities
+brew "moreutils"      # Additional Unix utilities
+brew "findutils"      # GNU find, xargs, locate
+brew "gnu-sed"        # GNU sed
+brew "gnu-tar"        # GNU tar
+brew "gawk"           # GNU awk
+brew "watch"          # Execute program periodically
+
+# === File Tools ===
+brew "bat"            # Cat with syntax highlighting
+brew "dust"           # Modern du replacement
+brew "eza"            # Modern ls replacement
+brew "fd"             # Modern find replacement
+brew "fzf"            # Fuzzy finder
+brew "ripgrep"        # Fast grep replacement
+brew "sd"             # Modern sed replacement
+brew "tree-sitter"    # Parser generator
+brew "unar"           # Universal archive extractor
+brew "zoxide"         # Smarter cd command
+brew "fswatch"        # File change monitor
+
+# === Viewers ===
+brew "chafa"          # Terminal image viewer
+brew "ffmpegthumbnailer"  # Video thumbnailer
+brew "poppler"        # PDF utilities
+brew "viu"            # Terminal image viewer
+
+# === Data Processing ===
+brew "jq"             # JSON processor
+brew "yq"             # YAML processor
+brew "gettext"        # GNU gettext (includes envsubst)
+
+# === Editors ===
+brew "vim"
+brew "neovim"
+
+# === Version Control ===
+brew "git"
+brew "git-lfs"        # Large file storage
+brew "gitleaks"       # Secret scanner
+brew "gh"             # GitHub CLI
+brew "lazygit"        # Git TUI
+brew "git-delta"      # Git diff viewer
+brew "diff-so-fancy"  # Better git diffs
+brew "difftastic"     # Structural diff
+
+# === Development ===
+brew "ast-grep"       # AST-based search
+brew "just"           # Task runner
+brew "luarocks"       # Lua package manager
+brew "mise"           # Dev runtime manager (replaces asdf)
+brew "pkg-config"     # Compiler helper
+brew "tokei"          # Code statistics
+
+# === Containers ===
+brew "podman"         # Container runtime
+brew "podman-compose" # Docker compose for Podman
+
+# === Monitoring ===
+brew "btop"           # Resource monitor
+brew "neofetch"       # System info
+brew "procs"          # Modern ps replacement
+
+# === Networking ===
+brew "curl"
+brew "wget"
+brew "inetutils"      # Network utilities
+brew "bind"           # DNS tools (dig)
+
+# === Security ===
+brew "openssl"
+brew "gnupg"          # GPG
+brew "sshpass"        # SSH password auth
+brew "pinentry"       # GPG PIN entry
+brew "pinentry-mac"   # macOS PIN entry
+brew "1password-cli"  # 1Password CLI
+
+# === Utilities ===
+brew "chezmoi"        # Dotfiles manager
+brew "hyperfine"      # CLI benchmarking
+brew "mas"            # Mac App Store CLI
+brew "pay-respects"   # Command correction (f to fix)
+brew "reattach-to-user-namespace"  # tmux clipboard fix
+brew "shfmt"          # Shell formatter
+brew "xz"             # Compression
+brew "urlview"        # URL extractor
+brew "dockutil"       # Dock management
+
+# === macOS Casks ===
+
+# Security & Privacy
+cask "1password"                   # Password manager
+cask "gpg-suite-no-mail"           # GPG tools without Mail plugin
+cask "proton-pass"                 # Proton password manager
+cask "protonvpn"                   # Proton VPN client
+# cask "tunnelblick"                 # OpenVPN client
+cask "twingate"                    # Zero-trust network access
+
+# Productivity
+cask "alfred"                      # Launcher & productivity
+# cask "bartender"                   # Menu bar organizer
+# cask "betterdisplay"               # Display management & dummy displays
+# cask "cleanmymac"                  # System cleaner
+cask "cleanshot"                   # Screenshot tool
+# cask "clop"                        # Image/video/PDF optimizer
+cask "doll"                        # Notification management
+cask "grammarly-desktop"           # Writing assistant
+# cask "hammerspoon"                 # macOS automation
+# cask "imageoptim"                  # Image compression
+# cask "jordanbaird-ice"             # Menu bar manager
+# cask "karabiner-elements"          # Keyboard customizer
+cask "keepingyouawake"             # Prevent sleep
+# cask "keka"                        # Archive utility
+cask "leader-key"                  # Keyboard shortcuts
+# cask "logi-options+"               # Logitech device manager
+# cask "monitorcontrol"              # External display control
+cask "neohtop"                     # System monitor TUI
+cask "notion"                      # Notes & docs
+cask "notion-calendar"             # Calendar app
+cask "numi"                        # Calculator notepad
+cask "obsidian"                    # Markdown notes
+cask "pixelsnap"                   # Measure pixels
+cask "rectangle-pro"               # Window manager
+# cask "transnomino"                 # Batch file renamer
+
+# Development
+cask "claude"                      # AI assistant
+# cask "codexbar"                    # Menu bar snippets
+cask "cursor"                      # AI code editor
+# cask "dbeaver-community"           # Database management
+cask "ghostty"                     # Terminal emulator
+# cask "gitkraken"                   # Git GUI client
+cask "jetbrains-toolbox"           # JetBrains IDE manager
+cask "podman-desktop"              # Container GUI
+cask "postman"                     # API testing
+cask "visual-studio-code"          # Code editor
+cask "zed"                         # Fast code editor
+
+# Browsers & Communication
+cask "brave-browser"               # Privacy-focused browser
+cask "discord"                     # Chat app
+cask "google-chrome"               # Browser
+cask "microsoft-teams"             # Team collaboration
+cask "slack"                       # Team chat
+cask "vivaldi"                     # Browser
+cask "zoom"                        # Video conferencing
+
+# Cloud Storage
+cask "google-drive"                # Cloud storage
+cask "proton-drive"                # Encrypted cloud storage
+cask "proton-mail"                 # Encrypted email
+
+# Media
+# cask "heroic"                      # Epic/GOG game launcher
+cask "spotify"                     # Music streaming
+cask "steam"                       # Gaming platform
+cask "vlc"                         # Media player
+# cask "whisky"                      # Wine wrapper for macOS
+
+# Virtual Machines
+# cask "utm"                         # Virtual machines
+
+# === Mac App Store ===
+mas "1Password for Safari", id: 1569813296
+mas "iStat Menus", id: 6499559693
+mas "Telegram", id: 747648890
+mas "The Unarchiver", id: 425424353
+mas "WhatsApp", id: 310633997
+mas "Windows App", id: 1295203466
+mas "World Clock", id: 956377119
+mas "ZoneShare", id: 6743621581

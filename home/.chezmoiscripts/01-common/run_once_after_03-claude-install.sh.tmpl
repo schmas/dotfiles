@@ -10,3 +10,13 @@ if ! command -v claude >/dev/null 2>&1 && [ ! -x "$HOME/.local/bin/claude" ]; th
     echo "Warning: Claude CLI installation failed" >&2
   fi
 fi
+
+# Delegate to standalone script for config setup (DRY - single source of truth)
+# Check both chezmoi target and PATH locations
+SETUP_SCRIPT="${HOME}/bin/setup-claude-code"
+if [ -x "$SETUP_SCRIPT" ]; then
+  exec "$SETUP_SCRIPT"
+else
+  echo "Note: setup-claude-code not found, skipping config setup"
+  echo "Run 'chezmoi apply' to install bin scripts first"
+fi

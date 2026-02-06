@@ -54,13 +54,34 @@ zzz-* Fish late-load (Mise, FZF)
 
 ```
 home/
+├── Brewfile                 # All packages (brews + casks)
 ├── private_fish/conf.d/     # Fish shell modules
 ├── private_zsh/conf.d/      # Zsh shell modules
 ├── private_bash/conf.d/     # Bash shell modules
 ├── bin/                     # Utility scripts (~20)
 ├── dot_config/              # App configs (21 tools)
-└── .chezmoiscripts/         # Install hooks
+└── .chezmoiscripts/
+    ├── 00-run-before/       # Pre-apply: Homebrew, packages
+    └── 01-common/           # Post-apply: macOS defaults, Linux setup, tools
 ```
+
+## Package Management
+
+Packages are managed via `~/Brewfile` (Homebrew):
+```bash
+# Add a package
+echo 'brew "package-name"' >> home/Brewfile
+
+# Add a macOS app
+echo 'cask "app-name"' >> home/Brewfile
+
+# Apply changes
+chezmoi apply
+```
+
+Scripts automatically install packages during `chezmoi apply`:
+- **macOS:** `run_before_02-install-packages-from-brewfile.sh.tmpl`
+- **Linux:** `run_once_after_00-linux-system-setup.sh.tmpl`
 
 ## Template Patterns
 

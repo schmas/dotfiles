@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+{{ if ne .chezmoi.os "darwin" }}
+# Linux uses the linux-system-setup script instead
+exit 0
+{{ end }}
+
+set -e
+
+# Ensure brew is in PATH
+if [[ -f "/opt/homebrew/bin/brew" ]]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [[ -f "/usr/local/bin/brew" ]]; then
+  eval "$(/usr/local/bin/brew shellenv)"
+fi
+
+if ! command -v brew &> /dev/null; then
+  echo "Error: Homebrew not found"
+  exit 1
+fi
+
+# Brewfile location (use source dir since this runs before files are deployed)
+BREWFILE="{{ .chezmoi.sourceDir }}/Brewfile"
+
+if [[ ! -f "$BREWFILE" ]]; then
+  echo "Warning: Brewfile not found at $BREWFILE"
+  echo "Skipping package installation"
+  exit 0
+fi
+
+echo "Installing packages from Brewfile..."
+brew bundle --file="$BREWFILE" --no-lock
+
+echo "Packages installed successfully!"

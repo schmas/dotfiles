@@ -5,13 +5,30 @@
 ### Prerequisites
 
 - **macOS 11+** or **Linux** (Ubuntu 20.04+, Arch, Fedora, Debian)
-- **Git** installed
 - **1Password** account (required for secret management)
-- **1Password CLI** (`op`) optional (will prompt for install)
+- Internet connection
 
-### Installation Steps
+### Fresh Machine Install (macOS)
 
-#### 1. Initialize Chezmoi
+```bash
+# Single interactive command
+curl -fsSL https://gist.githubusercontent.com/schmas/a604b0d433a836c5af8a877a3d0f37df/raw/bootstrap-chezmoi.sh | bash
+```
+
+The script pauses after installing 1Password to let you enable SSH Agent (Settings → Developer), then automatically runs chezmoi.
+
+This workflow:
+- Installs Xcode CLI tools
+- Installs Homebrew
+- Installs 1Password app (provides SSH agent for private repo)
+- Installs 1Password CLI (for secrets in templates)
+- Installs all packages from `~/Brewfile`
+- Applies macOS system defaults (Dark mode, Dock, Finder, keyboard)
+- Configures Touch ID for sudo
+- Sets up Fish as default shell
+- Installs mise runtimes and shell plugins
+
+### Existing Machine (chezmoi installed)
 
 ```bash
 chezmoi init https://github.com/schmas/dotfiles.git
@@ -20,7 +37,6 @@ chezmoi init https://github.com/schmas/dotfiles.git
 **Interactive prompts:**
 - Select profile (default, server, ct, aaa)
 - Choose default editor (nvim, zed, none, code)
-- Enable Nix integration (recommended: yes)
 
 #### 2. Preview Changes
 
@@ -80,40 +96,39 @@ git config --global user.name "Your Name"
 
 ### 1. Environment Preparation
 
-#### macOS
+The bootstrap script handles all prerequisites automatically. If you prefer manual setup:
+
+#### macOS (Manual)
 
 ```bash
-# Install Homebrew (if not present)
+# Install Xcode CLI tools
+xcode-select --install
+
+# Install Homebrew
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-# Install Git (if not present)
-brew install git
+# Install 1Password CLI
+brew install --cask 1password-cli
 
 # Install Chezmoi
 brew install chezmoi
-
-# Install 1Password CLI (optional, will prompt)
-brew install 1password-cli
 ```
 
-#### Linux (Ubuntu/Debian)
+#### Linux (Manual)
 
 ```bash
-# Install Git
-sudo apt update && sudo apt install -y git
+# Install essentials
+sudo apt update && sudo apt install -y build-essential curl wget git fish
+
+# Install Homebrew for Linux
+NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+
+# Install 1Password CLI
+brew install 1password-cli
 
 # Install Chezmoi
-sh -c "$(curl -fsLS chezmoi.io/get)" -- init --apply https://github.com/schmas/dotfiles.git
-```
-
-#### Linux (Arch)
-
-```bash
-# Install Git and Chezmoi
-pacman -S git chezmoi
-
-# Or via AUR
-yay -S chezmoi
+sh -c "$(curl -fsLS chezmoi.io/get)"
 ```
 
 ### 2. Chezmoi Initialization
@@ -139,10 +154,6 @@ chezmoi init /path/to/dotfiles
    - `2` (nvim) - Neovim (default, recommended)
    - `3` (zed) - Zed editor
    - `4` (code) - VS Code
-
-3. **Nix Integration**
-   - `y` (yes) - Enable Nix (if using NixOS/nix-darwin)
-   - `n` (no) - Skip Nix
 
 Configuration is saved to `~/.config/chezmoi/chezmoi.toml`
 
@@ -206,6 +217,17 @@ atuin login
 
 # Sync history (optional)
 atuin sync
+```
+
+#### Claude Code Setup
+
+```bash
+# Run setup (installs CLI, clones config repo, runs initialization)
+setup-claude-code
+
+# After setup completes, open Claude Code and run:
+/install claude-plugins-official
+/install mgrep
 ```
 
 #### GPG Key Setup
