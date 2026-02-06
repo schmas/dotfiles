@@ -1,6 +1,6 @@
 # Phase 02: Add Brewfile with Packages
 
-## Status: pending
+## Status: completed
 
 ## Overview
 

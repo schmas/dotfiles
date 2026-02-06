@@ -1,6 +1,6 @@
 # Phase 03: Create macOS Defaults Script
 
-## Status: pending
+## Status: completed
 
 ## Overview
 

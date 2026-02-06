@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+{{ if ne .chezmoi.os "darwin" }}
+exit 0
+{{ end }}
+
+set -e
+
+PAM_FILE="/etc/pam.d/sudo_local"
+
+# Check if Touch ID is already configured
+if [[ -f "$PAM_FILE" ]] && grep -q "pam_tid.so" "$PAM_FILE"; then
+  echo "Touch ID for sudo already configured"
+  exit 0
+fi
+
+echo "Configuring Touch ID for sudo..."
+echo "This requires administrator privileges."
+
+# Create sudo_local if it doesn't exist
+if [[ ! -f "$PAM_FILE" ]]; then
+  sudo bash -c 'cat > /etc/pam.d/sudo_local << EOF
+# sudo_local: local config file which survives system update
+auth       sufficient     pam_tid.so
+EOF'
+  echo "Touch ID for sudo enabled!"
+else
+  echo "sudo_local exists but pam_tid.so not found. Manual configuration may be needed."
+fi

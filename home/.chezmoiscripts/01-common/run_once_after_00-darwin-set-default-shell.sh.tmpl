@@ -1,0 +1,33 @@
+{{- if eq .chezmoi.os "darwin" -}}
+#!/bin/bash
+# Set fish as default shell on macOS
+
+set -e
+
+FISH_PATH="/opt/homebrew/bin/fish"
+
+# Fallback to Intel path if ARM path doesn't exist
+if [[ ! -x "$FISH_PATH" ]]; then
+  FISH_PATH="/usr/local/bin/fish"
+fi
+
+if [[ ! -x "$FISH_PATH" ]]; then
+  echo "Fish not found, skipping default shell setup"
+  exit 0
+fi
+
+# Add fish to /etc/shells if not already present
+if ! grep -q "$FISH_PATH" /etc/shells; then
+  echo "Adding fish to /etc/shells (requires sudo)..."
+  echo "$FISH_PATH" | sudo tee -a /etc/shells
+fi
+
+# Set fish as default shell if not already
+if [[ "$SHELL" != "$FISH_PATH" ]]; then
+  echo "Setting fish as default shell..."
+  chsh -s "$FISH_PATH"
+  echo "Fish is now your default shell. Restart terminal to use it."
+else
+  echo "Fish is already the default shell."
+fi
+{{- end }}
