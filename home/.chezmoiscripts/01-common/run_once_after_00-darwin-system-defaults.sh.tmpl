@@ -6,101 +6,14 @@ exit 0
 
 set -e
 
-echo "Applying macOS system defaults..."
-
-# =============================================================================
-# NSGlobalDomain - System-wide preferences
-# =============================================================================
-
-# Appearance
-defaults write NSGlobalDomain AppleInterfaceStyle -string "Dark"
-defaults write NSGlobalDomain AppleInterfaceStyleSwitchesAutomatically -bool false
-defaults write NSGlobalDomain NSTableViewDefaultSizeMode -int 2
-defaults write NSGlobalDomain AppleShowScrollBars -string "Always"
-
-# Animations
-defaults write NSGlobalDomain NSUseAnimatedFocusRing -bool false
-defaults write NSGlobalDomain NSWindowResizeTime -float 0.001
-
-# Windows
-defaults write NSGlobalDomain NSShowAppCentricOpenPanelInsteadOfUntitledFile -bool false
-defaults write NSGlobalDomain AppleWindowTabbingMode -string "always"
-
-# Save/Print dialogs
-defaults write NSGlobalDomain NSNavPanelExpandedStateForSaveMode -bool true
-defaults write NSGlobalDomain NSNavPanelExpandedStateForSaveMode2 -bool true
-defaults write NSGlobalDomain PMPrintingExpandedStateForPrint -bool true
-defaults write NSGlobalDomain PMPrintingExpandedStateForPrint2 -bool true
-defaults write NSGlobalDomain NSDocumentSaveNewDocumentsToCloud -bool false
-
-# Text correction (disable all)
-defaults write NSGlobalDomain NSAutomaticCapitalizationEnabled -bool false
-defaults write NSGlobalDomain NSAutomaticDashSubstitutionEnabled -bool false
-defaults write NSGlobalDomain NSAutomaticPeriodSubstitutionEnabled -bool false
-defaults write NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled -bool false
-defaults write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
-
-# Keyboard
-defaults write NSGlobalDomain ApplePressAndHoldEnabled -bool false
-defaults write NSGlobalDomain KeyRepeat -int 2
-defaults write NSGlobalDomain InitialKeyRepeat -int 15
-defaults write NSGlobalDomain com.apple.keyboard.fnState -bool true
-
-# =============================================================================
-# Dock
-# =============================================================================
-
-defaults write com.apple.dock autohide -bool true
-defaults write com.apple.dock show-recents -bool false
-defaults write com.apple.dock launchanim -bool false
-defaults write com.apple.dock expose-animation-duration -float 0.1
-defaults write com.apple.dock mineffect -string "scale"
-defaults write com.apple.dock minimize-to-application -bool false
-defaults write com.apple.dock mouse-over-hilite-stack -bool true
-defaults write com.apple.dock mru-spaces -bool false
-defaults write com.apple.dock showhidden -bool true
-defaults write com.apple.dock tilesize -int 64
-
-# =============================================================================
-# Finder
-# =============================================================================
-
-defaults write com.apple.finder AppleShowAllExtensions -bool true
-defaults write com.apple.finder _FXShowPosixPathInTitle -bool true
-defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false
-defaults write com.apple.finder QuitMenuItem -bool true
-defaults write com.apple.finder FXPreferredViewStyle -string "Nlsv"
-defaults write com.apple.finder ShowPathbar -bool true
-defaults write com.apple.finder ShowStatusBar -bool true
-defaults write com.apple.finder FXRemoveOldTrashItems -bool true
-defaults write com.apple.finder FXDefaultSearchScope -string "SCcf"
-defaults write com.apple.finder _FXSortFoldersFirst -bool true
-defaults write com.apple.finder _FXSortFoldersFirstOnDesktop -bool true
-defaults write com.apple.finder NewWindowTarget -string "PfHm"
-
-# =============================================================================
-# Trackpad
-# =============================================================================
-
-defaults write com.apple.AppleMultitouchTrackpad Clicking -bool true
-defaults write com.apple.AppleMultitouchTrackpad TrackpadRightClick -bool true
-defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
-
-# =============================================================================
-# Activity Monitor
-# =============================================================================
-
-defaults write com.apple.ActivityMonitor OpenMainWindow -bool true
-defaults write com.apple.ActivityMonitor IconType -int 5
-defaults write com.apple.ActivityMonitor ShowCategory -int 100
-defaults write com.apple.ActivityMonitor SortColumn -string "CPUUsage"
-defaults write com.apple.ActivityMonitor SortDirection -int 0
-
-# =============================================================================
-# Chrome
-# =============================================================================
-
-defaults write com.google.Chrome AppleLanguages -array "en-US"
+# Apply consolidated macOS defaults
+if command -v setup-macos-defaults &> /dev/null; then
+  setup-macos-defaults
+elif [[ -x "$HOME/bin/macos/setup-macos-defaults" ]]; then
+  "$HOME/bin/macos/setup-macos-defaults"
+else
+  echo "Warning: setup-macos-defaults not found, skipping system defaults"
+fi
 
 # =============================================================================
 # Dock Items (requires dockutil)
@@ -120,16 +33,7 @@ if command -v dockutil &> /dev/null; then
 
   # Add Downloads folder
   dockutil --no-restart --add "$HOME/Downloads" --section others --view list --display folder --sort dateadded
+
+  # Restart Dock for dockutil changes
+  killall Dock 2>/dev/null || true
 fi
-
-# =============================================================================
-# Apply changes
-# =============================================================================
-
-echo "Restarting affected applications..."
-killall Dock 2>/dev/null || true
-killall Finder 2>/dev/null || true
-killall SystemUIServer 2>/dev/null || true
-
-echo "macOS defaults applied successfully!"
-echo "Note: Some changes may require logout/restart to take effect."

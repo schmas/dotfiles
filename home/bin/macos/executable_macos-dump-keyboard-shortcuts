@@ -1,0 +1,237 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Dumps all customized macOS keyboard shortcuts to a readable markdown file.
+# Run this before formatting macOS to review what you've changed.
+#
+# Usage: macos-dump-keyboard-shortcuts [output-file]
+#
+# Sources:
+#   - com.apple.symbolichotkeys (system-wide shortcuts)
+#   - NSUserKeyEquivalents in per-app domains (app-specific shortcuts)
+#   - com.apple.HIToolbox (input sources / keyboard layout)
+
+OUTPUT="${1:-$HOME/Documents/00_Backups/macos-keyboard-shortcuts-dump.md}"
+mkdir -p "$(dirname "$OUTPUT")"
+
+PLIST_HOTKEYS="$HOME/Library/Preferences/com.apple.symbolichotkeys.plist"
+PLIST_HITOOLBOX="$HOME/Library/Preferences/com.apple.HIToolbox.plist"
+
+{
+  echo "# macOS Keyboard Shortcuts Dump"
+  echo ""
+  echo "Generated: $(date '+%Y-%m-%d %H:%M:%S')"
+  echo "macOS: $(sw_vers -productVersion) ($(sw_vers -buildVersion))"
+  echo "Host: $(scutil --get ComputerName 2>/dev/null || hostname)"
+  echo ""
+
+  # -----------------------------------------------------------
+  # Sections 1 & 2: System Symbolic Hotkeys
+  # -----------------------------------------------------------
+  python3 - "$PLIST_HOTKEYS" << 'PYEOF'
+import subprocess, json, sys
+
+plist_path = sys.argv[1]
+result = subprocess.run(
+    ["plutil", "-convert", "json", "-o", "-", plist_path],
+    capture_output=True, text=True
+)
+if result.returncode != 0:
+    print("_Could not read symbolichotkeys plist._")
+    sys.exit(0)
+
+data = json.loads(result.stdout)
+hotkeys = data.get("AppleSymbolicHotKeys", {})
+
+def decode_mods(m):
+    parts = []
+    if m & 131072:  parts.append("Shift")
+    if m & 262144:  parts.append("Ctrl")
+    if m & 524288:  parts.append("Opt")
+    if m & 8388608: parts.append("Cmd")
+    return "+".join(parts) if parts else "None"
+
+KEYCHAR_NAMES = {32: "Space", 9: "Tab", 13: "Return", 27: "Escape"}
+
+HOTKEY_NAMES = {
+    7: "Move focus to menu bar", 8: "Move focus to Dock",
+    9: "Move focus to active/next window", 10: "Move focus to window toolbar",
+    11: "Move focus to floating window", 12: "Move focus to status menus",
+    13: "Move focus to next window",
+    15: "VoiceOver on/off", 16: "Zoom on/off",
+    17: "Invert colors", 18: "Zoom on/off (old)",
+    19: "Zoom out", 20: "Zoom in", 21: "Invert colors (old)",
+    22: "Reduce contrast", 23: "Increase contrast",
+    24: "Show Accessibility controls", 25: "Zoom image smoothing",
+    26: "Zoom follow focus",
+    28: "Screenshot to file", 29: "Screenshot to clipboard",
+    30: "Screenshot area to file", 31: "Screenshot area to clipboard",
+    32: "Mission Control", 33: "Application windows", 34: "Show Desktop",
+    35: "Move left a space",
+    36: "Minimize window", 37: "Minimize all windows",
+    52: "Toggle Dock hiding",
+    60: "Input: Select previous", 61: "Input: Select next",
+    64: "Spotlight search", 65: "Finder search",
+    75: "Move to space Left", 76: "Move to space Right",
+    79: "Switch Desktop 1", 80: "Switch Desktop 2",
+    81: "Switch Desktop 3", 82: "Switch Desktop 4",
+    160: "Launchpad", 162: "Notification Center",
+    163: "Spotlight search (new)", 164: "Dashboard (deprecated)",
+    175: "Siri", 176: "Stage Manager",
+}
+
+# Section 1: Entries with value dicts (customized or explicitly set)
+print("## System Shortcuts (customized or explicitly set)")
+print()
+print("Entries with a `value` dict in `com.apple.symbolichotkeys`.")
+print()
+print("| ID | Name | Enabled | Shortcut |")
+print("|----|------|---------|----------|")
+
+for kid in sorted(hotkeys.keys(), key=lambda x: int(x)):
+    entry = hotkeys[kid]
+    if "value" not in entry:
+        continue
+
+    enabled = "Yes" if entry.get("enabled", False) else "No"
+    val = entry["value"]
+    params = val.get("parameters", [])
+
+    if len(params) >= 3:
+        keycode, keychar, mods = params[0], params[1], params[2]
+        mods_str = decode_mods(mods)
+        # Virtual keycode mapping (Apple Events key codes)
+        VKEY_NAMES = {
+            0: "a", 1: "s", 2: "d", 3: "f", 4: "h", 5: "g", 6: "z", 7: "x",
+            8: "c", 9: "v", 11: "b", 12: "q", 13: "w", 14: "e", 15: "r",
+            16: "y", 17: "t", 18: "1", 19: "2", 20: "3", 21: "4", 22: "6",
+            23: "5", 24: "=", 25: "9", 26: "7", 27: "-", 28: "8", 29: "0",
+            30: "]", 31: "o", 32: "u", 33: "p", 34: "i", 35: "l", 36: "Return",
+            37: "j", 38: "'", 39: "k", 40: ";", 41: "\\", 42: ",", 43: "/",
+            44: "n", 45: "m", 46: ".", 47: "`", 48: "Tab", 49: "Space",
+            51: "Delete", 53: "Escape", 76: "Enter",
+            96: "F5", 97: "F6", 98: "F7", 99: "F3", 100: "F8", 101: "F9",
+            103: "F11", 105: "F13", 107: "F14", 109: "F10", 111: "F12",
+            113: "F15", 118: "F4", 120: "F2", 122: "F1",
+            123: "Left", 124: "Right", 125: "Down", 126: "Up",
+        }
+        if keycode != 65535 and keycode in VKEY_NAMES:
+            key_name = VKEY_NAMES[keycode]
+        elif keycode != 65535:
+            key_name = f"key:{keycode}"
+        elif keychar in KEYCHAR_NAMES:
+            key_name = KEYCHAR_NAMES[keychar]
+        elif 32 < keychar < 127:
+            key_name = chr(keychar)
+        elif keychar == 65535:
+            key_name = "(none)"
+        else:
+            key_name = f"char:{keychar}"
+        shortcut = f"{mods_str}+{key_name}" if mods_str != "None" else key_name
+    else:
+        shortcut = "(no parameters)"
+
+    name = HOTKEY_NAMES.get(int(kid), f"Unknown (ID: {kid})")
+    print(f"| {kid} | {name} | {enabled} | `{shortcut}` |")
+
+# Section 2: Entries without value dict (just enabled/disabled toggles)
+print()
+print("## System Shortcuts: Toggled Only (default binding)")
+print()
+print("Toggled on/off but use the macOS default key binding.")
+print()
+print("| ID | Name | Enabled |")
+print("|----|------|---------|")
+
+for kid in sorted(hotkeys.keys(), key=lambda x: int(x)):
+    entry = hotkeys[kid]
+    if "value" in entry:
+        continue
+    enabled = "Yes" if entry.get("enabled", False) else "No"
+    name = HOTKEY_NAMES.get(int(kid), f"Unknown (ID: {kid})")
+    print(f"| {kid} | {name} | {enabled} |")
+PYEOF
+
+  echo ""
+
+  # -----------------------------------------------------------
+  # Section 3: App-specific shortcuts (NSUserKeyEquivalents)
+  # -----------------------------------------------------------
+  echo "## App-Specific Shortcuts (NSUserKeyEquivalents)"
+  echo ""
+  echo "Custom per-app shortcuts from System Settings > Keyboard > Keyboard Shortcuts > App Shortcuts."
+  echo ""
+
+  app_shortcuts=$(defaults find NSUserKeyEquivalents 2>/dev/null || true)
+
+  if [[ -z "$app_shortcuts" ]]; then
+    echo "_No app-specific keyboard shortcuts found._"
+  else
+    echo '```'
+    echo "$app_shortcuts"
+    echo '```'
+  fi
+
+  echo ""
+
+  # -----------------------------------------------------------
+  # Section 4: Input Sources / Keyboard Layout
+  # -----------------------------------------------------------
+  python3 - "$PLIST_HITOOLBOX" << 'PYEOF'
+import subprocess, json, sys
+
+print("## Input Sources (com.apple.HIToolbox)")
+print()
+
+plist_path = sys.argv[1]
+result = subprocess.run(
+    ["plutil", "-convert", "json", "-o", "-", plist_path],
+    capture_output=True, text=True
+)
+if result.returncode != 0:
+    print("_Could not read HIToolbox plist._")
+    sys.exit(0)
+
+data = json.loads(result.stdout)
+current = data.get("AppleCurrentKeyboardLayoutInputSourceID", "unknown")
+print(f"**Current layout:** `{current}`")
+print()
+
+enabled = data.get("AppleEnabledInputSources", [])
+if enabled:
+    print("**Enabled input sources:**")
+    for src in enabled:
+        kind = src.get("InputSourceKind", "?")
+        name = src.get("KeyboardLayout Name", src.get("Bundle ID", "?"))
+        print(f"- {name} ({kind})")
+print()
+PYEOF
+
+  echo ""
+
+  # -----------------------------------------------------------
+  # Section 5: Raw plist backup commands
+  # -----------------------------------------------------------
+  echo "## Backup & Restore Commands"
+  echo ""
+  echo "### Backup (run before format)"
+  echo ""
+  echo '```bash'
+  echo 'mkdir -p ~/Documents/00_Backups/macos-keyboard-shortcuts'
+  echo 'defaults export com.apple.symbolichotkeys ~/Documents/00_Backups/macos-keyboard-shortcuts/symbolic-hotkeys.plist'
+  echo 'defaults export com.apple.HIToolbox ~/Documents/00_Backups/macos-keyboard-shortcuts/hitoolbox.plist'
+  echo '```'
+  echo ""
+  echo "### Restore (after format)"
+  echo ""
+  echo '```bash'
+  echo 'defaults import com.apple.symbolichotkeys ~/Documents/00_Backups/macos-keyboard-shortcuts/symbolic-hotkeys.plist'
+  echo 'defaults import com.apple.HIToolbox ~/Documents/00_Backups/macos-keyboard-shortcuts/hitoolbox.plist'
+  echo '# Logout/restart for changes to take effect'
+  echo '```'
+
+} > "$OUTPUT"
+
+echo "Keyboard shortcuts dump saved to: $OUTPUT"
+echo ""
+echo "Review it with:  cat '$OUTPUT'"
