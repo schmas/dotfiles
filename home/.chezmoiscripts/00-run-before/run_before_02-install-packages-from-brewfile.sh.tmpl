@@ -28,6 +28,16 @@ if [[ ! -f "$BREWFILE" ]]; then
 fi
 
 echo "Installing packages from Brewfile..."
+
+# Ask for sudo password once upfront and keep the session alive
+# so cask installs don't repeatedly prompt
+if sudo --validate 2>/dev/null; then
+  # Refresh sudo timestamp in the background until this script exits
+  while true; do sudo --non-interactive --validate; sleep 30; done &
+  SUDO_REFRESH_PID=$!
+  trap 'kill "$SUDO_REFRESH_PID" 2>/dev/null' EXIT
+fi
+
 brew bundle --file="$BREWFILE"
 
 echo "Packages installed successfully!"
