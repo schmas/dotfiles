@@ -104,6 +104,28 @@ echo "=========================================="
 echo "  Prerequisites installed successfully!"
 echo "=========================================="
 
+# --- 1Password SSH Agent Config (all vaults) ---
+OP_SSH_DIR="${HOME}/.config/1Password/ssh"
+OP_SSH_CFG="${OP_SSH_DIR}/agent.toml"
+if [ ! -f "$OP_SSH_CFG" ]; then
+  echo "==> Creating 1Password SSH agent config..."
+  mkdir -p "$OP_SSH_DIR"
+  chmod 700 "$OP_SSH_DIR"
+  cat > "$OP_SSH_CFG" << 'TOML'
+[[ssh-keys]]
+vault = "Private"
+
+[[ssh-keys]]
+vault = "Dotfiles"
+
+[[ssh-keys]]
+vault = "AAA"
+TOML
+  chmod 600 "$OP_SSH_CFG"
+else
+  echo "==> 1Password SSH agent config: already exists"
+fi
+
 if [[ "$OS" == "Darwin" ]]; then
   echo ""
   echo "ACTION REQUIRED: Configure 1Password SSH Agent"
