@@ -4,6 +4,8 @@ exit 0
 {{ end }}
 
 set -e
+set -u
+set -o pipefail
 
 PAM_FILE="/etc/pam.d/sudo_local"
 

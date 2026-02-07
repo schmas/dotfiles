@@ -1,8 +1,10 @@
 {{- if eq .chezmoi.os "darwin" -}}
-#!/bin/bash
+#!/usr/bin/env bash
 # Set fish as default shell on macOS
 
 set -e
+set -u
+set -o pipefail
 
 FISH_PATH="/opt/homebrew/bin/fish"
 

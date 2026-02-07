@@ -5,6 +5,10 @@ exit 0
 {{ end }}
 
 set -e
+set -u
+set -o pipefail
+
+{{ template "brew-shellenv" . }}
 
 # Apply consolidated macOS defaults
 if command -v setup-macos-defaults &> /dev/null; then
