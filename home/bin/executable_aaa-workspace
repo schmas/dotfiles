@@ -16,7 +16,7 @@ BACKUP_DIRS=(
   "$HOME/Documents/01.1_Projects/01_AAA_Connect+"
   "$HOME/ProtonDrive/00_Dev/01_AAA_Connect+"
 )
-BB_HOST="bitbucket-aaa"
+BB_HOST="bitbucket.org"
 BB_ORG="aaa-national"
 REPOS=(connect-plus-backend connect-plus-frontend connectsuiteapps)
 
