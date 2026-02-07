@@ -28,6 +28,6 @@ if [[ ! -f "$BREWFILE" ]]; then
 fi
 
 echo "Installing packages from Brewfile..."
-brew bundle --file="$BREWFILE" --no-lock
+brew bundle --file="$BREWFILE"
 
 echo "Packages installed successfully!"
