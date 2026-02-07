@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
 set -e
+set -u
+set -o pipefail
 
 {{ template "brew-shellenv" . }}
 
@@ -11,7 +13,7 @@ fi
 
 fish -c '
 if not type --quiet fisher
-    curl -sL https://raw.githubusercontent.com/jorgebucaran/fisher/main/functions/fisher.fish | source
+    curl -fsL https://raw.githubusercontent.com/jorgebucaran/fisher/main/functions/fisher.fish | source
     fisher update
 end
 '

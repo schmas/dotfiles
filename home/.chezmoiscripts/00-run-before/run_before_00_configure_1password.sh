@@ -11,9 +11,8 @@ if command -v op >/dev/null 2>&1; then
     # Prompt for user input
     # read -p "Enter your sign-in address (e.g., my.1password.com): " address
     read -p "Enter your email address: " email
-    read -p "Enter your Secret Key: " secret_key
-    # read -s -p "Enter your password: " password
-    echo # Add a newline after password input
+    read -s -p "Enter your Secret Key: " secret_key
+    echo # Add a newline after secret key input
 
     # Use the collected information to add the account
     echo "Adding 1Password account..."
