@@ -91,7 +91,6 @@ brew "gnupg"          # GPG
 brew "sshpass"        # SSH password auth
 brew "pinentry"       # GPG PIN entry
 brew "pinentry-mac"   # macOS PIN entry
-brew "1password-cli"  # 1Password CLI
 
 # === Utilities ===
 brew "chezmoi"        # Dotfiles manager
@@ -107,6 +106,7 @@ brew "dockutil"       # Dock management
 
 # Security & Privacy
 cask "1password"                   # Password manager
+cask "1password-cli"               # 1Password CLI
 cask "gpg-suite-no-mail"           # GPG tools without Mail plugin
 cask "proton-pass"                 # Proton password manager
 cask "protonvpn"                   # Proton VPN client
