@@ -4,6 +4,12 @@ set -e
 set -u
 set -o pipefail
 
+echo ""
+echo "-----------------------------------------------------------------------"
+echo " Configure 1Password"
+echo "-----------------------------------------------------------------------"
+echo ""
+
 if command -v op >/dev/null 2>&1; then
   if [ -z "$(op account list)" ]; then
     echo "No 1Password account found. Let's add one."

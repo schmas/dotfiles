@@ -4,9 +4,17 @@
 exit 0
 {{ end }}
 
+# Brewfile hash: {{ include "Brewfile" | sha256sum }}
+
 set -e
 set -u
 set -o pipefail
+
+echo ""
+echo "-----------------------------------------------------------------------"
+echo " Install Packages from Brewfile"
+echo "-----------------------------------------------------------------------"
+echo ""
 
 {{ template "brew-shellenv" . }}
 

@@ -4,6 +4,12 @@ set -e
 set -u
 set -o pipefail
 
+echo ""
+echo "-----------------------------------------------------------------------"
+echo " Fish Shell Setup"
+echo "-----------------------------------------------------------------------"
+echo ""
+
 {{ template "brew-shellenv" . }}
 
 if ! command -v fish >/dev/null 2>&1; then
