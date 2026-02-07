@@ -13,6 +13,7 @@ echo ""
 {{ template "brew-shellenv" . }}
 
 if command -v mise >/dev/null 2>&1; then
+  echo "Installing mise tools and generating completions..."
   mise use -g usage
   mise completion fish >~/.config/fish/completions/mise.fish
 
@@ -33,4 +34,6 @@ if command -v mise >/dev/null 2>&1; then
       sleep 2  # Add a small delay between attempts
     fi
   done
+else
+  echo "mise not found, skipping tool installation."
 fi

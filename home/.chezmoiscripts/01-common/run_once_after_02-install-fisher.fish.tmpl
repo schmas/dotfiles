@@ -19,7 +19,10 @@ fi
 
 fish -c '
 if not type --quiet fisher
+    echo "Installing Fisher and plugins..."
     curl -fsL https://raw.githubusercontent.com/jorgebucaran/fisher/main/functions/fisher.fish | source
     fisher update
+else
+    echo "Fisher already installed."
 end
 '

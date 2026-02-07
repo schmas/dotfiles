@@ -13,6 +13,9 @@ echo ""
 NVIM_DIR="${HOME}/.config/nvim"
 
 if [ ! -d "${NVIM_DIR}" ]; then
-  echo "Installing nvim_lazy"
+  echo "Cloning nvim_lazy..."
   git clone https://github.com/schmas/nvim_lazy.git "${NVIM_DIR}"
+  echo "nvim_lazy installed successfully."
+else
+  echo "nvim_lazy already installed at ${NVIM_DIR}."
 fi

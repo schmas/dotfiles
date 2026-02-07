@@ -26,6 +26,8 @@ if command -v op >/dev/null 2>&1; then
     op account add --address "my.1password.com" --email "$email" --secret-key "$secret_key"
 
     echo "1Password account added successfully."
+  else
+    echo "1Password account already configured."
   fi
 else
   echo "1Password CLI (op) is not installed or not in PATH."
