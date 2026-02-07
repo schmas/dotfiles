@@ -22,3 +22,4 @@ go = "latest"
 
 [settings]
 experimental = true
+http_timeout = 120
