@@ -2,8 +2,6 @@
 # Run: brew bundle --file=~/Brewfile
 
 # Taps
-tap "homebrew/bundle"
-tap "homebrew/cask-fonts"
 
 # === Shells ===
 brew "bash"           # Bash 5.x (newer than macOS default)
