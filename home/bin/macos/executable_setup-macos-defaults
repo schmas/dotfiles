@@ -352,7 +352,7 @@ fi
 
 echo "Restarting affected applications..."
 for app in "Activity Monitor" "Contacts" "Dock" "Finder" "Mail" \
-  "Photos" "Safari" "SystemUIServer" "Terminal"; do
+  "Photos" "Safari" "SystemUIServer"; do
   killall "${app}" 2>/dev/null || true
 done
 
