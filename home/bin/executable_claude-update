@@ -24,6 +24,18 @@ echo -e "${YELLOW}Updating ClaudeKit...${NC}"
 ck update --yes
 echo
 
+# Restore custom statusline (ck update resets to default)
+echo -e "${YELLOW}Restoring custom statusline...${NC}"
+if [ -f ~/.claude/statusline-custom.cjs ]; then
+  jq '.statusLine.command = "node $HOME/.claude/statusline-custom.cjs"' \
+    ~/.claude/settings.json > ~/.claude/settings.json.tmp \
+    && mv ~/.claude/settings.json.tmp ~/.claude/settings.json
+  echo -e "${GREEN}Custom statusline restored${NC}"
+else
+  echo -e "${YELLOW}No custom statusline found, using default${NC}"
+fi
+echo
+
 # Backup any local changes
 echo -e "${YELLOW}Backing up...${NC}"
 claude-backup
