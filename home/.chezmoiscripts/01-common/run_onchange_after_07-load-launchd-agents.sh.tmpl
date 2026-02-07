@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+{{ if ne .chezmoi.os "darwin" }}
+# Skip on non-macOS systems
+exit 0
+{{ end }}
+
+set -e
+
+# Reload atuin-dedup launchd agent
+# Triggered when plist changes: {{ include "private_Library/LaunchAgents/com.schmas.atuin-dedup.plist" | sha256sum }}
+
+PLIST="$HOME/Library/LaunchAgents/com.schmas.atuin-dedup.plist"
+
+if [ -f "$PLIST" ]; then
+  echo "Loading atuin-dedup launchd agent..."
+  launchctl bootout "gui/$(id -u)" "$PLIST" 2>/dev/null || true
+  launchctl bootstrap "gui/$(id -u)" "$PLIST"
+  echo "atuin-dedup agent loaded (Mon & Thu 15:00)"
+fi

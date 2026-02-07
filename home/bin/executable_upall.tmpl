@@ -63,4 +63,11 @@ if command -v fish >/dev/null 2>&1 && fish -c "functions -q fisher" 2>/dev/null;
   fish -c "fisher update"
 fi
 
+# Atuin - deduplicate history and sync
+if command -v atuin >/dev/null 2>&1; then
+  echo -e "\nDeduplicating and syncing atuin history..."
+  atuin history dedup --before "now" --dupkeep 1
+  atuin sync
+fi
+
 echo -e "\nUpdating finished..."
