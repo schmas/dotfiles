@@ -18,7 +18,7 @@ BACKUP_DIRS=(
 )
 BB_HOST="bitbucket.org"
 BB_ORG="aaa-national"
-REPOS=(connect-plus-backend connect-plus-frontend connectsuiteapps)
+REPOS=(connect-plus-backend connect-plus-frontend connectsuiteapps connect-plus-data-migration)
 
 do_backup() {
   echo -e "${BOLD}=== AAA Workspace Backup ===${RESET}"
