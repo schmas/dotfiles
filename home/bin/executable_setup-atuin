@@ -10,6 +10,6 @@ if command -v atuin >/dev/null 2>&1; then
     atuin login
     atuin import auto
     eval "$(atuin init bash)"
-    atuin sync
+    atuin sync -f
   fi
 fi
