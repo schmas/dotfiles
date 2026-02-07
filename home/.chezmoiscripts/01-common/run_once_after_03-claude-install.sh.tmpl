@@ -3,6 +3,12 @@ set -e
 set -u
 set -o pipefail
 
+echo ""
+echo "-----------------------------------------------------------------------"
+echo " Install Claude Code CLI"
+echo "-----------------------------------------------------------------------"
+echo ""
+
 # Check both PATH and direct location (PATH may not be loaded yet in run_once)
 if ! command -v claude >/dev/null 2>&1 && [ ! -x "$HOME/.local/bin/claude" ]; then
   echo "Installing Claude Code CLI..."
