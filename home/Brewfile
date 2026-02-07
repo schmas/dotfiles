@@ -2,6 +2,7 @@
 # Run: brew bundle --file=~/Brewfile
 
 # Taps
+tap "slp/krunkit"
 
 # === Shells ===
 brew "bash"           # Bash 5.x (newer than macOS default)
@@ -72,6 +73,7 @@ brew "pkg-config"     # Compiler helper
 brew "tokei"          # Code statistics
 
 # === Containers ===
+brew "krunkit"        # Lightweight VM runtime
 brew "podman"         # Container runtime
 brew "podman-compose" # Docker compose for Podman
 
