@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+set -e
+set -u
+set -o pipefail
+
+echo ""
+echo "-----------------------------------------------------------------------"
+echo " Post-Install: Login & Setup"
+echo "-----------------------------------------------------------------------"
+echo ""
+
+{{ template "brew-shellenv" . }}
+
+# Ensure mise shims are available (for ck)
+if command -v mise >/dev/null 2>&1; then
+  eval "$(mise activate bash)"
+fi
+
+# --- Atuin ---
+if command -v atuin >/dev/null 2>&1; then
+  if [ ! -f "${HOME}/.local/share/atuin/key" ]; then
+    echo ">> Atuin: logging in..."
+    atuin login
+    echo ">> Atuin: force syncing..."
+    atuin sync -f
+  else
+    echo ">> Atuin: already logged in, skipping."
+  fi
+else
+  echo ">> Atuin: not installed, skipping."
+fi
+
+# --- mgrep ---
+if command -v mgrep >/dev/null 2>&1; then
+  echo ">> mgrep: logging in..."
+  mgrep login
+else
+  echo ">> mgrep: not installed, skipping."
+fi
+
+# --- GitHub CLI ---
+if command -v gh >/dev/null 2>&1; then
+  if ! gh auth status >/dev/null 2>&1; then
+    echo ">> GitHub CLI: logging in..."
+    gh auth login -h github.com
+  else
+    echo ">> GitHub CLI: already authenticated, skipping."
+  fi
+else
+  echo ">> GitHub CLI: not installed, skipping."
+fi
+
+# --- ClaudeKit ---
+if command -v ck >/dev/null 2>&1; then
+  if [ ! -f "${HOME}/.claude/settings.json" ]; then
+    echo ">> ClaudeKit: initializing with engineer kit..."
+    ck init -g --kit engineer
+  else
+    echo ">> ClaudeKit: already initialized, skipping."
+  fi
+else
+  echo ">> ClaudeKit: not installed, skipping."
+fi
+
+echo ""
+echo "Post-install logins complete."
