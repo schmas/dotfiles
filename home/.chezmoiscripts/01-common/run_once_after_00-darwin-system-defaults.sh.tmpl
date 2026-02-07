@@ -50,4 +50,11 @@ else
   echo "dockutil not found, skipping Dock configuration"
 fi
 
+# Suppress "Emulate Docker CLI using podman" warning
+if [[ ! -f /etc/containers/nodocker ]]; then
+  echo "Suppressing Podman Docker emulation warning..."
+  sudo mkdir -p /etc/containers
+  sudo touch /etc/containers/nodocker
+fi
+
 echo "macOS system defaults applied."
