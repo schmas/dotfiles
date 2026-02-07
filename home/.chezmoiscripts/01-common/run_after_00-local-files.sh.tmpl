@@ -10,10 +10,13 @@ echo " Create Local Configuration Files"
 echo "-----------------------------------------------------------------------"
 echo ""
 
+CREATED=0
+
 # Create main configuration files if they do not exist
 if [ ! -f ~/.config/git/config ]; then
   echo "Creating ~/.config/git/config"
   cp ~/.config/etc/gitconfig.template ~/.config/git/config
+  CREATED=1
 fi
 
 # SSH config section
@@ -21,12 +24,14 @@ if [ ! -d ~/.ssh ]; then
   echo "Creating ~/.ssh directory"
   mkdir -p ~/.ssh
   chmod 700 ~/.ssh
+  CREATED=1
 fi
 
 if [ ! -f ~/.ssh/config ]; then
   echo "Creating ~/.ssh/config"
   cp ~/.config/etc/ssh_config.template ~/.ssh/config
   chmod 600 ~/.ssh/config
+  CREATED=1
 fi
 
 # GnuPG section
@@ -34,34 +39,40 @@ if [ ! -d ~/.gnupg ]; then
   echo "Creating ~/.gnupg directory"
   mkdir -p ~/.gnupg
   chmod 700 ~/.gnupg
+  CREATED=1
 fi
 
 if [ ! -f ~/.gnupg/gpg-agent.conf ]; then
   echo "Creating ~/.gnupg/gpg-agent.conf"
   cp ~/.config/etc/gpg-agent.conf.template ~/.gnupg/gpg-agent.conf
   chmod 600 ~/.gnupg/gpg-agent.conf
+  CREATED=1
 fi
 
 if [ ! -f ~/.npmrc ]; then
   if [ -f ~/.config/etc/npmrc.template ]; then
     echo "Creating ~/.npmrc from template"
     cp ~/.config/etc/npmrc.template ~/.npmrc
+    CREATED=1
   fi
 fi
 
 if [ ! -f ~/.config/fish/config_local.fish ]; then
   echo "Creating ~/.config/fish/config_local.fish"
   cp ~/.config/fish/config_local.template.fish ~/.config/fish/config_local.fish
+  CREATED=1
 fi
 
 if [ ! -f ~/.config/bash/bashrc_local ]; then
   echo "Creating ~/.config/bash/bashrc_local"
   cp ~/.config/bash/bashrc_local.template ~/.config/bash/bashrc_local
+  CREATED=1
 fi
 
 if [ ! -f ~/.config/zsh/zshrc_local ]; then
   echo "Creating ~/.config/zsh/zshrc_local"
   cp ~/.config/zsh/zshrc_local.template ~/.config/zsh/zshrc_local
+  CREATED=1
 fi
 
 {{- if eq .chezmoi.os "darwin" }}
@@ -69,5 +80,10 @@ if [ ! -f /Library/LaunchDaemons/limit.maxfiles.plist ]; then
   echo "Creating /Library/LaunchDaemons/limit.maxfiles.plist"
   sudo cp ~/.config/etc/limit.maxfiles.plist /Library/LaunchDaemons/limit.maxfiles.plist
   sudo chmod 644 /Library/LaunchDaemons/limit.maxfiles.plist
+  CREATED=1
 fi
 {{- end }}
+
+if [ "$CREATED" -eq 0 ]; then
+  echo "All local configuration files already exist."
+fi
