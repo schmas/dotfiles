@@ -28,6 +28,6 @@ if [[ ! -f "$BREWFILE" ]]; then
 fi
 
 echo "Installing packages from Brewfile..."
-brew bundle --file="$BREWFILE"
-
-echo "Packages installed successfully!"
+if ! brew bundle --file="$BREWFILE"; then
+  echo "Warning: Some packages failed to install. Run 'brew bundle --file=$BREWFILE' manually to retry."
+fi
