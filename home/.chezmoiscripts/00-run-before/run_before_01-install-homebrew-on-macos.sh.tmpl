@@ -7,6 +7,12 @@ set -e
 set -u
 set -o pipefail
 
+echo ""
+echo "-----------------------------------------------------------------------"
+echo " Install Homebrew on macOS"
+echo "-----------------------------------------------------------------------"
+echo ""
+
 # Check if brew is already installed (may not be in PATH yet on Apple Silicon)
 if command -v brew &> /dev/null || [[ -f "/opt/homebrew/bin/brew" ]] || [[ -f "/usr/local/bin/brew" ]]; then
   echo "Homebrew already installed, skipping"

@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Install packages from ~/Brewfile using Homebrew Bundle
+
+set -e
+set -u
+set -o pipefail
+
+echo ""
+echo "-----------------------------------------------------------------------"
+echo " Install Packages from Brewfile"
+echo "-----------------------------------------------------------------------"
+echo ""
+
+if ! command -v brew &> /dev/null; then
+  echo "Error: Homebrew not found"
+  exit 1
+fi
+
+BREWFILE="${HOME}/Brewfile"
+
+if [[ ! -f "$BREWFILE" ]]; then
+  echo "Error: Brewfile not found at $BREWFILE"
+  exit 1
+fi
+
+echo "Installing packages from Brewfile..."
+
+# Ask for sudo password once upfront and keep the session alive
+# so cask installs don't repeatedly prompt
+if sudo --validate 2>/dev/null; then
+  # Refresh sudo timestamp in the background until this script exits
+  while true; do sudo --non-interactive --validate; sleep 30; done &
+  SUDO_REFRESH_PID=$!
+  trap 'kill "$SUDO_REFRESH_PID" 2>/dev/null' EXIT INT TERM
+fi
+
+brew bundle --file="$BREWFILE"
+
+echo "Packages installed successfully!"

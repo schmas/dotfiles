@@ -79,8 +79,10 @@ show_plugin_instructions() {
 # Main execution
 main() {
   echo "=== Claude Code Setup ==="
-  install_claude_code
+  # Clone config repo BEFORE installing CLI, so the CLI finds
+  # our config already in place and doesn't create its own ~/.claude
   setup_claude_config
+  install_claude_code
   run_setup_script
   show_plugin_instructions
 }

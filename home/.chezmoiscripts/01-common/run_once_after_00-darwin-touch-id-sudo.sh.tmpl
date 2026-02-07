@@ -7,6 +7,12 @@ set -e
 set -u
 set -o pipefail
 
+echo ""
+echo "-----------------------------------------------------------------------"
+echo " Configure Touch ID for sudo (macOS)"
+echo "-----------------------------------------------------------------------"
+echo ""
+
 PAM_FILE="/etc/pam.d/sudo_local"
 
 # Check if Touch ID is already configured

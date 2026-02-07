@@ -4,6 +4,12 @@ set -e
 set -u
 set -o pipefail
 
+echo ""
+echo "-----------------------------------------------------------------------"
+echo " Create Local Configuration Files"
+echo "-----------------------------------------------------------------------"
+echo ""
+
 # Create main configuration files if they do not exist
 if [ ! -f ~/.config/git/config ]; then
   echo "Creating ~/.config/git/config"
