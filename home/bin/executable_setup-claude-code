@@ -43,14 +43,24 @@ setup_claude_config() {
   fi
 }
 
+# Find best available bash (prefer Homebrew bash 4+)
+find_bash() {
+  for brew_bash in /opt/homebrew/bin/bash /usr/local/bin/bash; do
+    if [ -x "$brew_bash" ]; then
+      echo "$brew_bash"
+      return
+    fi
+  done
+  echo "bash"
+}
+
 # Run setup script from config repo
 run_setup_script() {
-  if [ -x "$CLAUDE_CONFIG_DIR/setup.sh" ]; then
+  if [ -f "$CLAUDE_CONFIG_DIR/setup.sh" ]; then
     echo "Running Claude config setup.sh..."
-    (cd "$CLAUDE_CONFIG_DIR" && ./setup.sh)
-  elif [ -f "$CLAUDE_CONFIG_DIR/setup.sh" ]; then
-    echo "Running Claude config setup.sh..."
-    (cd "$CLAUDE_CONFIG_DIR" && bash setup.sh)
+    local best_bash
+    best_bash="$(find_bash)"
+    (cd "$CLAUDE_CONFIG_DIR" && "$best_bash" setup.sh)
   else
     echo "Note: No setup.sh found in claude-config repo"
   fi
