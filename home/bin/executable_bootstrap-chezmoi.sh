@@ -78,7 +78,22 @@ if ! command -v op &> /dev/null; then
   if [[ "$OS" == "Darwin" ]]; then
     brew install --cask 1password-cli
   else
-    brew install 1password-cli
+    # Linux: install from 1Password's official package repository
+    if command -v apt-get &> /dev/null; then
+      curl -sS https://downloads.1password.com/linux/keys/1password.asc | \
+        sudo gpg --dearmor --output /usr/share/keyrings/1password-archive-keyring.gpg
+      echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/1password-archive-keyring.gpg] https://downloads.1password.com/linux/debian/amd64 stable main" | \
+        sudo tee /etc/apt/sources.list.d/1password.list
+      sudo apt-get update && sudo apt-get install -y 1password-cli
+    elif command -v dnf &> /dev/null; then
+      sudo rpm --import https://downloads.1password.com/linux/keys/1password.asc
+      sudo sh -c 'echo -e "[1password]\nname=1Password\nbaseurl=https://downloads.1password.com/linux/rpm/stable/\$basearch\nenabled=1\ngpgcheck=1\nrepo_gpgcheck=1\ngpgkey=https://downloads.1password.com/linux/keys/1password.asc" > /etc/yum.repos.d/1password.repo'
+      sudo dnf install -y 1password-cli
+    else
+      echo "!! Unsupported package manager. Please install 1Password CLI manually:"
+      echo "   https://developer.1password.com/docs/cli/get-started/"
+      exit 1
+    fi
   fi
 else
   echo "==> 1Password CLI: already installed"
