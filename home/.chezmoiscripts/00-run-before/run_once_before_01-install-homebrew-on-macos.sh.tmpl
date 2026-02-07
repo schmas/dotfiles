@@ -9,9 +9,19 @@ set -o pipefail
 
 echo ""
 echo "-----------------------------------------------------------------------"
-echo " Install Homebrew on macOS"
+echo " Install Rosetta 2 & Homebrew on macOS"
 echo "-----------------------------------------------------------------------"
 echo ""
+
+# Install Rosetta 2 for Apple Silicon (required by many x86 binaries and casks)
+{{ if eq .chezmoi.arch "arm64" }}
+if ! /usr/bin/pgrep -q oahd; then
+  echo "Installing Rosetta 2..."
+  softwareupdate --install-rosetta --agree-to-license
+else
+  echo "Rosetta 2 already installed, skipping"
+fi
+{{ end }}
 
 # Check if brew is already installed (may not be in PATH yet on Apple Silicon)
 if command -v brew &> /dev/null || [[ -f "/opt/homebrew/bin/brew" ]] || [[ -f "/usr/local/bin/brew" ]]; then
