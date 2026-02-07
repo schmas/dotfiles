@@ -81,6 +81,9 @@ defaults write com.apple.print.PrintingPrefs "Quit When Finished" -bool true
 defaults write com.apple.WindowManager EnableStandardClickToShowDesktop -bool false
 # Tahoe: native tiling via drag-to-edge, green button hover. No defaults commands yet.
 
+# Disable startup/restart sound (boot chime)
+sudo nvram StartupMute=%01 2>/dev/null || true
+
 # =============================================================================
 # Trackpad & Input
 # =============================================================================
