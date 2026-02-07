@@ -46,4 +46,8 @@ if command -v dockutil &> /dev/null; then
 
   # Restart Dock for dockutil changes
   killall Dock 2>/dev/null || true
+else
+  echo "dockutil not found, skipping Dock configuration"
 fi
+
+echo "macOS system defaults applied."
