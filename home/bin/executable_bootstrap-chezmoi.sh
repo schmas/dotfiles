@@ -8,13 +8,30 @@
 # - 1Password app (macOS) - required for SSH agent to access private repo
 # - 1Password CLI
 
-set -e
-
 echo "==> Chezmoi Bootstrap Script"
 echo "    Installing prerequisites..."
 echo ""
 
 OS="$(uname -s)"
+
+# Detect brew from known paths (it may not be in PATH yet)
+_find_brew() {
+  if command -v brew &> /dev/null; then
+    return 0
+  fi
+  local brew_paths=(
+    /opt/homebrew/bin/brew
+    /usr/local/bin/brew
+    /home/linuxbrew/.linuxbrew/bin/brew
+  )
+  for p in "${brew_paths[@]}"; do
+    if [[ -x "$p" ]]; then
+      eval "$("$p" shellenv)"
+      return 0
+    fi
+  done
+  return 1
+}
 
 # --- Xcode CLI Tools (macOS only) ---
 if [[ "$OS" == "Darwin" ]]; then
@@ -33,20 +50,16 @@ if [[ "$OS" == "Darwin" ]]; then
 fi
 
 # --- Homebrew ---
-if ! command -v brew &> /dev/null; then
+if ! _find_brew; then
   echo "==> Installing Homebrew..."
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || true
+  # Re-detect brew after install
+  if ! _find_brew; then
+    echo "!! Homebrew installation failed. Please install manually and re-run."
+    exit 1
+  fi
 else
   echo "==> Homebrew: already installed"
-fi
-
-# Add brew to current session PATH
-if [[ -f "/opt/homebrew/bin/brew" ]]; then
-  eval "$(/opt/homebrew/bin/brew shellenv)"
-elif [[ -f "/usr/local/bin/brew" ]]; then
-  eval "$(/usr/local/bin/brew shellenv)"
-elif [[ -f "/home/linuxbrew/.linuxbrew/bin/brew" ]]; then
-  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 fi
 
 # --- macOS: 1Password App (for SSH agent) ---
