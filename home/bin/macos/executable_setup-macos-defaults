@@ -54,11 +54,10 @@ defaults write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
 
 # Keyboard
 # NOTE: NSGlobalDomain writes for these fail on Sonoma+ (14+)
-if [[ "$macos_major" -lt 14 ]]; then
-  defaults write NSGlobalDomain ApplePressAndHoldEnabled -bool false
-  defaults write NSGlobalDomain KeyRepeat -int 2
-  defaults write NSGlobalDomain InitialKeyRepeat -int 15
-fi
+defaults write NSGlobalDomain ApplePressAndHoldEnabled -bool false
+defaults write NSGlobalDomain KeyRepeat -int 2
+defaults write NSGlobalDomain InitialKeyRepeat -int 15
+
 defaults write NSGlobalDomain com.apple.keyboard.fnState -bool true
 defaults write NSGlobalDomain AppleKeyboardUIMode -int 3
 
