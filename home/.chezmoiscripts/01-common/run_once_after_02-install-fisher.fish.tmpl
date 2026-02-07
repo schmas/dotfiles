@@ -1,6 +1,17 @@
-#!/usr/bin/env fish
+#!/usr/bin/env bash
 
-if not type --quiet "fisher"
+set -e
+
+{{ template "brew-shellenv" . }}
+
+if ! command -v fish >/dev/null 2>&1; then
+  echo "Fish not found, skipping fisher installation"
+  exit 0
+fi
+
+fish -c '
+if not type --quiet fisher
     curl -sL https://raw.githubusercontent.com/jorgebucaran/fisher/main/functions/fisher.fish | source
     fisher update
 end
+'

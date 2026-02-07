@@ -1,4 +1,13 @@
-#!/usr/bin/env fish
+#!/usr/bin/env bash
+
+set -e
+
+{{ template "brew-shellenv" . }}
+
+if ! command -v fish >/dev/null 2>&1; then
+  echo "Fish not found, skipping fish setup"
+  exit 0
+fi
 
 # Clear fish welcome message
-set -U fish_greeting ""
+fish -c 'set -U fish_greeting ""'
