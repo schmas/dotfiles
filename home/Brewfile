@@ -99,7 +99,6 @@ brew "1password-cli"  # 1Password CLI
 brew "chezmoi"        # Dotfiles manager
 brew "hyperfine"      # CLI benchmarking
 brew "mas"            # Mac App Store CLI
-brew "pay-respects"   # Command correction (f to fix)
 brew "reattach-to-user-namespace"  # tmux clipboard fix
 brew "shfmt"          # Shell formatter
 brew "xz"             # Compression
