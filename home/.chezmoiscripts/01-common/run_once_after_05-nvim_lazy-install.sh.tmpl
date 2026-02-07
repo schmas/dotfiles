@@ -4,6 +4,12 @@ set -e
 set -u
 set -o pipefail
 
+echo ""
+echo "-----------------------------------------------------------------------"
+echo " Install nvim_lazy"
+echo "-----------------------------------------------------------------------"
+echo ""
+
 NVIM_DIR="${HOME}/.config/nvim"
 
 if [ ! -d "${NVIM_DIR}" ]; then

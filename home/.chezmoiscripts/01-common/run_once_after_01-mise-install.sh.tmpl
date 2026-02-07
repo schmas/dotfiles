@@ -4,6 +4,12 @@ set -e
 set -u
 set -o pipefail
 
+echo ""
+echo "-----------------------------------------------------------------------"
+echo " Install mise Tools"
+echo "-----------------------------------------------------------------------"
+echo ""
+
 {{ template "brew-shellenv" . }}
 
 if command -v mise >/dev/null 2>&1; then
