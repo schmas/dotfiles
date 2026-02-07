@@ -5,20 +5,12 @@ set -o pipefail
 
 echo ""
 echo "-----------------------------------------------------------------------"
-echo " Install Claude Code CLI"
+echo " Setup Claude Code CLI"
 echo "-----------------------------------------------------------------------"
 echo ""
 
-# Check both PATH and direct location (PATH may not be loaded yet in run_once)
-if ! command -v claude >/dev/null 2>&1 && [ ! -x "$HOME/.local/bin/claude" ]; then
-  echo "Installing Claude Code CLI..."
-  if ! curl -fsSL https://claude.ai/install.sh | bash; then
-    echo "Warning: Claude CLI installation failed" >&2
-  fi
-fi
-
-# Delegate to standalone script for config setup (DRY - single source of truth)
-# Check both chezmoi target and PATH locations
+# Delegate entirely to standalone script (DRY - single source of truth)
+# It clones the config repo first, then installs the CLI
 SETUP_SCRIPT="${HOME}/bin/setup-claude-code"
 if [ -x "$SETUP_SCRIPT" ]; then
   exec "$SETUP_SCRIPT"
