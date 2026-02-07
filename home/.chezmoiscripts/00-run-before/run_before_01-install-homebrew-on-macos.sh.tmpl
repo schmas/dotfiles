@@ -4,6 +4,8 @@ exit 0
 {{ end }}
 
 set -e
+set -u
+set -o pipefail
 
 # Check if brew is already installed (may not be in PATH yet on Apple Silicon)
 if command -v brew &> /dev/null || [[ -f "/opt/homebrew/bin/brew" ]] || [[ -f "/usr/local/bin/brew" ]]; then

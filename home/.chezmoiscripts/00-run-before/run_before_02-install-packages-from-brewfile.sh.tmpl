@@ -5,13 +5,10 @@ exit 0
 {{ end }}
 
 set -e
+set -u
+set -o pipefail
 
-# Ensure brew is in PATH
-if [[ -f "/opt/homebrew/bin/brew" ]]; then
-  eval "$(/opt/homebrew/bin/brew shellenv)"
-elif [[ -f "/usr/local/bin/brew" ]]; then
-  eval "$(/usr/local/bin/brew shellenv)"
-fi
+{{ template "brew-shellenv" . }}
 
 if ! command -v brew &> /dev/null; then
   echo "Error: Homebrew not found"
@@ -35,7 +32,7 @@ if sudo --validate 2>/dev/null; then
   # Refresh sudo timestamp in the background until this script exits
   while true; do sudo --non-interactive --validate; sleep 30; done &
   SUDO_REFRESH_PID=$!
-  trap 'kill "$SUDO_REFRESH_PID" 2>/dev/null' EXIT
+  trap 'kill "$SUDO_REFRESH_PID" 2>/dev/null' EXIT INT TERM
 fi
 
 brew bundle --file="$BREWFILE"
