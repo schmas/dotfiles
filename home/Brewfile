@@ -103,6 +103,13 @@ brew "xz"             # Compression
 brew "urlview"        # URL extractor
 brew "dockutil"       # Dock management
 
+# === Fonts ===
+cask "font-meslo-lg-nerd-font"         # Terminal font (Ghostty)
+cask "font-jetbrains-mono-nerd-font"   # Terminal font (Ghostty)
+cask "font-geist-mono-nerd-font"       # Terminal font (Ghostty)
+cask "font-fira-code-nerd-font"        # Programming font
+cask "font-hack-nerd-font"             # Programming font
+
 # === macOS Casks ===
 
 # Security & Privacy
