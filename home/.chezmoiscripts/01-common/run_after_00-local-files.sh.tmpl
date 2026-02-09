@@ -11,6 +11,28 @@ echo "-----------------------------------------------------------------------"
 echo ""
 
 CREATED=0
+MERGE_MARKER="# chezmoi:merged"
+
+# One-time merge: append template content to existing gpg-agent.conf and ssh_config
+if [ -f ~/.gnupg/gpg-agent.conf ] && [ -f ~/.config/etc/gpg-agent.conf.template ]; then
+  if ! grep -qF "$MERGE_MARKER" ~/.gnupg/gpg-agent.conf; then
+    echo "Merging template into ~/.gnupg/gpg-agent.conf"
+    printf '\n%s\n' "$MERGE_MARKER" >> ~/.gnupg/gpg-agent.conf
+    cat ~/.config/etc/gpg-agent.conf.template >> ~/.gnupg/gpg-agent.conf
+    chmod 600 ~/.gnupg/gpg-agent.conf
+    CREATED=1
+  fi
+fi
+
+if [ -f ~/.ssh/config ] && [ -f ~/.config/etc/ssh_config.template ]; then
+  if ! grep -qF "$MERGE_MARKER" ~/.ssh/config; then
+    echo "Merging template into ~/.ssh/config"
+    printf '\n%s\n' "$MERGE_MARKER" >> ~/.ssh/config
+    cat ~/.config/etc/ssh_config.template >> ~/.ssh/config
+    chmod 600 ~/.ssh/config
+    CREATED=1
+  fi
+fi
 
 # Create main configuration files if they do not exist
 if [ ! -f ~/.config/git/config ]; then
@@ -30,6 +52,7 @@ fi
 if [ ! -f ~/.ssh/config ]; then
   echo "Creating ~/.ssh/config"
   cp ~/.config/etc/ssh_config.template ~/.ssh/config
+  echo "$MERGE_MARKER" >> ~/.ssh/config
   chmod 600 ~/.ssh/config
   CREATED=1
 fi
@@ -45,6 +68,7 @@ fi
 if [ ! -f ~/.gnupg/gpg-agent.conf ]; then
   echo "Creating ~/.gnupg/gpg-agent.conf"
   cp ~/.config/etc/gpg-agent.conf.template ~/.gnupg/gpg-agent.conf
+  echo "$MERGE_MARKER" >> ~/.gnupg/gpg-agent.conf
   chmod 600 ~/.gnupg/gpg-agent.conf
   CREATED=1
 fi
