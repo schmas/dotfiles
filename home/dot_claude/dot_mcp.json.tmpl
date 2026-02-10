@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "human-mcp": {
+      "command": "npx",
+      "args": ["@goonnguyen/human-mcp"],
+      "env": {
+        "GOOGLE_GEMINI_API_KEY": "{{ onepasswordRead "op://Dotfiles/mnplwh5vf7jxt3ihqu6rtjbshu/api key claude_code" }}"
+      }
+    },
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["-y", "chrome-devtools-mcp@latest"]
+    },
+    "sequential-thinking": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+    }
+  }
+}
