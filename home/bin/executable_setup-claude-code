@@ -66,6 +66,41 @@ run_setup_script() {
   fi
 }
 
+# Register MCP servers at user scope
+setup_mcp_servers() {
+  if ! command -v claude >/dev/null 2>&1; then
+    echo "Claude CLI not found, skipping MCP setup"
+    return 0
+  fi
+
+  echo "Setting up MCP servers..."
+
+  # Fetch installed list once to avoid repeated slow calls
+  local installed
+  installed="$(claude mcp list 2>/dev/null || true)"
+
+  if ! echo "$installed" | grep -q "^human-mcp:"; then
+    claude mcp add -e "GOOGLE_GEMINI_API_KEY=\${GEMINI_API_KEY}" -s user \
+      human-mcp -- npx @goonnguyen/human-mcp || echo "Warning: failed to add human-mcp"
+  else
+    echo "human-mcp already configured"
+  fi
+
+  if ! echo "$installed" | grep -q "^chrome-devtools:"; then
+    claude mcp add -s user chrome-devtools -- npx -y chrome-devtools-mcp@latest \
+      || echo "Warning: failed to add chrome-devtools"
+  else
+    echo "chrome-devtools already configured"
+  fi
+
+  if ! echo "$installed" | grep -q "^sequential-thinking:"; then
+    claude mcp add -s user sequential-thinking -- npx -y @modelcontextprotocol/server-sequential-thinking \
+      || echo "Warning: failed to add sequential-thinking"
+  else
+    echo "sequential-thinking already configured"
+  fi
+}
+
 # Display plugin installation instructions
 show_plugin_instructions() {
   echo ""
@@ -84,7 +119,12 @@ main() {
   setup_claude_config
   install_claude_code
   run_setup_script
+  setup_mcp_servers
   show_plugin_instructions
 }
 
-main "$@"
+# Allow running individual functions: setup-claude-code mcp
+case "${1:-}" in
+  mcp) setup_mcp_servers ;;
+  *)   main "$@" ;;
+esac
