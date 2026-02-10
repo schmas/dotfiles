@@ -146,9 +146,10 @@ bashrc (sources)
 
 | Phase | Prefix | Purpose | Example |
 |-------|--------|---------|---------|
-| **1. Setup** | 00-* | Install/initialize plugin managers | `00-install_fisher.fish`, `00-load-homebrew.fish` |
-| **2. Common Env** | 10-* | LANG, EDITOR, PATH, common vars | `10-common.env.fish.tmpl`, `10-colors.fish` |
-| **3. OS Config** | 20-* | OS-specific env/path | `20-os.darwin.env.fish.tmpl` |
+| **1. Setup** | 00-* | Install/initialize plugin managers, Homebrew | `00-install_fisher.fish`, `00-load-homebrew.{fish,zsh,bash}` |
+| **1.5 Shared Env** | 05-* | Glob-load centralized `~/.config/env/*.env` | `05-shared-env.{fish,zsh,bash}` |
+| **2. Shell-Specific Env** | 10-* | GPG_TTY, rm_opts, ZSH_*, HIST* | `10-common.env.fish.tmpl`, `10-colors.fish` |
+| **3. OS Config** | 20-* | OS-specific init (ulimit, VSCode, GPG agent) | `20-os.darwin.env.fish.tmpl` |
 | **4. Input** | 49-* | Keybindings, input mode (Zsh only) | `49-input.zsh` |
 | **5. Completions** | 50-* | Tab completion setup | `50-completions.zsh` |
 | **6. Tools** | 70-* | Tool-specific init (Zellij, Starship) | `70-zellij.fish`, `70-starship-init.fish` |

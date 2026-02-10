@@ -16,9 +16,10 @@
 
 ```
 Execution order (numeric prefix determines load timing):
-00-*  → Installation/setup (Fisher auto-install)
-10-*  → Common environment (LANG, EDITOR, PATH)
-20-*  → OS-specific configs (darwin/linux variants)
+00-*  → Installation/setup (Fisher, Homebrew for all shells)
+05-*  → Shared env (globs ~/.config/env/*.env)
+10-*  → Shell-specific env (GPG_TTY, rm_opts, ZSH_*, HIST*)
+20-*  → OS-specific init (ulimit, VSCode, GPG agent)
 49-*  → Input/keybindings (Zsh)
 50-*  → Completions
 70-*  → Tool-specific (Zellij, Starship)
@@ -236,29 +237,44 @@ export PATH="/usr/local/bin:$PATH"
 
 ## Environment Variables
 
-### Standard Variables (All Shells)
+### Centralized Variables (`~/.config/env/10-shared.env`)
+
+Shared across all shells via glob-loaded POSIX .env files. Fish uses `source_posix_env` function with `$HOME` expansion support.
 
 | Variable | Value | Purpose |
 |----------|-------|---------|
 | `LANG` | `en_US.UTF-8` | Locale setting |
-| `LANGUAGE` | `en_US.UTF-8` | Fallback locale |
+| `LANGUAGE` | `en_US:en` | Fallback locale |
 | `LC_TIME` | `en_US.UTF-8` | Time format |
 | `VISUAL` | `nvim` | Visual editor |
-| `EDITOR` | `nvim` or `vim` | Line editor |
-| `SYSTEMD_EDITOR` | `$EDITOR` | Systemd editor |
+| `EDITOR` | `nvim` | Line editor |
+| `SYSTEMD_EDITOR` | `nvim` | Systemd editor |
+| `DOTFILES_BIN` | `$HOME/bin` | Dotfiles bin path |
 | `CLICOLOR` | `1` | Enable colored output |
-| `GPG_TTY` | `$(tty)` | GPG terminal for pinentry |
 | `OPENCV_LOG_LEVEL` | `ERROR` | Suppress OpenCV logging |
+| `forgit_ignore` | `/dev/null` | forgit plugin config |
+| `ASDF_NODEJS_LEGACY_FILE_DYNAMIC_STRATEGY` | `latest_installed` | ASDF node strategy |
 
-### Tool-Specific Variables
+### Shell-Specific Variables (per-shell `10-common.env.*`)
 
-| Tool | Variable | Set In | Purpose |
-|------|----------|--------|---------|
-| Mise | `MISE_GITHUB_TOKEN` | Fish (1Password) | GitHub package access |
-| Homebrew | `HOMEBREW_GITHUB_TOKEN` | Fish (1Password) | Faster downloads |
-| FZF | `FZF_DEFAULT_COMMAND` | All shells | Use `fd` instead of `find` |
-| Zsh | `ZSH_CACHE_DIR` | `10-common.env.zsh` | Completion cache |
-| Fish | `EZA_COLORS` | `10-colors.fish` | Eza color scheme |
+| Variable | Shells | Reason Not Centralized |
+|----------|--------|------------------------|
+| `GPG_TTY` | Fish/Zsh/Bash | Command substitution `$(tty)` |
+| `rm_opts` | Zsh/Bash | Array syntax `(-I -v)` |
+
+### Tool-Specific Variables (`~/.config/env/15-services.env`)
+
+API tokens injected by chezmoi from 1Password:
+
+| Tool | Variable | Purpose |
+|------|----------|---------|
+| Mise | `MISE_GITHUB_TOKEN` | GitHub package access |
+| Git | `GITHUB_TOKEN` | GitHub API access |
+| Homebrew | `HOMEBREW_GITHUB_API_TOKEN` | Faster downloads |
+| Gemini | `GEMINI_API_KEY` | Gemini AI API |
+| FZF | `FZF_DEFAULT_COMMAND` | Use `fd` instead of `find` (set in shell) |
+| Zsh | `ZSH_CACHE_DIR` | Completion cache (set in `10-common.env.zsh`) |
+| Fish | `EZA_COLORS` | Eza color scheme (set in `10-colors.fish`) |
 
 ### OS-Specific Variables
 
