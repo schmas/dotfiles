@@ -37,17 +37,18 @@ Brainstorm report: [brainstorm-260210-1251-centralized-shared-env-vars.md](../re
 
 ```
 ~/.config/env/                          # Glob-loaded by all shells
-├── 10-shared.env                       # Chezmoi: tokens + shared prefs
+├── 10-shared.env                       # Chezmoi: config vars (LANG, EDITOR, etc.)
+├── 15-services.env                     # Chezmoi: API tokens (1Password injected)
 ├── 20-os-darwin.env                    # Chezmoi: XDG dirs (empty on Linux)
 ├── 20-os-linux.env                     # Chezmoi: TMPDIR, WSL vars (empty on macOS)
 ├── 50-1password.env                    # Optional: 1Password CLI generated
 └── 90-local.env                        # Optional: manual overrides
 
 Shell load order:
-  00-* → Setup (Homebrew, Fisher)
-  05-* → Shared env ← NEW: globs ~/.config/env/*.env
-  10-* → Common env (LANG, EDITOR, shell-specific)
-  20-* → OS-specific (shell commands only)
+  00-* → Setup (Homebrew for ALL shells, Fisher)
+  05-* → Shared env: globs ~/.config/env/*.env
+  10-* → Shell-specific env (GPG_TTY, rm_opts, ZSH_*, HIST*)
+  20-* → OS-specific init (ulimit, VSCode integration, GPG agent)
 ```
 
 ## Files to Create (6)
