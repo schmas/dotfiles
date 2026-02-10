@@ -72,6 +72,10 @@ brew "mise"           # Dev runtime manager (replaces asdf)
 brew "pkg-config"     # Compiler helper
 brew "tokei"          # Code statistics
 
+# === Database ===
+brew "libpq"          # PostgreSQL client (psql) without full server
+brew "freetds"        # SQL Server / Sybase client library
+
 # === Containers ===
 brew "krunkit"        # Lightweight VM runtime
 brew "podman"         # Container runtime

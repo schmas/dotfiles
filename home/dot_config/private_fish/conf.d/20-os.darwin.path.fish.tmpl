@@ -11,6 +11,11 @@ if test -d "/opt/homebrew/opt/coreutils/libexec/gnubin"
     fish_add_path --global --move --path "/opt/homebrew/opt/coreutils/libexec/gnubin"
 end
 
+# libpq (psql client without full PostgreSQL server)
+if test -d "/opt/homebrew/opt/libpq/bin"
+    fish_add_path --global --move --path "/opt/homebrew/opt/libpq/bin"
+end
+
 # openssl@1.1 for python #
 #fish_add_path /usr/local/opt/openssl@1.1/bin
 #set -xg LDFLAGS "-L/usr/local/opt/openssl@1.1/lib"
