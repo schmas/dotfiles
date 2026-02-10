@@ -1,0 +1,61 @@
+# AAA Database Configurations - managed by chezmoi
+# Credentials fetched from 1Password AAA vault
+# Uses onepasswordDetailsFields/onepasswordItemFields for batch fetching (1 call per function per item)
+{{- $dev2 := onepasswordDetailsFields "nchz62ceagslahw55ipbh6vwxm" "AAA" }}
+{{- $dev2s := onepasswordItemFields "nchz62ceagslahw55ipbh6vwxm" "AAA" }}
+{{- $uat2 := onepasswordDetailsFields "v3nmfgeghluczj7u6nv5vcx5ki" "AAA" }}
+{{- $uat2s := onepasswordItemFields "v3nmfgeghluczj7u6nv5vcx5ki" "AAA" }}
+{{- $datastaging := onepasswordDetailsFields "5wfjvu67eas6yvcl7ux7nzdbim" "AAA" }}
+{{- $datastagings := onepasswordItemFields "5wfjvu67eas6yvcl7ux7nzdbim" "AAA" }}
+{{- $appdev5 := onepasswordDetailsFields "g6wgv73g64trzumjwq54jdmfam" "AAA" }}
+
+dev2:
+  host: {{ (index $dev2 "hostname").value }}
+  port: {{ (index $dev2 "port").value }}
+  dbname: {{ (index $dev2 "database").value }}
+  user: {{ (index $dev2 "username").value }}
+  password: {{ (index $dev2 "password").value }}
+  bastion: {{ (index $dev2s "user").value }}@{{ (index $dev2s "host").value }}
+  sslmode: require
+  type: postgresql
+
+uat2:
+  host: {{ (index $uat2 "hostname").value }}
+  port: {{ (index $uat2 "port").value }}
+  dbname: {{ (index $uat2 "database").value }}
+  user: {{ (index $uat2 "username").value }}
+  password: {{ (index $uat2 "password").value }}
+  bastion: {{ (index $uat2s "user").value }}@{{ (index $uat2s "host").value }}
+  sslmode: require
+  type: postgresql
+
+# hoosier-uat2: 1Password ID ymliolxaipistvct2iur7sbxtm
+# bsg-uat2: 1Password ID nuyft7egt2ivl3nqlpxculftjm
+
+datastaging:
+  host: {{ (index $datastaging "hostname").value }}
+  port: {{ (index $datastaging "port").value }}
+  dbname: {{ (index $datastaging "database").value }}
+  user: {{ (index $datastaging "username").value }}
+  password: {{ (index $datastaging "password").value }}
+  bastion: {{ (index $datastagings "user").value }}@{{ (index $datastagings "host").value }}
+  sslmode: require
+  type: postgresql
+
+appdev5:
+  host: {{ (index $appdev5 "hostname").value }}
+  port: 1433
+  dbname: {{ (index $appdev5 "database").value }}
+  user: {{ (index $appdev5 "username").value }}
+  password: {{ (index $appdev5 "password").value }}
+  sslmode: disable
+  type: mssql
+
+local:
+  host: localhost
+  port: 5432
+  dbname: connect_plus
+  user: postgres
+  password: postgres
+  sslmode: disable
+  type: postgresql
