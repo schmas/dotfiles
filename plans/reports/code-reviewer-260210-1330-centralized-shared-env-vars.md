@@ -105,6 +105,15 @@ Running `chezmoi execute-template < 10-shared.env.tmpl` exposes plaintext secret
 1. Never include `chezmoi execute-template` output for secret-containing files in reports
 2. Tokens are injected by 1Password at apply time — verify via `chezmoi apply --dry-run`
 
+3. Update 1Password refs after rotation
+
+**Prevention:**
+Add to project `.gitignore`:
+```
+# Never commit template test outputs
+**/test-template-output*.txt
+```
+
 ---
 
 ## High Priority
