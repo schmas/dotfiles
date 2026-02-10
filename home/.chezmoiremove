@@ -1,2 +1,5 @@
 .config/fish/conf.d/zzz-98-mise-config.fish
 .config/fish/conf.d/zzz-99-pay-respects.fish
+.config/fish/conf.d/71-pay-respects.fish
+.config/fish/conf.d/00-pay-respects.fish
+.config/fish/conf.d/02-pay-respects.fish
