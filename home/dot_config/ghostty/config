@@ -1,7 +1,8 @@
 # This is an INI configuration file
 
 # theme
-theme = "Builtin Pastel Dark"
+theme = "GitHub Dark"
+#theme = "Builtin Pastel Dark"
 #theme = "Dark Pastel"
 #window-theme = ghostty
 macos-icon = official
