@@ -18,6 +18,7 @@ dev2:
   bastion: {{ (index $dev2s "user").value }}@{{ (index $dev2s "host").value }}
   sslmode: require
   type: postgresql
+  writable: false
 
 uat2:
   host: {{ (index $uat2 "hostname").value }}
@@ -28,6 +29,7 @@ uat2:
   bastion: {{ (index $uat2s "user").value }}@{{ (index $uat2s "host").value }}
   sslmode: require
   type: postgresql
+  writable: false
 
 # hoosier-uat2: 1Password ID ymliolxaipistvct2iur7sbxtm
 # bsg-uat2: 1Password ID nuyft7egt2ivl3nqlpxculftjm
@@ -41,6 +43,7 @@ datastaging:
   bastion: {{ (index $datastagings "user").value }}@{{ (index $datastagings "host").value }}
   sslmode: require
   type: postgresql
+  writable: false
 
 appdev5:
   host: {{ (index $appdev5 "hostname").value }}
@@ -50,6 +53,7 @@ appdev5:
   password: {{ (index $appdev5 "password").value }}
   sslmode: disable
   type: mssql
+  writable: false
 
 local:
   host: localhost
@@ -59,3 +63,14 @@ local:
   password: postgres
   sslmode: disable
   type: postgresql
+  writable: true
+
+local2:
+  host: localhost
+  port: 5432
+  dbname: cplus_local
+  user: postgres
+  password: postgres
+  sslmode: disable
+  type: postgresql
+  writable: true
