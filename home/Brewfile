@@ -69,6 +69,7 @@ brew "ast-grep"       # AST-based search
 brew "just"           # Task runner
 brew "luarocks"       # Lua package manager
 brew "mise"           # Dev runtime manager (replaces asdf)
+brew "opencode"       # AI coding assistant
 brew "pkg-config"     # Compiler helper
 brew "tokei"          # Code statistics
 

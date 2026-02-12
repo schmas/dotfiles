@@ -16,10 +16,10 @@ go = "latest"
 "npm:@google/gemini-cli" = "latest"
 "npm:rulesync" = "latest"
 "npm:@fission-ai/openspec" = "latest"
-"npm:opencode-ai" = "latest"
 "npm:claudekit-cli" = "latest"
 "npm:@mixedbread/mgrep" = "latest"
 "cargo:pay-respects" = "latest"
+"npm:@rama_nigg/open-cursor" = "latest"
 
 [settings]
 experimental = true
