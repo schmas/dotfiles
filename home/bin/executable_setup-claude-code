@@ -99,6 +99,15 @@ setup_mcp_servers() {
   else
     echo "sequential-thinking already configured"
   fi
+
+  if ! echo "$installed" | grep -q "^obsidian:"; then
+    local vault_path
+    vault_path="$(readlink -f "$HOME/Obsidian_Vault" 2>/dev/null || echo "$HOME/Obsidian_Vault")"
+    claude mcp add -s user obsidian -- npx -y obsidian-mcp "$vault_path" \
+      || echo "Warning: failed to add obsidian-mcp"
+  else
+    echo "obsidian-mcp already configured"
+  fi
 }
 
 # Display plugin installation instructions
