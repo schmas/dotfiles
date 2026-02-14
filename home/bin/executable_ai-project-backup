@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Claude & Cursor Project Settings Backup/Restore Script
-# Usage: claude-project-backup [backup|restore]
+# AI Project Settings Backup/Restore Script
+# Backs up Claude, Cursor, and OpenCode project settings
+# Usage: ai-project-backup [backup|restore]
 
 set -euo pipefail
 
@@ -16,7 +17,18 @@ PROJECTS=(
   "connect-plus-frontend"
 )
 
-AI_FILES=(".claude" "CLAUDE.md" "CLAUDE.local.md" ".cursor" ".cursorrules" ".cursorignore")
+# Claude, Cursor, and OpenCode config files/dirs
+AI_FILES=(
+  ".claude"
+  "CLAUDE.md"
+  "CLAUDE.local.md"
+  ".cursor"
+  ".cursorrules"
+  ".cursorignore"
+  ".opencode"
+  "AGENTS.md"
+  ".ignore"
+)
 
 RSYNC_EXCLUDES=(
   ".venv"
@@ -24,6 +36,9 @@ RSYNC_EXCLUDES=(
   "node_modules"
   ".cache"
   "*.pyc"
+  "bun.lock"
+  "package.json"
+  ".gitignore"
 )
 
 backup_project() {
@@ -110,7 +125,7 @@ case "$ACTION" in
     for project in "${PROJECTS[@]}"; do restore_project "$project" "$RESTORE_BASE"; done
     ;;
   *)
-    echo "Usage: claude-project-backup [backup|restore]"
+    echo "Usage: ai-project-backup [backup|restore]"
     exit 1
     ;;
 esac

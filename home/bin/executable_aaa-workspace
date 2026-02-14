@@ -75,7 +75,7 @@ do_backup() {
 
   echo ""
   echo -e "${CYAN}--- AI project settings ---${RESET}"
-  claude-project-backup backup
+  ai-project-backup backup
 }
 
 do_setup() {
@@ -148,7 +148,7 @@ do_setup() {
 
   echo ""
   echo -e "${CYAN}--- AI project settings ---${RESET}"
-  claude-project-backup restore
+  ai-project-backup restore
 
   echo ""
   echo -e "${GREEN}✓ Setup complete.${RESET}"
