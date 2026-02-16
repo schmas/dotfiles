@@ -20,6 +20,7 @@ go = "latest"
 "npm:@mixedbread/mgrep" = "latest"
 "cargo:pay-respects" = "latest"
 "npm:@rama_nigg/open-cursor" = "latest"
+uv = "latest"
 
 [settings]
 experimental = true
