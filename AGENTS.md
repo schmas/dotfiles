@@ -107,6 +107,16 @@ chezmoi execute-template < f.tmpl  # Debug template output
 upall                              # Master update: OS + brew + mise + rust + chezmoi + claude + fisher + atuin
 ```
 
+## DEEP DIVES
+
+Detailed knowledge for specific areas:
+
+| Document | Scope |
+|----------|-------|
+| [docs/agents-dot-config.md](docs/agents-dot-config.md) | Shell architecture, app configs, 1Password secrets |
+| [docs/agents-bin.md](docs/agents-bin.md) | Utility scripts, git extensions, naming conventions |
+| [docs/agents-scripts.md](docs/agents-scripts.md) | Chezmoi script naming, execution order, triggers |
+
 ## NOTES
 
 - `.chezmoiroot` points to `home/` — repo root has docs/plans, actual dotfiles are in `home/`
