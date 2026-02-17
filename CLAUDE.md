@@ -38,8 +38,9 @@ chezmoi execute-template < path/to/file.tmpl
 
 **Shell config load order (numeric prefix):**
 ```
-00-*  Setup (plugin managers)
-10-*  Common env (LANG, EDITOR, PATH)
+00-*  Setup (plugin managers, Homebrew)
+05-*  Shared configs (centralized ~/.config/env/*.env + ~/.config/path/*.path)
+10-*  Shell-specific env (LANG, EDITOR, GPG_TTY, HIST*, ZSH_*)
 20-*  OS-specific (darwin/linux)
 50-*  Completions
 70-*  Tool init (Starship, Zellij)

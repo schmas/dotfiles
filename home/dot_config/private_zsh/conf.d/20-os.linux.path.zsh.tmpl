@@ -1,8 +1,0 @@
-{{ if eq .chezmoi.os "linux" }}
-#!/usr/bin/env zsh
-
-path=(${HOME}/bin/linux:/var/lib/snapd/snap/bin:/snap/bin $path)
-
-export PATH="${HOME}/bin/linux:$PATH"
-
-{{ end }}
