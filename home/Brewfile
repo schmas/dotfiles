@@ -59,7 +59,7 @@ brew "git"
 brew "git-lfs"        # Large file storage
 brew "gitleaks"       # Secret scanner
 brew "gh"             # GitHub CLI
-brew "lazygit"        # Git TUI
+#brew "lazygit"        # Git TUI
 brew "git-delta"      # Git diff viewer
 brew "diff-so-fancy"  # Better git diffs
 brew "difftastic"     # Structural diff
