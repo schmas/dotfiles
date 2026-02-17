@@ -84,6 +84,10 @@ update-main = !git fetch origin main:main --progress --prune
 update-branch = "!f() { git fetch origin $1:$1 --progress --prune; }; f"
 
 # *********************
-# difftool
+# Diff tools
+# Standard diff (no external tools)
+diff-plain = "!git --no-pager diff --no-ext-diff"
+
+# Difftastic - syntax-aware diff
 dft = difftool
 dlog = "-c diff.external=difft log -p --ext-diff"
