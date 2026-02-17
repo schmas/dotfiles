@@ -14,6 +14,11 @@ if [ -d "/opt/homebrew/opt/libpq/bin" ]; then
     export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
 fi
 
+# Antigravity
+if [ -d "${HOME}/.antigravity/antigravity/bin" ]; then
+    export PATH="${HOME}/.antigravity/antigravity/bin:$PATH"
+fi
+
 # openssl@1.1 for python #
 # export PATH="/usr/local/opt/openssl@1.1/bin:$PATH"
 # export LDFLAGS="-L/usr/local/opt/openssl@1.1/lib"

@@ -16,6 +16,11 @@ if test -d "/opt/homebrew/opt/libpq/bin"
     fish_add_path --global --move --path "/opt/homebrew/opt/libpq/bin"
 end
 
+# Antigravity
+if test -d "$HOME/.antigravity/antigravity/bin"
+    fish_add_path --global --move --path "$HOME/.antigravity/antigravity/bin"
+end
+
 # openssl@1.1 for python #
 #fish_add_path /usr/local/opt/openssl@1.1/bin
 #set -xg LDFLAGS "-L/usr/local/opt/openssl@1.1/lib"
