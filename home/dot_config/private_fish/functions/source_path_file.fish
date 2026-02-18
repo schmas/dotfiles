@@ -11,6 +11,7 @@ function source_path_file --description "Load a .path file into fish PATH"
         set -l dir ""
 
         for token in (string split ' ' -- $line)
+            test -n "$token"; or continue  # skip empty tokens from multiple spaces
             switch $token
                 case '--check'
                     set check 1
