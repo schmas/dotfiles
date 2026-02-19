@@ -1,0 +1,198 @@
+#!/usr/bin/env bash
+# Print keyboard shortcuts reference with optional search and section filter
+
+set -euo pipefail
+
+SHORTCUTS_FILE="${CHEZMOI_SOURCE_DIR:-$HOME/.local/share/chezmoi}/SHORTCUTS-REFERENCE.md"
+
+# ── Colors ────────────────────────────────────────────────────────────────────
+RESET=$'\033[0m'
+BOLD=$'\033[1m'
+DIM=$'\033[2m'
+
+C_HEADER=$'\033[1;36m'   # cyan bold  — section headings
+C_SUBH=$'\033[1;33m'     # yellow bold — sub-headings
+C_KEY=$'\033[1;32m'      # green bold  — key names
+C_SEP=$'\033[0;90m'      # dark grey   — separators / pipes
+C_DESC=$'\033[0;37m'     # light grey  — descriptions
+C_MATCH=$'\033[1;31m'    # red bold    — search match highlight
+C_USAGE=$'\033[0;36m'    # cyan        — usage text
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
+usage() {
+  echo -e "${C_USAGE}Usage:${RESET} shortcuts [section] [search]"
+  echo
+  echo -e "  ${BOLD}shortcuts${RESET}               Show all shortcuts"
+  echo -e "  ${BOLD}shortcuts fish${RESET}          Show Fish shell section only"
+  echo -e "  ${BOLD}shortcuts ctrl+r${RESET}        Search for 'ctrl+r' across all sections"
+  echo -e "  ${BOLD}shortcuts tmux zoom${RESET}     Search for 'zoom' in Tmux section"
+  echo
+  echo -e "${C_USAGE}Sections:${RESET} fish · zsh · bash · fzf · tmux · vim · neovim"
+}
+
+render_line() {
+  local line="$1"
+  local query="${2:-}"
+
+  # --- H1 (# Title)
+  if [[ "$line" =~ ^#[^#] ]]; then
+    local title="${line:2}"
+    echo
+    echo -e "${C_HEADER}${BOLD}══ ${title} ══${RESET}"
+    return
+  fi
+
+  # --- H2 (## Section)
+  if [[ "$line" =~ ^##[^#] ]]; then
+    local title="${line:3}"
+    echo
+    echo -e "${C_SUBH}▶ ${title}${RESET}"
+    return
+  fi
+
+  # --- H3 (### Subsection)
+  if [[ "$line" =~ ^###[^#] ]]; then
+    local title="${line:4}"
+    echo -e "${DIM}  ── ${title} ──${RESET}"
+    return
+  fi
+
+  # --- Horizontal rule
+  if [[ "$line" =~ ^---$ ]]; then
+    return
+  fi
+
+  # --- Table header separator (| --- | --- |)
+  if [[ "$line" =~ ^\|[[:space:]]*-+[[:space:]]*\| ]]; then
+    return
+  fi
+
+  # --- Table row
+  if [[ "$line" =~ ^\| ]]; then
+    # Strip leading/trailing pipe and split on |
+    local row="${line#|}"
+    row="${row%|}"
+    IFS='|' read -ra cols <<< "$row"
+
+    local key="${cols[0]:-}"
+    local desc="${cols[1]:-}"
+
+    # Trim whitespace
+    key="${key#"${key%%[![:space:]]*}"}"
+    key="${key%"${key##*[![:space:]]}"}"
+    desc="${desc#"${desc%%[![:space:]]*}"}"
+    desc="${desc%"${desc##*[![:space:]]}"}"
+
+    # Skip header rows (bold markdown in key cell)
+    if [[ "$key" == "**Key**" || "$key" == "Key" ]]; then
+      return
+    fi
+
+    # Strip backticks and normalize unicode arrows for stable alignment
+    key="${key//\`/}"
+    local display_key="$key"
+    display_key="${display_key//←/Left}"
+    display_key="${display_key//→/Right}"
+    display_key="${display_key//↑/Up}"
+    display_key="${display_key//↓/Down}"
+
+    # Pad key column to fixed width
+    local padded
+    padded=$(printf "%-30s" "$display_key")
+
+    # Highlight search match
+    if [[ -n "$query" ]]; then
+      local lkey="${display_key,,}"
+      local ldesc="${desc,,}"
+      local lquery="${query,,}"
+      if [[ "$lkey" == *"$lquery"* || "$ldesc" == *"$lquery"* ]]; then
+        printf "  ${C_KEY}%s${RESET} ${C_SEP}│${RESET} ${C_DESC}%s${RESET}\n" "$padded" "$desc" \
+          | sed "s/$query/${C_MATCH}&${C_DESC}/gI"
+      fi
+      return
+    fi
+
+    printf "  ${C_KEY}%s${RESET} ${C_SEP}│${RESET} ${C_DESC}%s${RESET}\n" "$padded" "$desc"
+    return
+  fi
+
+  # --- Block quote (> notes)
+  if [[ "$line" =~ ^\> ]]; then
+    echo -e "  ${DIM}${line:2}${RESET}"
+    return
+  fi
+
+  # --- Everything else (paragraphs, empty lines)
+  if [[ -z "$line" ]]; then
+    return
+  fi
+}
+
+# ── Main ──────────────────────────────────────────────────────────────────────
+if [[ ! -f "$SHORTCUTS_FILE" ]]; then
+  echo "Shortcuts file not found: $SHORTCUTS_FILE" >&2
+  exit 1
+fi
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  usage
+  exit 0
+fi
+
+SECTION_FILTER=""
+SEARCH_QUERY=""
+
+# Parse args: first arg = section filter or search, second = search within section
+if [[ $# -ge 1 ]]; then
+  arg1_lower="${1,,}"
+  case "$arg1_lower" in
+    fish|zsh|bash|fzf|tmux|vim|neovim)
+      SECTION_FILTER="$1"
+      SEARCH_QUERY="${2:-}"
+      ;;
+    *)
+      SEARCH_QUERY="$1"
+      ;;
+  esac
+fi
+
+# ── Render ────────────────────────────────────────────────────────────────────
+IN_SECTION=false
+SECTION_MATCH=false
+CURRENT_SECTION=""
+
+while IFS= read -r line; do
+  # Detect H2 section boundaries (^## not followed by another #)
+  if [[ "$line" =~ ^##[^#] ]]; then
+    CURRENT_SECTION="${line:3}"
+    # Never render the Table of Contents section
+    if [[ "${CURRENT_SECTION,,}" == "table of contents" ]]; then
+      SECTION_MATCH=false
+      continue
+    fi
+
+    if [[ -z "$SECTION_FILTER" ]]; then
+      SECTION_MATCH=true
+    else
+      local_lower="${CURRENT_SECTION,,}"
+      filter_lower="${SECTION_FILTER,,}"
+      if [[ "$local_lower" == *"$filter_lower"* ]]; then
+        SECTION_MATCH=true
+      else
+        SECTION_MATCH=false
+      fi
+    fi
+  fi
+
+  # Skip H1 when filtering a section
+  if [[ -n "$SECTION_FILTER" && "$line" =~ ^#[^#] ]]; then
+    continue
+  fi
+
+  if [[ "$SECTION_MATCH" == true ]]; then
+    render_line "$line" "$SEARCH_QUERY"
+  fi
+
+done < "$SHORTCUTS_FILE"
+
+echo
