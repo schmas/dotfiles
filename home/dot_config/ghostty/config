@@ -39,7 +39,7 @@ window-save-state = always
 macos-option-as-alt = true
 
 # scrollback
-scrollback-limit = 50000
+scrollback-limit = 10000000
 
 # copy/paste
 selection-clear-on-typing = true
