@@ -5,6 +5,7 @@ __*
 
 {{ if ne .chezmoi.os "darwin" }}
 bin/macos
+bin/setup-pam-watchid
 .config/karabiner/assets/complex_modifications
 Library
 {{ end }}

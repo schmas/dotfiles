@@ -1,0 +1,5 @@
+{{- if eq .chezmoi.os "darwin" -}}
+#!/usr/bin/env bash
+set -e
+"${HOME}/bin/setup-pam-watchid"
+{{- end }}
