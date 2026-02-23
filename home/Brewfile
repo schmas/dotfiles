@@ -105,6 +105,7 @@ brew "chezmoi"        # Dotfiles manager
 brew "hyperfine"      # CLI benchmarking
 brew "mas"            # Mac App Store CLI
 brew "reattach-to-user-namespace"  # tmux clipboard fix
+brew "pam-reattach"   # PAM reattach
 brew "shfmt"          # Shell formatter
 brew "xz"             # Compression
 brew "urlview"        # URL extractor

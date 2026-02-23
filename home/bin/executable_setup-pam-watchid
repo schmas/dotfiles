@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+# Setup pam-watchid + Touch ID + pam-reattach for sudo on macOS
+# Installs pam-watchid and ensures /etc/pam.d/sudo has the required auth lines.
+# Safe to run multiple times — idempotent.
+
+set -e
+set -u
+set -o pipefail
+
+if [[ "$(uname -s)" != "Darwin" ]]; then
+  echo "This script is macOS-only." >&2
+  exit 1
+fi
+
+echo ""
+echo "-----------------------------------------------------------------------"
+echo " Configure pam-watchid + Touch ID for sudo (macOS)"
+echo "-----------------------------------------------------------------------"
+echo ""
+
+# --- Install pam-watchid ---
+if [[ ! -f /usr/local/lib/pam/pam_watchid.so ]] && [[ ! -f /usr/local/lib/pam/pam_watchid.so.2 ]]; then
+  echo "Installing pam-watchid..."
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/mostpinkest/pam-watchid/HEAD/install.sh)" -- enable
+else
+  echo "pam-watchid already installed."
+fi
+
+# --- Configure /etc/pam.d/sudo ---
+
+PAM_SUDO="/etc/pam.d/sudo"
+
+REQUIRED_LINES=(
+  "auth       optional       /opt/homebrew/lib/pam/pam_reattach.so"
+  "auth       sufficient     pam_tid.so"
+  "auth       sufficient     pam_watchid.so"
+)
+
+NEEDS_UPDATE=false
+for line in "${REQUIRED_LINES[@]}"; do
+  module=$(echo "$line" | awk '{print $NF}')
+  if ! grep -q "$module" "$PAM_SUDO" 2>/dev/null; then
+    NEEDS_UPDATE=true
+    break
+  fi
+done
+
+if [[ "$NEEDS_UPDATE" == "false" ]]; then
+  echo "/etc/pam.d/sudo already has all required PAM lines."
+  exit 0
+fi
+
+echo "Updating /etc/pam.d/sudo (requires sudo)..."
+
+# Backup (only once)
+if [[ ! -f "${PAM_SUDO}.bak" ]]; then
+  sudo cp "$PAM_SUDO" "${PAM_SUDO}.bak"
+  echo "Backup created at ${PAM_SUDO}.bak"
+else
+  echo "Backup already exists at ${PAM_SUDO}.bak"
+fi
+
+# Rebuild: comment header + all 3 required lines (in order) + remaining original lines
+TMPFILE=$(mktemp)
+trap 'rm -f "$TMPFILE"' EXIT
+
+head -1 "$PAM_SUDO" > "$TMPFILE"
+
+for line in "${REQUIRED_LINES[@]}"; do
+  echo "$line" >> "$TMPFILE"
+done
+
+tail -n +2 "$PAM_SUDO" | while IFS= read -r existing; do
+  skip=false
+  for line in "${REQUIRED_LINES[@]}"; do
+    module=$(echo "$line" | awk '{print $NF}')
+    if echo "$existing" | grep -q "$module"; then
+      skip=true
+      break
+    fi
+  done
+  if [[ "$skip" == "false" ]]; then
+    echo "$existing" >> "$TMPFILE"
+  fi
+done
+
+if ! grep -q "pam_opendirectory.so" "$TMPFILE"; then
+  echo "ERROR: Generated PAM file is missing pam_opendirectory.so. Aborting."
+  exit 1
+fi
+
+sudo cp "$TMPFILE" "$PAM_SUDO"
+sudo chmod 444 "$PAM_SUDO"
+sudo chown root:wheel "$PAM_SUDO"
+
+echo "Done. /etc/pam.d/sudo updated successfully."
+echo ""
+cat "$PAM_SUDO"
