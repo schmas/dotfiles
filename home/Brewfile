@@ -65,6 +65,9 @@ brew "diff-so-fancy"  # Better git diffs
 brew "difftastic"     # Structural diff
 
 # === Development ===
+brew "jdtls"          # Java language server
+brew "gopls"          # Go language server
+brew "pyright"        # Python language server
 brew "ast-grep"       # AST-based search
 brew "just"           # Task runner
 brew "luarocks"       # Lua package manager
