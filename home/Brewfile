@@ -2,6 +2,7 @@
 # Run: brew bundle --file=~/Brewfile
 
 # Taps
+tap "gromgit/brewtils"
 tap "slp/krunkit"
 
 # === Shells ===
@@ -81,6 +82,7 @@ brew "libpq"          # PostgreSQL client (psql) without full server
 brew "freetds"        # SQL Server / Sybase client library
 
 # === Containers ===
+brew "gromgit/brewtils/taproom" # Homebrew tap browser
 brew "krunkit"        # Lightweight VM runtime
 brew "podman"         # Container runtime
 brew "podman-compose" # Docker compose for Podman
