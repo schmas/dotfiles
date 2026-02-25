@@ -47,6 +47,7 @@ brew "poppler"        # PDF utilities
 brew "viu"            # Terminal image viewer
 
 # === Data Processing ===
+brew "csvlens"        # CSV file viewer
 brew "jq"             # JSON processor
 brew "yq"             # YAML processor
 brew "gettext"        # GNU gettext (includes envsubst)
