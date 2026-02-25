@@ -21,7 +21,8 @@ echo
 
 # Update ClaudeKit
 echo -e "${YELLOW}Updating ClaudeKit...${NC}"
-ck update --yes
+# ck update
+ck init -g --kit engineer --yes --install-skills --prefix --exclude '**/.config/opencode/**'
 echo
 
 # Restore custom statusline (ck update resets to default)
