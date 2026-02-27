@@ -13,7 +13,7 @@ set sponge_purge_only_on_exit true
 
 # pay-respects: must load in config.fish (after vendor_conf.d/mise-activate.fish)
 if status --is-interactive; and type -q pay-respects
-    pay-respects fish | source
+    pay-respects fish --nocnf | source
 end
 
 # load config_local.fish if available

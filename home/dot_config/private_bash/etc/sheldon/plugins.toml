@@ -27,7 +27,7 @@ use = ["asdf.sh", "completions/asdf.bash"]
 inline = 'command -v zoxide &>/dev/null && eval "$(zoxide init bash)" || true'
 
 [plugins.pay-respects]
-inline = 'command -v pay-respects &>/dev/null && eval "$(pay-respects bash)" || true'
+inline = 'command -v pay-respects &>/dev/null && eval "$(pay-respects bash --nocnf)" || true'
 
 [plugins.fzf-loader]
 inline = '[ -f ~/.fzf.bash ] && source ~/.fzf.bash'
