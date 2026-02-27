@@ -117,7 +117,7 @@ pre = "npm install -g @githubnext/github-copilot-cli"
 # pay-respects (thefuck replacement)
 #################################################
 [plugins.pay-respects]
-inline = 'command -v pay-respects &>/dev/null && eval "$(pay-respects zsh)" || true'
+inline = 'command -v pay-respects &>/dev/null && eval "$(pay-respects zsh --nocnf)" || true'
 
 #################################################
 # pretty shell plugins
