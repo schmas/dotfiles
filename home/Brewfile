@@ -35,16 +35,20 @@ brew "fzf"            # Fuzzy finder
 brew "ripgrep"        # Fast grep replacement
 brew "sd"             # Modern sed replacement
 brew "tree-sitter"    # Parser generator
+brew "sevenzip"       # 7-Zip archive tool
 brew "unar"           # Universal archive extractor
+brew "yazi"           # Terminal file manager
 brew "zoxide"         # Smarter cd command
 brew "fswatch"        # File change monitor
 
 # === Viewers ===
-brew "chafa"          # Terminal image viewer
+brew "chafa"              # Terminal image viewer
+brew "ffmpeg-full"        # Audio/video processing
 brew "ffmpegthumbnailer"  # Video thumbnailer
-brew "imagemagick"    # Image manipulation toolkit
-brew "poppler"        # PDF utilities
-brew "viu"            # Terminal image viewer
+brew "imagemagick-full"   # Image manipulation toolkit
+brew "resvg"              # SVG rendering library
+brew "poppler"            # PDF utilities
+brew "viu"                # Terminal image viewer
 
 # === Data Processing ===
 brew "csvlens"        # CSV file viewer
@@ -123,6 +127,7 @@ cask "font-jetbrains-mono-nerd-font"   # Terminal font (Ghostty)
 cask "font-geist-mono-nerd-font"       # Terminal font (Ghostty)
 cask "font-fira-code-nerd-font"        # Programming font
 cask "font-hack-nerd-font"             # Programming font
+cask "font-symbols-only-nerd-font"     # Nerd Font symbols only
 
 # === macOS Casks ===
 
