@@ -1,0 +1,51 @@
+local function entry()
+	local lines = {
+		"  Navigation",
+		"  l        Open file / enter dir",
+		"  h        Leave dir (parent)",
+		"  J / K    Navigate parent dir (skip files)",
+		"  g r      cd to git repo root",
+		"  ~        cd to home",
+		"",
+		"  File Operations",
+		"  y        Yank (copy)",
+		"  x        Yank (cut)",
+		"  p        Smart paste into hovered dir",
+		"  d        Trash / delete",
+		"  r        Rename",
+		"  a        Create file/dir",
+		"  .        Toggle hidden files",
+		"",
+		"  Tabs & Panes",
+		"  t t      New tab in hovered dir",
+		"  2-5      Switch/create tab 2-5",
+		"  T        Toggle preview pane",
+		"  [ / ]    Switch tab prev/next",
+		"",
+		"  Tools",
+		"  !        Drop to shell (exit to return)",
+		"  Ctrl+P   macOS Quick Look",
+		"  /        Search",
+		"  f        Filter",
+		"  s        Sort",
+		"  z        Jump (zoxide)",
+		"",
+		"  Selection",
+		"  Space    Toggle select",
+		"  v        Visual mode",
+		"  V        Inverse selection",
+		"  Esc      Cancel / clear",
+		"",
+		"  q        Quit (confirms if multi-tab)",
+		"  ?        This help",
+	}
+
+	ya.notify {
+		title = "Keybindings",
+		content = table.concat(lines, "\n"),
+		timeout = 15,
+		level = "info",
+	}
+end
+
+return { entry = entry }
