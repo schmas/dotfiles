@@ -63,6 +63,7 @@ brew "neovim"
 # === Version Control ===
 brew "git"
 brew "git-lfs"        # Large file storage
+brew "worktrunk"      # Git worktree manager
 brew "gitleaks"       # Secret scanner
 brew "gh"             # GitHub CLI
 #brew "lazygit"        # Git TUI
