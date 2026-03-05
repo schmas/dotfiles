@@ -1,0 +1,12 @@
+[commit.generation]
+command = "MAX_THINKING_TOKENS=0 claude -p --model=haiku --tools='' --disable-slash-commands --setting-sources='' --system-prompt=''"
+
+[pre-remove]
+protect-main-develop = """
+case {{ branch }} in
+  main|develop)
+    echo "Error: Cannot remove protected branch '{{ branch }}'"
+    exit 1
+    ;;
+esac
+"""
