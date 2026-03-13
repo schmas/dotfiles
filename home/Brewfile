@@ -4,6 +4,8 @@
 # Taps
 tap "gromgit/brewtils"
 tap "slp/krunkit"
+tap "nikolaeu/numi"
+tap "dlvhdr/formulae"
 
 # === Shells ===
 brew "bash"           # Bash 5.x (newer than macOS default)
@@ -66,7 +68,8 @@ brew "git-lfs"        # Large file storage
 brew "worktrunk"      # Git worktree manager
 brew "gitleaks"       # Secret scanner
 brew "gh"             # GitHub CLI
-#brew "lazygit"        # Git TUI
+brew "lazygit"         # Git TUI
+brew "dlvhdr/formulae/diffnav"  # Diff navigator
 brew "git-delta"      # Git diff viewer
 brew "diff-so-fancy"  # Better git diffs
 brew "difftastic"     # Structural diff
@@ -121,6 +124,7 @@ brew "shfmt"          # Shell formatter
 brew "xz"             # Compression
 brew "urlview"        # URL extractor
 brew "dockutil"       # Dock management
+brew "nikolaeu/numi/numi-cli"  # Numi calculator CLI
 
 # === Fonts ===
 cask "font-meslo-lg-nerd-font"         # Terminal font (Ghostty)
@@ -143,6 +147,7 @@ cask "twingate"                    # Zero-trust network access
 
 # Productivity
 cask "alfred"                      # Launcher & productivity
+cask "raycast"                     # Launcher & productivity
 # cask "bartender"                   # Menu bar organizer
 # cask "betterdisplay"               # Display management & dummy displays
 # cask "cleanmymac"                  # System cleaner
@@ -154,7 +159,7 @@ cask "grammarly-desktop"           # Writing assistant
 # cask "imageoptim"                  # Image compression
 # cask "jordanbaird-ice"             # Menu bar manager
 # cask "karabiner-elements"          # Keyboard customizer
-cask "keepingyouawake"             # Prevent sleep
+# cask "keepingyouawake"             # Prevent sleep
 # cask "keka"                        # Archive utility
 cask "leader-key"                  # Keyboard shortcuts
 # cask "logi-options+"               # Logitech device manager
