@@ -5,20 +5,20 @@ _source_path_file() {
     local file="$1"
     [ -f "$file" ] || return 1
     local line dir token check do_glob do_append
+    local -a tokens
     while IFS= read -r line || [ -n "$line" ]; do
         # Skip comments and empty lines
         [[ "$line" =~ ^[[:space:]]*(#|$) ]] && continue
 
         check=0; do_glob=0; do_append=0; dir=""
-        for token in ${=line}; do
+        tokens=("${(z)line}")
+        for token in "${tokens[@]}"; do
             case "$token" in
                 --check)  check=1 ;;
                 --glob)   do_glob=1 ;;
                 --append) do_append=1 ;;
                 *)
-                    dir="${token//\"/}"    # Strip double quotes
-                    dir="${dir//\'/}"      # Strip single quotes
-                    dir="${dir//\$HOME/$HOME}"  # Expand $HOME
+                    [ -z "$dir" ] && dir="${token//\"/}" && dir="${dir//\'/}" && dir="${dir//\$HOME/$HOME}"
                     ;;
             esac
         done

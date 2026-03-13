@@ -4,14 +4,34 @@ function source_path_file --description "Load a .path file into fish PATH"
         # Skip comments and empty lines
         string match -qr '^\s*(#|$)' -- $line; and continue
 
-        # Parse flags
+        # Parse flags and path (path may be quoted and contain spaces)
         set -l check 0
         set -l do_glob 0
         set -l do_append 0
         set -l dir ""
 
+        set -l line (string trim -- $line)
+        if string match -qr '^"' -- $line
+            set -l parts (string split '"' -- $line)
+            set dir $parts[2]
+            set line (string trim (string join '"' $parts[3..-1]))
+        else if string match -qr "^'" -- $line
+            set -l parts (string split "'" -- $line)
+            set dir $parts[2]
+            set line (string trim (string join "'" $parts[3..-1]))
+        else
+            set -l parts (string split -m 1 ' ' -- $line)
+            set dir $parts[1]
+            if test (count $parts) -ge 2
+                set line (string trim -- $parts[2])
+            else
+                set line ""
+            end
+        end
+        set dir (string replace -a '$HOME' "$HOME" -- $dir)
+
         for token in (string split ' ' -- $line)
-            test -n "$token"; or continue  # skip empty tokens from multiple spaces
+            test -n "$token"; or continue
             switch $token
                 case '--check'
                     set check 1
@@ -19,10 +39,6 @@ function source_path_file --description "Load a .path file into fish PATH"
                     set do_glob 1
                 case '--append'
                     set do_append 1
-                case '*'
-                    # Path token — strip quotes, expand $HOME
-                    set dir (string replace -r '^["\'](.*)["\']$' '$1' -- $token)
-                    set dir (string replace -a '$HOME' "$HOME" -- $dir)
             end
         end
 

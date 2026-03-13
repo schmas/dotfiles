@@ -9,17 +9,27 @@ _source_path_file() {
         # Skip comments and empty lines
         [[ "$line" =~ ^[[:space:]]*(#|$) ]] && continue
 
-        check=0; do_glob=0; do_append=0; dir=""
-        for token in $line; do
+        check=0; do_glob=0; do_append=0; dir=""; rest=""
+        if [[ "$line" =~ ^[[:space:]]*\"([^\"]*)\"[[:space:]]*(.*)$ ]]; then
+            dir="${BASH_REMATCH[1]}"
+            rest="${BASH_REMATCH[2]}"
+        elif [[ "$line" =~ ^[[:space:]]*\'([^\']*)\'[[:space:]]*(.*)$ ]]; then
+            dir="${BASH_REMATCH[1]}"
+            rest="${BASH_REMATCH[2]}"
+        else
+            dir="${line%%[[:space:]]*}"
+            if [[ "$line" == *[[:space:]]* ]]; then
+                rest="${line#*[[:space:]]}"
+            else
+                rest=""
+            fi
+        fi
+        dir="${dir//\$HOME/$HOME}"
+        for token in $rest; do
             case "$token" in
                 --check)  check=1 ;;
                 --glob)   do_glob=1 ;;
                 --append) do_append=1 ;;
-                *)
-                    dir="${token//\"/}"
-                    dir="${dir//\'/}"
-                    dir="${dir//\$HOME/$HOME}"
-                    ;;
             esac
         done
 
