@@ -456,3 +456,5 @@ cython_debug/
 
 # Claude Code plans and reports
 # plans/
+
+.omc

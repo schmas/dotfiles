@@ -23,7 +23,7 @@ autoload -Uz $fpath[1]/*(.:t)
 # source all files in the config.d directory and its subdirectories
 while read -d $'\0' file; do
   source "$file"
-done < <(find $DOTFILES_DIR/conf.d -type f -name "*.zsh" -print0)
+done < <(find $DOTFILES_DIR/conf.d -type f -name "*.zsh" -print0 | sort -z)
 
 # load bashrc_local
 [ -f "$DOTFILES_DIR/zshrc_local" ] && source "$DOTFILES_DIR/zshrc_local" || true
