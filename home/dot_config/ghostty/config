@@ -55,6 +55,12 @@ window-padding-y = 4
 unfocused-split-opacity = 0.8
 split-divider-color = #555555
 
+# notify
+notify-on-command-finish = unfocused
+notify-on-command-finish-action = no-bell,notify
+notify-on-command-finish-after = 30s
+
+
 # keybinds
 keybind = cmd+shift+v=paste_from_clipboard
 keybind = cmd+k=clear_screen
@@ -66,3 +72,12 @@ keybind = cmd+]=goto_split:next
 keybind = cmd+1=goto_tab:1
 keybind = cmd+2=goto_tab:2
 keybind = cmd+3=goto_tab:3
+
+keybind = resize/arrow_up=resize_split:up,10
+keybind = resize/arrow_down=resize_split:down,10
+keybind = resize/arrow_left=resize_split:left,10
+keybind = resize/arrow_right=resize_split:right,10
+keybind = resize/escape=deactivate_key_table
+keybind = resize/catch_all=ignore
+keybind = ctrl+a=activate_key_table:resize
+
