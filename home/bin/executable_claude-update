@@ -22,8 +22,15 @@ echo
 # Update ClaudeKit
 echo -e "${YELLOW}Updating ClaudeKit...${NC}"
 # ck update
-ck init -g --kit engineer --yes --install-skills --prefix --exclude '**/.config/opencode/**'
+ck init -g --kit engineer --yes --install-skills --prefix
 echo
+
+# Rename ClaudeKit skill-creator to avoid overriding Anthropic's plugin
+if [ -d ~/.claude/skills/skill-creator ]; then
+  rm -rf ~/.claude/skills/skill-creator.ck
+  mv ~/.claude/skills/skill-creator ~/.claude/skills/skill-creator.ck
+  echo -e "${GREEN}Renamed skill-creator → skill-creator.ck${NC}"
+fi
 
 # Restore custom statusline (ck update resets to default)
 echo -e "${YELLOW}Restoring custom statusline...${NC}"
