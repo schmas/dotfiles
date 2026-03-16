@@ -1,5 +1,6 @@
 [tools]
 "cargo:cargo-update" = "latest"
+"cargo:nuls" = "latest"
 "cargo:pay-respects" = "latest"
 "cargo:rust-script" = "latest"
 "npm:@fission-ai/openspec" = "latest"

@@ -11,6 +11,9 @@ if status is-interactive
     # 1password
     abbr --add opsignin 'eval (op signin)'
     abbr --add op-create 'f(){ op create document $1 --tags chezmoi --title $1;  unset -f f; }; f'
+    if test -f ~/.claude/plugins/cache/thedotmack/claude-mem/10.5.5/scripts/worker-service.cjs
+        abbr --add claude-mem 'bun ~/.claude/plugins/cache/thedotmack/claude-mem/10.5.5/scripts/worker-service.cjs'
+    end
 
     # chezmoi
     abbr --add czm chezmoi
