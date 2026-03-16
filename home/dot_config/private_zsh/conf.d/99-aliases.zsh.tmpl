@@ -263,6 +263,10 @@ alias vim='lvim'
 #########################
 alias op-create='f(){ op create document $1 --tags chezmoi --title $1;  unset -f f; }; f'
 
+if [[ -f "${HOME}/.claude/plugins/cache/thedotmack/claude-mem/10.5.5/scripts/worker-service.cjs" ]]; then
+  alias claude-mem='bun "${HOME}/.claude/plugins/cache/thedotmack/claude-mem/10.5.5/scripts/worker-service.cjs"'
+fi
+
 {{- if eq .chezmoi.os "darwin" }}
 #################################
 # MacOS
