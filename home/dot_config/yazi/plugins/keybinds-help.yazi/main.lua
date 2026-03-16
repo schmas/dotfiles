@@ -11,6 +11,7 @@ local function entry()
 		"  y        Yank (copy)",
 		"  x        Yank (cut)",
 		"  p        Smart paste into hovered dir",
+		"  c p      Copy full path of hovered/selected item",
 		"  d        Trash / delete",
 		"  r        Rename",
 		"  a        Create file/dir",
