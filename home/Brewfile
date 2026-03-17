@@ -6,6 +6,7 @@ tap "gromgit/brewtils"
 tap "slp/krunkit"
 tap "nikolaeu/numi"
 tap "dlvhdr/formulae"
+tap "atlassian/homebrew-acli"
 
 # === Shells ===
 brew "bash"           # Bash 5.x (newer than macOS default)
@@ -125,6 +126,7 @@ brew "xz"             # Compression
 brew "urlview"        # URL extractor
 brew "dockutil"       # Dock management
 brew "nikolaeu/numi/numi-cli"  # Numi calculator CLI
+brew "acli"           # Atlassian CLI
 
 # === Fonts ===
 cask "font-meslo-lg-nerd-font"         # Terminal font (Ghostty)
