@@ -7,6 +7,10 @@
 {{- $uat2s := onepasswordItemFields "v3nmfgeghluczj7u6nv5vcx5ki" "AAA" }}
 {{- $datastaging := onepasswordDetailsFields "5wfjvu67eas6yvcl7ux7nzdbim" "AAA" }}
 {{- $datastagings := onepasswordItemFields "5wfjvu67eas6yvcl7ux7nzdbim" "AAA" }}
+{{- $hoosieruat2 := onepasswordDetailsFields "ymliolxaipistvct2iur7sbxtm" "AAA" }}
+{{- $hoosieruat2s := onepasswordItemFields "ymliolxaipistvct2iur7sbxtm" "AAA" }}
+{{- $bsguat2 := onepasswordDetailsFields "nuyft7egt2ivl3nqlpxculftjm" "AAA" }}
+{{- $bsguat2s := onepasswordItemFields "nuyft7egt2ivl3nqlpxculftjm" "AAA" }}
 {{- $appdev5 := onepasswordDetailsFields "g6wgv73g64trzumjwq54jdmfam" "AAA" }}
 
 dev2:
@@ -31,8 +35,27 @@ uat2:
   type: postgresql
   writable: false
 
-# hoosier-uat2: 1Password ID ymliolxaipistvct2iur7sbxtm
-# bsg-uat2: 1Password ID nuyft7egt2ivl3nqlpxculftjm
+hoosier-uat2:
+  host: {{ (index $hoosieruat2 "hostname").value }}
+  port: {{ (index $hoosieruat2 "port").value }}
+  dbname: {{ (index $hoosieruat2 "database").value }}
+  user: {{ (index $hoosieruat2 "username").value }}
+  password: {{ (index $hoosieruat2 "password").value }}
+  bastion: {{ (index $hoosieruat2s "user").value }}@{{ (index $hoosieruat2s "host").value }}
+  sslmode: require
+  type: postgresql
+  writable: false
+
+bsg-uat2:
+  host: {{ (index $bsguat2 "hostname").value }}
+  port: {{ (index $bsguat2 "port").value }}
+  dbname: {{ (index $bsguat2 "database").value }}
+  user: {{ (index $bsguat2 "username").value }}
+  password: {{ (index $bsguat2 "password").value }}
+  bastion: {{ (index $bsguat2s "user").value }}@{{ (index $bsguat2s "host").value }}
+  sslmode: require
+  type: postgresql
+  writable: false
 
 datastaging:
   host: {{ (index $datastaging "hostname").value }}
