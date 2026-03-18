@@ -119,6 +119,7 @@ brew "pinentry-mac"   # macOS PIN entry
 brew "chezmoi"        # Dotfiles manager
 brew "hyperfine"      # CLI benchmarking
 brew "mas"            # Mac App Store CLI
+brew "mole"           # Deep clean and optimize your Mac (tw93/Mole)
 brew "reattach-to-user-namespace"  # tmux clipboard fix
 brew "pam-reattach"   # PAM reattach
 brew "shfmt"          # Shell formatter
