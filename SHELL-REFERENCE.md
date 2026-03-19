@@ -154,6 +154,13 @@ This document provides a comprehensive reference for all aliases, functions, and
 | `dspall`     | `docker system prune --all --volumes -f` | Prune all Docker resources |
 | `lzd`        | `lazydocker`                             | Launch lazydocker          |
 
+#### Yazi
+
+| Abbreviation | Command | Description                                      |
+| ------------ | ------- | ------------------------------------------------ |
+| `y`          | `yazi`  | Launch yazi (Fish function; Zsh/Bash function)     |
+| `yy`         | —       | Yazi with cwd on exit (Fish/Zsh/Bash function)   |
+
 #### Package Managers
 
 | Abbreviation | Command                             | Description                             |
@@ -280,6 +287,7 @@ This document provides a comprehensive reference for all aliases, functions, and
 | ---------------------------- | ---------------------------------------------------------------------------------- |
 | `multicd`                    | Converts multiple dots into cd commands with the appropriate number of "../" paths |
 | `multicd2`                   | Similar to multicd but for "cd.." syntax                                           |
+| `y`                          | Alias-style wrapper for yazi (`alias y=yazi`)                                      |
 | `yy`                         | Wrapper for the yazi file manager that allows changing the current directory       |
 | `ls`                         | Wrapper for eza (modern ls replacement) that falls back to standard ls             |
 | `clear_fish_welcome_message` | Clears the fish welcome message                                                    |
