@@ -5,6 +5,7 @@
 "cargo:rust-script" = "latest"
 "npm:@fission-ai/openspec" = "latest"
 "npm:@google/gemini-cli" = "latest"
+"npm:@googleworkspace/cli" = "latest"
 "npm:@mixedbread/mgrep" = "latest"
 "npm:@rama_nigg/open-cursor" = "latest"
 "npm:aicommit2" = "latest"
@@ -23,6 +24,7 @@ rust = "latest"
 sops = "latest"
 usage = "latest"
 uv = "latest"
+gcloud = "latest"
 
 [settings]
 experimental = true
