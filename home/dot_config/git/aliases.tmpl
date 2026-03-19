@@ -59,6 +59,15 @@ up-merge-main = !git fetch origin main:main --progress --prune && git merge main
 # Fetch and merge any branch
 up-merge-branch = "!f() { git fetch origin $1:$1 --progress --prune && git merge $1; }; f"
 
+# Fetch and rebase onto develop branch
+up-rebase-develop = !git fetch origin develop:develop --progress --prune && git rebase develop
+
+# Fetch and rebase onto main branch
+up-rebase-main = !git fetch origin main:main --progress --prune && git rebase main
+
+# Fetch and rebase onto any branch
+up-rebase-branch = "!f() { git fetch origin $1:$1 --progress --prune && git rebase $1; }; f"
+
 copy-branch-name = "!f() { \
   branch_name=$(git rev-parse --abbrev-ref HEAD); \
   if [[ \"$(uname)\" == \"Darwin\" ]]; then \
