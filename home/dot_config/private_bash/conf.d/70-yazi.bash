@@ -1,5 +1,8 @@
 if command -v yazi &>/dev/null; then
-    function y() {
+    y() {
+        command yazi "$@"
+    }
+    yy() {
         local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
         command yazi "$@" --cwd-file="$tmp"
         IFS= read -r -d '' cwd < "$tmp"

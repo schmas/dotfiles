@@ -19,7 +19,7 @@ export DOTFILES_FUNCTIONS="$DOTFILES_DIR/functions"
 # source all files in the config.d directory and its subdirectories
 while read -d $'\0' file; do
   source "$file"
-done < <(find $DOTFILES_DIR/conf.d -type f -name "*.bash" -print0)
+done < <(find $DOTFILES_DIR/conf.d -type f -name "*.bash" -print0 | sort -z)
 
 # load bashrc_local
 [ -f "$DOTFILES_DIR/bashrc_local" ] && source "$DOTFILES_DIR/bashrc_local" || true
