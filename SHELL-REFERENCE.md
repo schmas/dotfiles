@@ -132,8 +132,13 @@ This document provides a comprehensive reference for all aliases, functions, and
 | `gpfr`       | `git pfr`                     | Force push with lease (custom alias)   |
 | `gdg`        | `git del-gone`                | Delete gone branches                   |
 | `gcbn`       | `git copy-branch-name`        | Copy branch name to clipboard          |
-| `gumd`       | `git up-merge-develop`        | Update and merge develop               |
-| `gud`        | `git update-develop`          | Update develop branch without checkout |
+| `gumd`       | `git up-merge-develop`        | Fetch develop, merge origin/develop    |
+| `gumm`       | `git up-merge-main`           | Fetch main, merge origin/main          |
+| `gumb`       | `git up-merge-branch`         | Fetch branch, merge origin/<branch>    |
+| `gurd`       | `git up-rebase-develop`       | Fetch develop, rebase onto origin/develop |
+| `gurm`       | `git up-rebase-main`          | Fetch main, rebase onto origin/main    |
+| `gurb`       | `git up-rebase-branch`        | Fetch branch, rebase onto origin/<branch> |
+| `gud`        | `git update-develop`          | Fetch develop (refresh origin/develop) |
 | `lzg`        | `lazygit`                     | Launch lazygit                         |
 
 #### GitHub CLI
