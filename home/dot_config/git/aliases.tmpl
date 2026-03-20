@@ -50,23 +50,23 @@ pull-full = pull --all --tags --prune --progress --verbose
 pf = pull --all --tags --prune --progress --verbose
 pfr = pull --all --tags --prune --progress --verbose --rebase
 
-# Fetch and merge develop branch
-up-merge-develop = !git fetch origin develop:develop --progress --prune && git merge develop
+# Fetch and merge develop branch (origin/develop only; safe with worktrees)
+up-merge-develop = !git fetch origin develop --progress --prune && git merge origin/develop
 
-# Fetch and merge main branch
-up-merge-main = !git fetch origin main:main --progress --prune && git merge main
+# Fetch and merge main branch (origin/main only; safe with worktrees)
+up-merge-main = !git fetch origin main --progress --prune && git merge origin/main
 
-# Fetch and merge any branch
-up-merge-branch = "!f() { git fetch origin $1:$1 --progress --prune && git merge $1; }; f"
+# Fetch and merge any branch (origin/<name> only; safe with worktrees)
+up-merge-branch = "!f() { git fetch origin $1 --progress --prune && git merge origin/$1; }; f"
 
-# Fetch and rebase onto develop branch
-up-rebase-develop = !git fetch origin develop:develop --progress --prune && git rebase develop
+# Fetch and rebase onto develop branch (origin/develop only; safe with worktrees)
+up-rebase-develop = !git fetch origin develop --progress --prune && git rebase origin/develop
 
-# Fetch and rebase onto main branch
-up-rebase-main = !git fetch origin main:main --progress --prune && git rebase main
+# Fetch and rebase onto main branch (origin/main only; safe with worktrees)
+up-rebase-main = !git fetch origin main --progress --prune && git rebase origin/main
 
-# Fetch and rebase onto any branch
-up-rebase-branch = "!f() { git fetch origin $1:$1 --progress --prune && git rebase $1; }; f"
+# Fetch and rebase onto any branch (origin/<name> only; safe with worktrees)
+up-rebase-branch = "!f() { git fetch origin $1 --progress --prune && git rebase origin/$1; }; f"
 
 copy-branch-name = "!f() { \
   branch_name=$(git rev-parse --abbrev-ref HEAD); \
@@ -83,14 +83,14 @@ copy-branch-name = "!f() { \
   fi; \
 }; f"
 
-# Update develop branch without switching to it
-update-develop = !git fetch origin develop:develop --progress --prune
+# Refresh origin/develop without updating local develop (worktree-safe)
+update-develop = !git fetch origin develop --progress --prune
 
-# Update main branch without switching to it
-update-main = !git fetch origin main:main --progress --prune
+# Refresh origin/main
+update-main = !git fetch origin main --progress --prune
 
-# Update any branch without switching to it
-update-branch = "!f() { git fetch origin $1:$1 --progress --prune; }; f"
+# Refresh origin/<branch>
+update-branch = "!f() { git fetch origin $1 --progress --prune; }; f"
 
 # *********************
 # Diff tools
