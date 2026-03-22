@@ -41,7 +41,7 @@ macos-option-as-alt = true
 
 # scrollback
 scrollback-limit = 10000000
-scroll-to-bottom = keystroke,no-output  # ← ADDED: Stops auto-scroll on output (Claude fix)
+scroll-to-bottom = keystroke,no-output
 
 # copy/paste
 selection-clear-on-typing = true
@@ -81,6 +81,3 @@ keybind = resize/arrow_right=resize_split:right,10
 keybind = resize/escape=deactivate_key_table
 keybind = resize/catch_all=ignore
 keybind = cmd+shift+r=activate_key_table:resize
-
-# ← OPTIONAL: Toggle scroll-follow with Cmd+Shift+S
-keybind = cmd+shift+s=scroll_to_bottom:toggle
