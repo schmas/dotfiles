@@ -35,6 +35,7 @@ brew "dust"           # Modern du replacement
 brew "eza"            # Modern ls replacement
 brew "fd"             # Modern find replacement
 brew "fzf"            # Fuzzy finder
+brew "television"     # Very fast, portable, hackable fuzzy finder (tv)
 brew "ripgrep"        # Fast grep replacement
 brew "sd"             # Modern sed replacement
 brew "tree-sitter"    # Parser generator

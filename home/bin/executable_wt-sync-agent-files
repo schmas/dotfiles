@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Sync AI agent directories between worktrees (newest file wins).
+# Uses rsync -u to never overwrite a newer file at the destination.
+#
+# Usage: wt-sync-agent-files <source-worktree> <dest-worktree>
+set -euo pipefail
+
+src="${1:?Usage: wt-sync-agent-files <source> <destination>}"
+dst="${2:?Usage: wt-sync-agent-files <source> <destination>}"
+
+src="$(cd "$src" && pwd)"
+dst="$(cd "$dst" && pwd)"
+
+[[ "$src" != "$dst" ]] || exit 0
+
+command -v rsync >/dev/null 2>&1 || { echo "wt-sync-agent-files: rsync required" >&2; exit 1; }
+
+for src_path in "$src"/.ck* "$src"/.sisyphus; do
+    [[ -e "$src_path" ]] || continue
+    name="${src_path##*/}"
+    if [[ -d "$src_path" ]]; then
+        mkdir -p "$dst/$name"
+        rsync -rtu "$src_path/" "$dst/$name/"
+    else
+        rsync -tu "$src_path" "$dst/$name"
+    fi
+done

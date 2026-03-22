@@ -1,6 +1,9 @@
 [commit.generation]
 command = "MAX_THINKING_TOKENS=0 claude -p --model=haiku --tools='' --disable-slash-commands --setting-sources='' --system-prompt=''"
 
+[pre-switch]
+sync-agent-up = "wt-sync-agent-files {{ worktree_path }} {{ primary_worktree_path }}"
+
 [pre-remove]
 protect-main-develop = """
 case {{ branch }} in
@@ -10,6 +13,10 @@ case {{ branch }} in
     ;;
 esac
 """
+sync-agent-files = "wt-sync-agent-files {{ worktree_path }} {{ primary_worktree_path }}"
+
+[post-switch]
+sync-agent-down = "wt-sync-agent-files {{ primary_worktree_path }} {{ worktree_path }}"
 
 [post-start]
 copy = "wt step copy-ignored"
