@@ -20,8 +20,8 @@ for src_path in "$src"/.ck* "$src"/.sisyphus "$src"/.omc; do
     name="${src_path##*/}"
     if [[ -d "$src_path" ]]; then
         mkdir -p "$dst/$name"
-        rsync -rtu "$src_path/" "$dst/$name/"
+        rsync -rtuvi "$src_path/" "$dst/$name/"
     else
-        rsync -tu "$src_path" "$dst/$name"
+        rsync -tuvi "$src_path" "$dst/$name"
     fi
 done
