@@ -11,6 +11,8 @@
 {{- $hoosieruat2s := onepasswordItemFields "ymliolxaipistvct2iur7sbxtm" "AAA" }}
 {{- $bsguat2 := onepasswordDetailsFields "nuyft7egt2ivl3nqlpxculftjm" "AAA" }}
 {{- $bsguat2s := onepasswordItemFields "nuyft7egt2ivl3nqlpxculftjm" "AAA" }}
+{{- $nationalautouat2 := onepasswordDetailsFields "ctzizvhb546o5gqrapmx4kvjra" "AAA" }}
+{{- $nationalautouat2s := onepasswordItemFields "ctzizvhb546o5gqrapmx4kvjra" "AAA" }}
 {{- $appdev5 := onepasswordDetailsFields "g6wgv73g64trzumjwq54jdmfam" "AAA" }}
 
 dev2:
@@ -53,6 +55,17 @@ bsg-uat2:
   user: {{ (index $bsguat2 "username").value }}
   password: {{ (index $bsguat2 "password").value }}
   bastion: {{ (index $bsguat2s "user").value }}@{{ (index $bsguat2s "host").value }}
+  sslmode: require
+  type: postgresql
+  writable: false
+
+nationalauto-uat2:
+  host: {{ (index $nationalautouat2 "hostname").value }}
+  port: {{ (index $nationalautouat2 "port").value }}
+  dbname: {{ (index $nationalautouat2 "database").value }}
+  user: {{ (index $nationalautouat2 "username").value }}
+  password: {{ (index $nationalautouat2 "password").value }}
+  bastion: {{ (index $nationalautouat2s "user").value }}@{{ (index $nationalautouat2s "host").value }}
   sslmode: require
   type: postgresql
   writable: false
