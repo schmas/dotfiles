@@ -55,8 +55,8 @@ defaults write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
 # Keyboard
 # NOTE: NSGlobalDomain writes for these fail on Sonoma+ (14+); use -g (globalDomain) instead
 defaults write -g ApplePressAndHoldEnabled -bool false
-defaults write -g KeyRepeat -int 3
-defaults write -g InitialKeyRepeat -int 25
+defaults write -g KeyRepeat -int 2
+defaults write -g InitialKeyRepeat -int 20   # a bit more forgiving than 15
 
 defaults write NSGlobalDomain com.apple.keyboard.fnState -bool true
 defaults write NSGlobalDomain AppleKeyboardUIMode -int 3
