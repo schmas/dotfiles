@@ -460,3 +460,4 @@ cython_debug/
 .omc
 .ck-*/
 AGENTS.md
+.claude/session-state
