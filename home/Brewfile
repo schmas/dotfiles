@@ -178,7 +178,7 @@ cask "rectangle-pro"               # Window manager
 # cask "transnomino"                 # Batch file renamer
 
 # Development
-cask "block-goose"                 # AI coding agent
+# cask "block-goose"                 # AI coding agent
 cask "claude"                      # AI assistant
 # cask "codexbar"                    # Menu bar snippets
 cask "cursor"                      # AI code editor
