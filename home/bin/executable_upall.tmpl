@@ -37,9 +37,9 @@ fi
 # Rust
 if command -v rustup >/dev/null 2>&1; then
   echo -e "\nUpdating rust and cargo deps..."
-  rustup self update
-  rustup update
-  cargo install-update -a
+  rustup self update || true
+  rustup update || true
+  cargo install-update -a || true
 fi
 
 # Chezmoi
