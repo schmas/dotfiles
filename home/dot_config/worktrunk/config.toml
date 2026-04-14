@@ -4,7 +4,7 @@ command = "MAX_THINKING_TOKENS=0 claude -p --model=haiku --tools='' --disable-sl
 [pre-switch]
 sync-agent-up = "wt-sync-agent-files {{ worktree_path }} {{ primary_worktree_path }}"
 
-[pre-remove]
+[[pre-remove]]
 protect-main-develop = """
 case {{ branch }} in
   main|develop)
@@ -13,6 +13,8 @@ case {{ branch }} in
     ;;
 esac
 """
+
+[[pre-remove]]
 sync-agent-files = "wt-sync-agent-files {{ worktree_path }} {{ primary_worktree_path }}"
 
 [post-switch]
