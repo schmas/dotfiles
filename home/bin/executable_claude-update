@@ -32,7 +32,7 @@ if [ -d ~/.claude/skills/skill-creator ]; then
   echo -e "${GREEN}Renamed skill-creator → skill-creator.ck${NC}"
 fi
 
-# Restore custom statusline (ck update resets to default)
+Restore custom statusline (ck update resets to default)
 echo -e "${YELLOW}Restoring custom statusline...${NC}"
 if [ -f ~/.claude/statusline-custom.cjs ]; then
   jq '.statusLine.command = "node $HOME/.claude/statusline-custom.cjs"' \
@@ -65,9 +65,9 @@ echo -e "${YELLOW}Backing up...${NC}"
 claude-backup
 echo
 
-echo -e "${YELLOW}Migrating to Cursor agent...${NC}"
-ck migrate --agent cursor --global --yes
-echo -e "${GREEN}Cursor agent migrated successfully${NC}"
-echo
+# echo -e "${YELLOW}Migrating to Cursor agent...${NC}"
+# ck migrate --agent cursor --global --yes
+# echo -e "${GREEN}Cursor agent migrated successfully${NC}"
+# echo
 
 echo -e "${GREEN}Claude Code updated successfully${NC}"
