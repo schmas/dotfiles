@@ -65,4 +65,9 @@ echo -e "${YELLOW}Backing up...${NC}"
 claude-backup
 echo
 
+echo -e "${YELLOW}Migrating to Cursor agent...${NC}"
+ck migrate --agent cursor --global --yes
+echo -e "${GREEN}Cursor agent migrated successfully${NC}"
+echo
+
 echo -e "${GREEN}Claude Code updated successfully${NC}"
