@@ -1,73 +1,135 @@
 #!/usr/bin/env bash
-set -e
 
-echo "Updating all the things..."
+BOLD='\033[1m'
+DIM='\033[2m'
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+step_names=()
+step_results=()
+
+set_title() { printf '\033]0;upall: %s\007' "$1"; }
+
+section() {
+  echo
+  echo -e "${DIM}════════════════════════════════════════════════════════════════════════════════${NC}"
+  echo -e "${BOLD}${CYAN}  $1${NC}"
+  echo -e "${DIM}════════════════════════════════════════════════════════════════════════════════${NC}"
+  set_title "$1"
+}
+
+run_step() {
+  local name="$1"
+  shift
+  if "$@"; then
+    step_names+=("$name")
+    step_results+=("success")
+  else
+    step_names+=("$name")
+    step_results+=("failed")
+  fi
+}
+
+echo -e "${BOLD}Updating all the things...${NC}"
+set_title "starting"
 
 # Ask for the administrator password upfront
 sudo -v -p "Enter your sudo password:"
 
 # OS Update
 if command -v osupdate >/dev/null 2>&1; then
-  echo -e "\nOS Update..."
-  osupdate
+  section "OS Update"
+  run_step "OS Update" osupdate
 fi
 
 {{ if eq .using_nix true -}}
 # Nix config update
 if [ -d ~/.config/nix-config ]; then
-  echo -e "\nUpdating nix-config..."
-  nix-config-update
+  section "Nix Config"
+  run_step "Nix Config" nix-config-update
 fi
 {{ end }}
 
 # Brew
 if command -v brew >/dev/null 2>&1; then
-  echo -e "\nUpdating brew..."
-  brew update
-  brew upgrade
-  brew cleanup
+  section "Homebrew"
+  run_step "Brew update" brew update
+  run_step "Brew upgrade" brew upgrade
+  run_step "Brew cleanup" brew cleanup
 fi
 
 # Mise
 if command -v mise >/dev/null 2>&1; then
-  echo -e "\nUpdating mise..."
-  mise up
+  section "Mise"
+  run_step "Mise" mise up
 fi
 
 # Rust
 if command -v rustup >/dev/null 2>&1; then
-  echo -e "\nUpdating rust and cargo deps..."
-  rustup self update || true
-  rustup update || true
-  cargo install-update -a || true
+  section "Rust & Cargo"
+  run_step "Rustup self-update" rustup self update
+  run_step "Rustup update" rustup update
+  run_step "Cargo install-update" cargo install-update -a
 fi
 
 # Chezmoi
 if command -v chezmoi >/dev/null 2>&1; then
-  echo -e "\nUpdating chezmoi..."
-  chezmoi update
+  section "Chezmoi"
+  run_step "Chezmoi" chezmoi update
 fi
 
 # Claude CLI
 if command -v claude >/dev/null 2>&1; then
-  echo -e "\nUpdating claude..."
-  claude update
+  section "Claude CLI"
+  run_step "Claude CLI" claude update
 elif [ -x "$HOME/.local/bin/claude" ]; then
-  echo -e "\nUpdating claude..."
-  "$HOME/.local/bin/claude" update
+  section "Claude CLI"
+  run_step "Claude CLI" "$HOME/.local/bin/claude" update
 fi
 
 # Fisher (fish only - run if fish is available and fisher is installed)
 if command -v fish >/dev/null 2>&1 && fish -c "functions -q fisher" 2>/dev/null; then
-  echo -e "\nUpdating fisher..."
-  fish -c "fisher update"
+  section "Fisher"
+  run_step "Fisher" fish -c "fisher update"
 fi
 
 # Atuin - deduplicate history and sync
 if command -v atuin >/dev/null 2>&1; then
-  echo -e "\nDeduplicating and syncing atuin history..."
-  atuin history dedup --before "now" --dupkeep 1
-  atuin sync
+  section "Atuin"
+  run_step "Atuin dedup" atuin history dedup --before "now" --dupkeep 1
+  run_step "Atuin sync" atuin sync
 fi
 
-echo -e "\nUpdating finished..."
+# Summary report
+set_title "done"
+total=${#step_names[@]}
+passed=0
+failed=0
+for i in "${!step_results[@]}"; do
+  if [[ "${step_results[$i]}" == "success" ]]; then ((passed++)); else ((failed++)); fi
+done
+
+echo
+echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${BOLD}  Update Summary${NC}  (${passed} passed, ${failed} failed, ${total} total)"
+echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+for i in "${!step_names[@]}"; do
+  n=$((i + 1))
+  if [[ "${step_results[$i]}" == "success" ]]; then
+    icon="✅"
+    label="${GREEN}success${NC}"
+  else
+    icon="❌"
+    label="${RED}failed${NC}"
+  fi
+  printf "  %2d. %-24s %s %b\n" "$n" "${step_names[$i]}" "$icon" "$label"
+done
+echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+
+if [[ $failed -gt 0 ]]; then
+  echo -e "${RED}⚠️  ${failed} step(s) failed. Review output above.${NC}"
+else
+  echo -e "${GREEN}✅ All updates completed successfully!${NC}"
+fi
