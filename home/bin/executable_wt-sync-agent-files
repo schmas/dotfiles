@@ -21,6 +21,9 @@ sync_paths=(
     '.ck*'
     '.sisyphus'
     '.omc'
+    'CLAUDE.md'
+    'AGENTS.md'
+    '.claude'
 )
 
 for pattern in "${sync_paths[@]}"; do
