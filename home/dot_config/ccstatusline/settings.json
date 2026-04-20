@@ -80,7 +80,10 @@
         "id": "f0f8d326-f62f-4a84-8ddf-6746b2504a57",
         "type": "current-working-dir",
         "color": "",
-        "rawValue": true
+        "rawValue": true,
+        "metadata": {
+          "fishStyle": "true"
+        }
       },
       {
         "id": "c8bf01ec-a828-48dd-9640-4d406302c847",

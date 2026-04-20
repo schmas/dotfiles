@@ -45,33 +45,33 @@ run_step "Git pull ~/.claude" git pull
 section "Claude CLI"
 run_step "Claude CLI update" claude update
 
-# # Update ClaudeKit
-# section "ClaudeKit"
-# run_step "ClaudeKit init" ck init -g --kit engineer --yes --install-skills --prefix
+# Update ClaudeKit
+section "ClaudeKit"
+run_step "ClaudeKit init" ck init -g --kit engineer --yes --install-skills --prefix
 
-# # Rename ClaudeKit skill-creator to avoid overriding Anthropic's plugin
-# if [ -d ~/.claude/skills/skill-creator ]; then
-#   rm -rf ~/.claude/skills/skill-creator.ck
-#   mv ~/.claude/skills/skill-creator ~/.claude/skills/skill-creator.ck
-#   echo -e "${GREEN}Renamed skill-creator → skill-creator.ck${NC}"
-# fi
+# Rename ClaudeKit skill-creator to avoid overriding Anthropic's plugin
+if [ -d ~/.claude/skills/skill-creator ]; then
+  rm -rf ~/.claude/skills/skill-creator.ck
+  mv ~/.claude/skills/skill-creator ~/.claude/skills/skill-creator.ck
+  echo -e "${GREEN}Renamed skill-creator → skill-creator.ck${NC}"
+fi
 
-# # Restore custom statusline (ck update resets to default)
-# section "Restore statusline"
-# if [ -f ~/.claude/statusline-custom.cjs ]; then
-#   if jq '.statusLine.command = "node $HOME/.claude/statusline-custom.cjs"' \
-#     ~/.claude/settings.json > ~/.claude/settings.json.tmp \
-#     && mv ~/.claude/settings.json.tmp ~/.claude/settings.json; then
-#     step_names+=("Restore statusline")
-#     step_results+=("success")
-#     echo -e "${GREEN}Custom statusline restored${NC}"
-#   else
-#     step_names+=("Restore statusline")
-#     step_results+=("failed")
-#   fi
-# else
-#   echo -e "${YELLOW}No custom statusline found, using default${NC}"
-# fi
+# Restore custom statusline (ck update resets to default)
+section "Restore statusline"
+if [ -f ~/.claude/statusline-custom.cjs ]; then
+  if jq '.statusLine.command = "node $HOME/.claude/statusline-custom.cjs"' \
+    ~/.claude/settings.json > ~/.claude/settings.json.tmp \
+    && mv ~/.claude/settings.json.tmp ~/.claude/settings.json; then
+    step_names+=("Restore statusline")
+    step_results+=("success")
+    echo -e "${GREEN}Custom statusline restored${NC}"
+  else
+    step_names+=("Restore statusline")
+    step_results+=("failed")
+  fi
+else
+  echo -e "${YELLOW}No custom statusline found, using default${NC}"
+fi
 
 # Fix permissions on all shell scripts (plugins/hooks may lose +x after update)
 section "Fix permissions"
