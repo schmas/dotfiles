@@ -16,6 +16,8 @@ dst="$(cd "$dst" && pwd)"
 command -v rsync >/dev/null 2>&1 || { echo "wt-sync-agent-files: rsync required" >&2; exit 1; }
 
 sync_paths=(
+    '.plans'
+    '.ck'
     '.ck*'
     '.sisyphus'
     '.omc'

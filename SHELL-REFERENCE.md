@@ -275,6 +275,7 @@ This document provides a comprehensive reference for all aliases, functions, and
 | `watch`                | `watch -c`                                                                                            | Watch command with color    |
 | `print-colors-palette` | `for i in {0..255}; do print -Pn "%K{$i}  %k%F{$i}${(l:3::0:)i}%f " ${${(M)$((i%6)):#3}:+"\n"}; done` | Print color palette         |
 | `t`                    | `tail -f`                                                                                             | Tail file with follow       |
+| `ag`                   | `antigravity`                                                                                         | Launch antigravity          |
 | `sw`                   | `clock-rs -c cyan stopwatch`                                                                          | Start a cyan stopwatch      |
 | `opsignin`             | `eval (op signin)`                                                                                    | Sign in to 1Password        |
 | `op-create`            | `f(){ op create document $1 --tags chezmoi --title $1;  unset -f f; }; f`                             | Create 1Password document   |
@@ -387,6 +388,7 @@ This document provides a comprehensive reference for all aliases, functions, and
 | `upall`                | `asdfupdate && upchezmoi && upprecleanup && upzshplugin && osupdate`                                  | Update everything                      |
 | `print-colors-palette` | `for i in {0..255}; do print -Pn "%K{$i}  %k%F{$i}${(l:3::0:)i}%f " ${${(M)$((i%6)):#3}:+"\n"}; done` | Print color palette                    |
 | `t`                    | `tail -f`                                                                                             | Tail file with follow                  |
+| `ag`                   | `antigravity`                                                                                         | Launch antigravity                     |
 | `sudo`                 | `sudo `                                                                                               | Allow aliases with sudo                |
 | `dup`                  | `du -h --max-depth=1 \| sort`                                                                         | Show disk usage sorted                 |
 | `df`                   | `df -h`                                                                                               | Show disk free space                   |
