@@ -24,6 +24,8 @@ sync_paths=(
     'CLAUDE.md'
     'AGENTS.md'
     '.claude'
+    '.agents'
+    'tools'
 )
 
 for pattern in "${sync_paths[@]}"; do
