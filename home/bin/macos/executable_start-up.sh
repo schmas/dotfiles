@@ -18,8 +18,8 @@ sleep 0.5
 open "/Applications/Microsoft Teams.app"
 sleep 0.5
 open "/Applications/WhatsApp.app"
-sleep 0.5
-open "/Applications/Proton Mail.app"
+# sleep 0.5
+# open "/Applications/Proton Mail.app"
 sleep 0.5
 open "/Applications/Brave Browser.app"
 sleep 0.5
