@@ -100,46 +100,46 @@ This document provides a comprehensive reference for all aliases, functions, and
 
 #### Git
 
-| Abbreviation | Command                       | Description                            |
-| ------------ | ----------------------------- | -------------------------------------- |
-| `g`          | `git`                         | Shortcut for git                       |
-| `gaa`        | `git add -A .`                | Add all changes                        |
-| `gdd`        | `git add -A .`                | Add all changes (alias)                |
-| `gadd`       | `git add -A .`                | Add all changes (alias)                |
-| `gc`         | `git commit`                  | Commit changes                         |
-| `gcm`        | `git commit -m "%"`           | Commit with message (cursor at %)      |
-| `gcmc`       | `git commit -m "chore: %"`    | Commit chore with message              |
-| `gcmr`       | `git commit -m "refactor: %"` | Commit refactor with message           |
-| `gcmf`       | `git commit -m "feat: %"`     | Commit feature with message            |
-| `gcmi`       | `git commit -m "fix: %"`      | Commit fix with message                |
-| `gcmt`       | `git commit -m "test: %"`     | Commit test with message               |
-| `gcma`       | `git commit --amend`          | Amend previous commit                  |
-| `gco`        | `git checkout`                | Checkout branch                        |
-| `gcod`       | `git checkout develop`        | Checkout develop branch                |
-| `gcom`       | `git checkout main`           | Checkout main branch                   |
-| `gsw`        | `git switch`                  | Switch branch                          |
-| `gswd`       | `git switch develop`          | Switch to develop branch               |
-| `gswm`       | `git switch main`             | Switch to main branch                  |
-| `gmod`       | `git merge origin/develop`    | Merge origin/develop                   |
-| `gmom`       | `git merge origin/main`       | Merge origin/main                      |
-| `grod`       | `git rebase origin/develop`   | Rebase on origin/develop               |
-| `grom`       | `git rebase origin/main`      | Rebase on origin/main                  |
-| `gd`         | `git d`                       | Git diff (custom alias)                |
-| `gs`         | `git s`                       | Git status (custom alias)              |
-| `gp`         | `git push`                    | Push changes                           |
-| `gpl`        | `git pull`                    | Pull changes                           |
-| `gpf`        | `git pf`                      | Force push (custom alias)              |
-| `gpfr`       | `git pfr`                     | Force push with lease (custom alias)   |
-| `gdg`        | `git del-gone`                | Delete gone branches                   |
-| `gcbn`       | `git copy-branch-name`        | Copy branch name to clipboard          |
-| `gumd`       | `git up-merge-develop`        | Fetch develop, merge origin/develop    |
-| `gumm`       | `git up-merge-main`           | Fetch main, merge origin/main          |
-| `gumb`       | `git up-merge-branch`         | Fetch branch, merge origin/<branch>    |
+| Abbreviation | Command                       | Description                               |
+| ------------ | ----------------------------- | ----------------------------------------- |
+| `g`          | `git`                         | Shortcut for git                          |
+| `gaa`        | `git add -A .`                | Add all changes                           |
+| `gdd`        | `git add -A .`                | Add all changes (alias)                   |
+| `gadd`       | `git add -A .`                | Add all changes (alias)                   |
+| `gc`         | `git commit`                  | Commit changes                            |
+| `gcm`        | `git commit -m "%"`           | Commit with message (cursor at %)         |
+| `gcmc`       | `git commit -m "chore: %"`    | Commit chore with message                 |
+| `gcmr`       | `git commit -m "refactor: %"` | Commit refactor with message              |
+| `gcmf`       | `git commit -m "feat: %"`     | Commit feature with message               |
+| `gcmi`       | `git commit -m "fix: %"`      | Commit fix with message                   |
+| `gcmt`       | `git commit -m "test: %"`     | Commit test with message                  |
+| `gcma`       | `git commit --amend`          | Amend previous commit                     |
+| `gco`        | `git checkout`                | Checkout branch                           |
+| `gcod`       | `git checkout develop`        | Checkout develop branch                   |
+| `gcom`       | `git checkout main`           | Checkout main branch                      |
+| `gsw`        | `git switch`                  | Switch branch                             |
+| `gswd`       | `git switch develop`          | Switch to develop branch                  |
+| `gswm`       | `git switch main`             | Switch to main branch                     |
+| `gmod`       | `git merge origin/develop`    | Merge origin/develop                      |
+| `gmom`       | `git merge origin/main`       | Merge origin/main                         |
+| `grod`       | `git rebase origin/develop`   | Rebase on origin/develop                  |
+| `grom`       | `git rebase origin/main`      | Rebase on origin/main                     |
+| `gd`         | `git d`                       | Git diff (custom alias)                   |
+| `gs`         | `git s`                       | Git status (custom alias)                 |
+| `gp`         | `git push`                    | Push changes                              |
+| `gpl`        | `git pull`                    | Pull changes                              |
+| `gpf`        | `git pf`                      | Force push (custom alias)                 |
+| `gpfr`       | `git pfr`                     | Force push with lease (custom alias)      |
+| `gdg`        | `git del-gone`                | Delete gone branches                      |
+| `gcbn`       | `git copy-branch-name`        | Copy branch name to clipboard             |
+| `gumd`       | `git up-merge-develop`        | Fetch develop, merge origin/develop       |
+| `gumm`       | `git up-merge-main`           | Fetch main, merge origin/main             |
+| `gumb`       | `git up-merge-branch`         | Fetch branch, merge origin/<branch>       |
 | `gurd`       | `git up-rebase-develop`       | Fetch develop, rebase onto origin/develop |
-| `gurm`       | `git up-rebase-main`          | Fetch main, rebase onto origin/main    |
+| `gurm`       | `git up-rebase-main`          | Fetch main, rebase onto origin/main       |
 | `gurb`       | `git up-rebase-branch`        | Fetch branch, rebase onto origin/<branch> |
-| `gud`        | `git update-develop`          | Fetch develop (refresh origin/develop) |
-| `lzg`        | `lazygit`                     | Launch lazygit                         |
+| `gud`        | `git update-develop`          | Fetch develop (refresh origin/develop)    |
+| `lzg`        | `lazygit`                     | Launch lazygit                            |
 
 #### GitHub CLI
 
@@ -161,10 +161,10 @@ This document provides a comprehensive reference for all aliases, functions, and
 
 #### Yazi
 
-| Abbreviation | Command | Description                                      |
-| ------------ | ------- | ------------------------------------------------ |
-| `y`          | `yazi`  | Launch yazi (Fish function; Zsh/Bash function)     |
-| `yy`         | —       | Yazi with cwd on exit (Fish/Zsh/Bash function)   |
+| Abbreviation | Command | Description                                    |
+| ------------ | ------- | ---------------------------------------------- |
+| `y`          | `yazi`  | Launch yazi (Fish function; Zsh/Bash function) |
+| `yy`         | —       | Yazi with cwd on exit (Fish/Zsh/Bash function) |
 
 #### Package Managers
 
@@ -275,7 +275,7 @@ This document provides a comprehensive reference for all aliases, functions, and
 | `watch`                | `watch -c`                                                                                            | Watch command with color    |
 | `print-colors-palette` | `for i in {0..255}; do print -Pn "%K{$i}  %k%F{$i}${(l:3::0:)i}%f " ${${(M)$((i%6)):#3}:+"\n"}; done` | Print color palette         |
 | `t`                    | `tail -f`                                                                                             | Tail file with follow       |
-| `ag`                   | `antigravity`                                                                                         | Launch antigravity          |
+| `ag`                   | `antigravity-ide`                                                                                     | Launch antigravity          |
 | `sw`                   | `clock-rs -c cyan stopwatch`                                                                          | Start a cyan stopwatch      |
 | `opsignin`             | `eval (op signin)`                                                                                    | Sign in to 1Password        |
 | `op-create`            | `f(){ op create document $1 --tags chezmoi --title $1;  unset -f f; }; f`                             | Create 1Password document   |
@@ -388,7 +388,7 @@ This document provides a comprehensive reference for all aliases, functions, and
 | `upall`                | `asdfupdate && upchezmoi && upprecleanup && upzshplugin && osupdate`                                  | Update everything                      |
 | `print-colors-palette` | `for i in {0..255}; do print -Pn "%K{$i}  %k%F{$i}${(l:3::0:)i}%f " ${${(M)$((i%6)):#3}:+"\n"}; done` | Print color palette                    |
 | `t`                    | `tail -f`                                                                                             | Tail file with follow                  |
-| `ag`                   | `antigravity`                                                                                         | Launch antigravity                     |
+| `ag`                   | `antigravity-ide`                                                                                     | Launch antigravity                     |
 | `sudo`                 | `sudo `                                                                                               | Allow aliases with sudo                |
 | `dup`                  | `du -h --max-depth=1 \| sort`                                                                         | Show disk usage sorted                 |
 | `df`                   | `df -h`                                                                                               | Show disk free space                   |
@@ -438,16 +438,16 @@ Zsh includes all the Bash aliases plus the following:
 
 ### General Scripts
 
-| Script                         | Description                           |
-| ------------------------------ | ------------------------------------- |
-| `brewup`                       | Updates Homebrew packages             |
-| `fix-zsh-insecure`             | Fixes zsh insecure directory warnings |
-| `osupdate.tmpl`                | OS-specific update script template    |
-| `setup-atuin`                  | Sets up Atuin shell history           |
+| Script                         | Description                             |
+| ------------------------------ | --------------------------------------- |
+| `brewup`                       | Updates Homebrew packages               |
+| `fix-zsh-insecure`             | Fixes zsh insecure directory warnings   |
+| `osupdate.tmpl`                | OS-specific update script template      |
+| `setup-atuin`                  | Sets up Atuin shell history             |
 | `setup-claude-code`            | Sets up Claude Code CLI & configuration |
-| `setup-dotfiles-repo-url`      | Sets up dotfiles repository URL       |
-| `show-zsh-startup-files-order` | Shows the order of zsh startup files  |
-| `upall.tmpl`                   | Updates everything (template)         |
+| `setup-dotfiles-repo-url`      | Sets up dotfiles repository URL         |
+| `show-zsh-startup-files-order` | Shows the order of zsh startup files    |
+| `upall.tmpl`                   | Updates everything (template)           |
 
 ### Git Scripts
 
