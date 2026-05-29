@@ -1,0 +1,74 @@
+#!/usr/bin/env node
+/**
+ * Reapply custom ClaudeKit naming patches after `ck init` reinstalls hooks.
+ *
+ * `ck-update` runs `ck init` which overwrites ~/.claude/hooks/**, wiping any
+ * local edits. This script re-applies two customizations and is fully
+ * idempotent (safe to run repeatedly):
+ *
+ *   1. context-builder.cjs: report filenames lead with the date for
+ *      chronological sorting -> {date}[-{issue}]-{type}-{slug}-report.md
+ *      (stock ClaudeKit puts {type} first).
+ *   2. ~/.claude/.ck.json: plan.dateFormat = "YYYY-MM-DD-HHmm"
+ *      (stock default is "YYMMDD-HHmm"). Drives both plan dir + report dates.
+ */
+
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+
+const HOME = os.homedir();
+let failed = false;
+
+// ── 1) context-builder.cjs: date-first report names ────────────────────────
+const cbPath = path.join(HOME, '.claude/hooks/lib/context-builder.cjs');
+try {
+  let src = fs.readFileSync(cbPath, 'utf8');
+
+  if (src.includes('const reportPattern =')) {
+    console.log('  context-builder.cjs: already patched');
+  } else {
+    // Insert the reportPattern helper after the function signature.
+    const sig = 'function buildNamingSection({ reportsPath, plansPath, namePattern }) {\n  return [';
+    const sigPatched =
+      'function buildNamingSection({ reportsPath, plansPath, namePattern }) {\n' +
+      "  // Reports lead with the date prefix for chronological sorting: {date}[-{issue}]-{type}-{slug}.\n" +
+      "  const reportPattern = namePattern.replace(/\\{slug\\}$/, '{type}-{slug}');\n" +
+      '  return [';
+
+    // Move {type} from the front of the report name to after the date prefix.
+    const oldReport = '{type}-${namePattern}-report.md';
+    const newReport = '${reportPattern}-report.md';
+
+    if (!src.includes(sig) || !src.includes(oldReport)) {
+      throw new Error('expected stock buildNamingSection markers not found');
+    }
+
+    // Use function replacers so `$` / `{` in replacements stay literal.
+    src = src.replace(sig, () => sigPatched).replace(oldReport, () => newReport);
+    fs.writeFileSync(cbPath, src);
+    console.log('  context-builder.cjs: patched (date-first reports)');
+  }
+} catch (err) {
+  console.error('  context-builder.cjs: FAILED -', err.message);
+  failed = true;
+}
+
+// ── 2) .ck.json: plan.dateFormat = YYYY-MM-DD-HHmm ──────────────────────────
+const ckJsonPath = path.join(HOME, '.claude/.ck.json');
+const DATE_FORMAT = 'YYYY-MM-DD-HHmm';
+try {
+  const cfg = JSON.parse(fs.readFileSync(ckJsonPath, 'utf8'));
+  if (cfg.plan && cfg.plan.dateFormat === DATE_FORMAT) {
+    console.log('  .ck.json: dateFormat already set');
+  } else {
+    cfg.plan = { ...(cfg.plan || {}), dateFormat: DATE_FORMAT };
+    fs.writeFileSync(ckJsonPath, JSON.stringify(cfg, null, 2) + '\n');
+    console.log(`  .ck.json: dateFormat set to ${DATE_FORMAT}`);
+  }
+} catch (err) {
+  console.error('  .ck.json: FAILED -', err.message);
+  failed = true;
+}
+
+process.exit(failed ? 1 : 0);

@@ -40,6 +40,10 @@ set_title "starting"
 section "ClaudeKit"
 run_step "ClaudeKit init" ck init -g --kit engineer --yes --install-skills --prefix --docs-dir ".ck-docs" --plans-dir ".ck-plans"
 
+# Reapply custom naming patches (ck init overwrites hooks/lib)
+section "Reapply naming patches"
+run_step "Reapply naming patches" ~/bin/ck-reapply-claude-naming
+
 # Restore custom statusline
 section "Restore statusline"
 if [ -f ~/.claude/settings.json ]; then
