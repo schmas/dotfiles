@@ -21,7 +21,9 @@ open "/Applications/WhatsApp.app"
 # sleep 0.5
 # open "/Applications/Proton Mail.app"
 sleep 0.5
-open "/Applications/Brave Browser.app"
+# open "/Applications/Brave Browser.app"
+# sleep 0.5
+open "/Applications/Zen.app"
 sleep 0.5
 open "/Applications/Slack.app"
 sleep 0.5
