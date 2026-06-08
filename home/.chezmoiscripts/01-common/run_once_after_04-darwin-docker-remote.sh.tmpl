@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+{{ if ne .chezmoi.os "darwin" }}
+# macOS only: this Mac is a *client* of the remote docker daemon. On Linux the
+# docker daemon is local, so no remote context is set up here.
+exit 0
+{{ end }}
+
+set -euo pipefail
+
+echo ""
+echo "-----------------------------------------------------------------------"
+echo " Docker remote context (client -> win-dev)"
+echo "-----------------------------------------------------------------------"
+echo ""
+
+{{ template "brew-shellenv" . }}
+
+# Use the real Homebrew docker client. The podman->docker shim has been removed
+# (see .chezmoiremove), so `docker` now resolves to the Homebrew formula.
+if ! command -v docker &>/dev/null; then
+  echo "docker CLI not found — skipping. (Brewfile installs it on the next apply.)"
+  exit 0
+fi
+
+# Remote daemon context: tunnels the Docker API over SSH to the win-dev WSL host
+# (alias defined in ~/.ssh/config). Containers run there, not on this Mac.
+# Idempotent: only create when missing.
+if ! docker context inspect server &>/dev/null; then
+  echo "Creating docker context 'server' -> ssh://win-dev ..."
+  docker context create server \
+    --docker "host=ssh://win-dev" \
+    --description "Remote docker daemon on win-dev (HEKLA WSL)"
+fi
+
+# Default to the remote daemon so work runs off-box and frees local resources.
+# Toggle back to the local podman VM any time with `dlocal` (docker context use
+# default); `dremote` switches back. The `default` context reaches podman via the
+# /var/run/docker.sock symlink that podman-mac-helper installs.
+docker context use server
+
+# Make the Homebrew compose plugin discoverable by `docker compose`. Homebrew
+# installs it under /opt/homebrew/lib (not a default plugin dir on Apple Silicon),
+# so symlink it into ~/.docker/cli-plugins, which docker always scans.
+compose_plugin="$(brew --prefix 2>/dev/null)/lib/docker/cli-plugins/docker-compose"
+if [[ -x "$compose_plugin" ]]; then
+  mkdir -p "$HOME/.docker/cli-plugins"
+  ln -sf "$compose_plugin" "$HOME/.docker/cli-plugins/docker-compose"
+fi
+
+# Local toggle prerequisite: podman-mac-helper points /var/run/docker.sock at the
+# podman VM so `docker context use default` works. Install only if absent (needs
+# sudo); never abort setup if it fails — `podman` still works directly.
+if [[ ! -e /var/run/docker.sock ]] && command -v podman-mac-helper &>/dev/null; then
+  echo "Installing podman-mac-helper (sudo) for the local docker toggle..."
+  sudo podman-mac-helper install \
+    || echo "Note: podman-mac-helper install failed; use 'podman' directly for local containers. Continuing."
+fi
+
+echo ""
+echo "Docker remote context ready. Active context: $(docker context show)"
+echo "Toggle: dremote (win-dev) / dlocal (local podman VM)."

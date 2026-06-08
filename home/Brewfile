@@ -95,8 +95,10 @@ brew "freetds"        # SQL Server / Sybase client library
 # === Containers ===
 brew "gromgit/brewtils/taproom" # Homebrew tap browser
 brew "krunkit"        # Lightweight VM runtime
-brew "podman"         # Container runtime
-brew "podman-compose" # Docker compose for Podman
+brew "podman"         # Container runtime (local)
+brew "podman-compose" # Compose for Podman (local)
+brew "docker"         # Docker CLI client — drives the remote daemon via context
+brew "docker-compose" # Compose v2 plugin — works against the remote context
 
 # === Monitoring ===
 brew "btop"           # Resource monitor
