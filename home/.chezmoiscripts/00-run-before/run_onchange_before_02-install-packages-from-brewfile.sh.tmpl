@@ -37,10 +37,13 @@ echo "Installing packages from Brewfile..."
 # Ask for sudo password once upfront and keep the session alive
 # so cask installs don't repeatedly prompt
 if sudo --validate 2>/dev/null; then
-  # Refresh sudo timestamp in the background until this script exits
-  while true; do sudo --non-interactive --validate; sleep 30; done &
+  # Refresh sudo timestamp in the background until this script exits. The inner
+  # `|| true` keeps the loop alive under `set -e` if a refresh ever fails, and
+  # the trap's `|| true` stops a kill of an already-dead PID from becoming the
+  # script's exit status (bash propagates the EXIT trap's last command status).
+  while true; do sudo --non-interactive --validate || true; sleep 30; done &
   SUDO_REFRESH_PID=$!
-  trap 'kill "$SUDO_REFRESH_PID" 2>/dev/null' EXIT INT TERM
+  trap 'kill "$SUDO_REFRESH_PID" 2>/dev/null || true' EXIT INT TERM
 fi
 
 # Install + trust taps first so brew bundle can resolve all formulae
