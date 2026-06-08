@@ -1,0 +1,22 @@
+# Tap and trust every third-party tap declared in the Brewfile *before* running
+# `brew bundle`. Homebrew is making tap trust mandatory (HOMEBREW_REQUIRE_TAP_TRUST,
+# enforced from brew 6.0/5.2): loading a formula, cask or command from an untrusted
+# non-official tap will fail. `brew trust` records the canonical tap name (it strips
+# the `homebrew-` prefix and is idempotent). Guard on the subcommand so this is a
+# no-op on older brew builds that predate it. Requires $BREWFILE set by the caller.
+brew_can_trust=0
+if brew trust --help &>/dev/null; then
+  brew_can_trust=1
+fi
+
+grep '^tap ' "$BREWFILE" | while read -r _ tap_name; do
+  tap_name="${tap_name%\"}"
+  tap_name="${tap_name#\"}"
+  if ! brew tap | grep -q "^${tap_name}$"; then
+    echo "Tapping $tap_name..."
+    brew tap "$tap_name"
+  fi
+  if [[ "$brew_can_trust" == "1" ]]; then
+    brew trust --tap "$tap_name" &>/dev/null || true
+  fi
+done

@@ -121,6 +121,9 @@ fi
 
 BREWFILE="$HOME/Brewfile"
 if [[ -f "$BREWFILE" ]]; then
+  # Install + trust taps first so brew bundle can resolve all formulae
+{{ template "brew-trust-taps" . }}
+
   echo "Installing packages from Brewfile..."
   # On Linux, casks/mas are auto-skipped and macOS-only formulae (mas,
   # dockutil, pinentry-mac, …) fail with "macOS is required". brew bundle
