@@ -36,6 +36,14 @@
   {{- $os_id_like = printf "%s-%s" .chezmoi.os $firstIdLike -}}
 {{- end -}}
 
+{{- /* WSL detection: linux kernel reporting "microsoft" */}}
+{{- $is_wsl := false -}}
+{{- if eq .chezmoi.os "linux" -}}
+  {{- if (.chezmoi.kernel.osrelease | lower | contains "microsoft") -}}
+    {{- $is_wsl = true -}}
+  {{- end -}}
+{{- end -}}
+
 data:
   os_id: {{ $os_id | quote }}
   os_id_like: {{ $os_id_like | quote }}
@@ -46,9 +54,18 @@ data:
   is_p_ct: {{ $is_p_ct }}
   is_p_csaa: false
   is_p_aaa: {{ $is_p_aaa }}
+  is_wsl: {{ $is_wsl }}
 
 {{- if (ne $defaultEditor "none") }}
 edit:
   command: "{{ $defaultEditor }}"
   args: ["--wait"]
+{{ end -}}
+
+{{- if $is_wsl }}
+
+# WSL: the Linux op binary cannot reach the Windows 1Password desktop app, so
+# route secret reads through the op bridge (which calls op.exe via interop).
+onepassword:
+  command: "{{ .chezmoi.homeDir }}/.local/bin/op"
 {{ end -}}
