@@ -117,8 +117,13 @@ fi
 BREWFILE="$HOME/Brewfile"
 if [[ -f "$BREWFILE" ]]; then
   echo "Installing packages from Brewfile..."
-  # On Linux, casks are ignored automatically
-  brew bundle --file="$BREWFILE"
+  # On Linux, casks/mas are auto-skipped and macOS-only formulae (mas,
+  # dockutil, pinentry-mac, …) fail with "macOS is required". brew bundle
+  # still installs everything else but exits non-zero, so don't let that
+  # abort the whole setup.
+  if ! brew bundle --file="$BREWFILE"; then
+    echo "Note: some Brewfile entries failed — expected for macOS-only formulae on Linux. Continuing."
+  fi
 else
   echo "Warning: Brewfile not found at $BREWFILE"
 fi
