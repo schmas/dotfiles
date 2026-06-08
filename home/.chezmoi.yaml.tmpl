@@ -10,7 +10,7 @@
 {{- $profile := promptChoice "Profile" $profileChoices "1-default" -}}
 {{- $profile = regexReplaceAll "^\\d-" $profile "" -}}
 
-{{- $using_nix := promptBool "Are you using NIX-CONFIG" true -}}
+{{- $using_nix := promptBool "Are you using NIX-CONFIG" false -}}
 
 {{- $editorChoices := list "1-none"  "2-nvim" "3-zed" "4-code" -}}
 {{- $defaultEditor := promptChoice "Choose default editor" $editorChoices "2-nvim" -}}
