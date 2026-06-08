@@ -43,15 +43,8 @@ if sudo --validate 2>/dev/null; then
   trap 'kill "$SUDO_REFRESH_PID" 2>/dev/null' EXIT INT TERM
 fi
 
-# Install taps first so brew bundle can resolve all formulae
-grep '^tap ' "$BREWFILE" | while read -r _ tap_name; do
-  tap_name="${tap_name%\"}"
-  tap_name="${tap_name#\"}"
-  if ! brew tap | grep -q "^${tap_name}$"; then
-    echo "Tapping $tap_name..."
-    brew tap "$tap_name"
-  fi
-done
+# Install + trust taps first so brew bundle can resolve all formulae
+{{ template "brew-trust-taps" . }}
 
 brew bundle --file="$BREWFILE"
 
