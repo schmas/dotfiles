@@ -9,6 +9,13 @@ signingkey = {{ onepasswordRead "op://Dotfiles/e7qsp6u5my2gxxaqsdkyas6dt4/public
 [gpg "ssh"]
   program = /Applications/1Password.app/Contents/MacOS/op-ssh-sign
   #allowedSignersFile = ~/.config/git/allowed-signers
+{{ else if .is_wsl }}
+[gpg "ssh"]
+  # WSL: sign via the Windows 1Password app through the op-ssh-sign bridge
+  program = {{ .chezmoi.homeDir }}/.local/bin/op-ssh-sign
+[core]
+  # WSL: auth git over SSH through the Windows 1Password SSH agent
+  sshCommand = ssh.exe
 {{ end -}}
 
 [commit]

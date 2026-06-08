@@ -61,6 +61,37 @@ The script will:
 3. Verify SSH access to GitHub
 4. Run `chezmoi init --apply` automatically
 
+### Fresh Machine Install (WSL / Ubuntu)
+
+1Password runs as the Windows desktop app — the Linux `op` binary can't reach it,
+so secrets, git SSH auth, and commit signing all bridge to Windows via WSL interop
+(`op.exe` / `ssh.exe` / `op-ssh-sign`).
+
+On **Windows** first:
+
+```powershell
+winget install 1Password.CLI
+```
+
+Then in the 1Password desktop app: **Settings → Developer** → enable *Integrate with
+1Password CLI* and *Use the SSH agent*; **Settings → Security** → enable Windows Hello.
+
+In **WSL** (download-then-run so the profile prompt stays interactive):
+
+```bash
+curl -fsSL https://gist.githubusercontent.com/schmas/a604b0d433a836c5af8a877a3d0f37df/raw/bootstrap-wsl.sh -o /tmp/bootstrap-wsl.sh
+bash /tmp/bootstrap-wsl.sh
+```
+
+The script will:
+1. Install apt prerequisites (curl, git, gnupg, build-essential)
+2. Drop the `op` / `op-ssh-sign` bridges into `~/.local/bin`
+3. Verify 1Password is reachable (Windows Hello prompt)
+4. Install chezmoi and run `chezmoi init --apply`
+
+> Tip: to avoid repeated sudo prompts during apply, set up temporary passwordless
+> sudo first (`/etc/sudoers.d/`) and remove it afterward.
+
 ### Existing Machine (chezmoi already installed)
 
 ```bash
