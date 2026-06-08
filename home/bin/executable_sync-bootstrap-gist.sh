@@ -7,7 +7,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GIST_ID="a604b0d433a836c5af8a877a3d0f37df"
 
-for name in bootstrap-chezmoi.sh bootstrap-wsl.sh; do
+for name in bootstrap-chezmoi.sh bootstrap-wsl.sh wsl-ssh-setup.sh; do
   file="$SCRIPT_DIR/$name"
   if [[ ! -f "$file" ]]; then
     echo "Error: $name not found at $file"
