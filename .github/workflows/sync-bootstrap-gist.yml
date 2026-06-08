@@ -12,6 +12,7 @@ on:
     paths:
       - 'home/bin/executable_bootstrap-chezmoi.sh'
       - 'home/bin/executable_bootstrap-wsl.sh'
+      - 'home/bin/executable_wsl-ssh-setup.sh'
   workflow_dispatch: # Manual trigger
 
 jobs:
@@ -30,4 +31,7 @@ jobs:
           gh gist edit a604b0d433a836c5af8a877a3d0f37df \
             --filename bootstrap-wsl.sh \
             home/bin/executable_bootstrap-wsl.sh
+          gh gist edit a604b0d433a836c5af8a877a3d0f37df \
+            --filename wsl-ssh-setup.sh \
+            home/bin/executable_wsl-ssh-setup.sh
           echo "Gist updated successfully"
