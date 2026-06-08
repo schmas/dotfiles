@@ -6,8 +6,8 @@ set -e
 set -u
 set -o pipefail
 
-CLAUDE_CONFIG_DIR="$HOME/.claude"
-CLAUDE_CONFIG_REPO="git@github.com:schmas/claude-config.git"
+# ~/.claude is managed by chezmoi (dot_claude); there is no external
+# claude-config repo to clone anymore.
 
 # Install Claude Code CLI
 install_claude_code() {
@@ -20,49 +20,6 @@ install_claude_code() {
   if ! curl -fsSL https://claude.ai/install.sh | bash; then
     echo "Error: Claude CLI installation failed" >&2
     return 1
-  fi
-}
-
-# Setup Claude config repository
-setup_claude_config() {
-  if [ -d "$CLAUDE_CONFIG_DIR" ]; then
-    if [ -d "$CLAUDE_CONFIG_DIR/.git" ]; then
-      echo "Claude config repo exists, pulling latest..."
-      (cd "$CLAUDE_CONFIG_DIR" && git pull --rebase) || echo "Warning: git pull failed, continuing..." >&2
-    else
-      # Directory exists but not a git repo - backup and clone
-      local backup_dir="${CLAUDE_CONFIG_DIR}.backup.$(date +%Y%m%d%H%M%S)"
-      echo "Backing up existing $CLAUDE_CONFIG_DIR to $backup_dir..."
-      mv "$CLAUDE_CONFIG_DIR" "$backup_dir"
-      echo "Cloning claude-config repo..."
-      git clone "$CLAUDE_CONFIG_REPO" "$CLAUDE_CONFIG_DIR"
-    fi
-  else
-    echo "Cloning claude-config repo..."
-    git clone "$CLAUDE_CONFIG_REPO" "$CLAUDE_CONFIG_DIR"
-  fi
-}
-
-# Find best available bash (prefer Homebrew bash 4+)
-find_bash() {
-  for brew_bash in /opt/homebrew/bin/bash /usr/local/bin/bash; do
-    if [ -x "$brew_bash" ]; then
-      echo "$brew_bash"
-      return
-    fi
-  done
-  echo "bash"
-}
-
-# Run setup script from config repo
-run_setup_script() {
-  if [ -f "$CLAUDE_CONFIG_DIR/setup.sh" ]; then
-    echo "Running Claude config setup.sh..."
-    local best_bash
-    best_bash="$(find_bash)"
-    (cd "$CLAUDE_CONFIG_DIR" && "$best_bash" setup.sh)
-  else
-    echo "Note: No setup.sh found in claude-config repo"
   fi
 }
 
@@ -123,11 +80,9 @@ show_plugin_instructions() {
 # Main execution
 main() {
   echo "=== Claude Code Setup ==="
-  # Clone config repo BEFORE installing CLI, so the CLI finds
-  # our config already in place and doesn't create its own ~/.claude
-  setup_claude_config
+  # ~/.claude is managed by chezmoi; just install the CLI and register MCP
+  # servers — no config repo clone.
   install_claude_code
-  run_setup_script
   setup_mcp_servers
   show_plugin_instructions
 }
