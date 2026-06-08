@@ -151,19 +151,20 @@ cask "twingate"                    # Zero-trust network access
 
 # Productivity
 cask "alfred"                      # Launcher & productivity
+cask "antinote"                    # Quick note-taking
 cask "raycast"                     # Launcher & productivity
 # cask "bartender"                   # Menu bar organizer
 # cask "betterdisplay"               # Display management & dummy displays
 # cask "cleanmymac"                  # System cleaner
 cask "cleanshot"                   # Screenshot tool
-# cask "clop"                        # Image/video/PDF optimizer
+cask "clop"                        # Image/video/PDF optimizer
 cask "doll"                        # Notification management
 cask "grammarly-desktop"           # Writing assistant
 # cask "hammerspoon"                 # macOS automation
-# cask "imageoptim"                  # Image compression
+cask "imageoptim"                  # Image compression
 # cask "jordanbaird-ice"             # Menu bar manager
 # cask "karabiner-elements"          # Keyboard customizer
-# cask "keepingyouawake"             # Prevent sleep
+cask "keepingyouawake"             # Prevent sleep
 # cask "keka"                        # Archive utility
 cask "leader-key"                  # Keyboard shortcuts
 # cask "logi-options+"               # Logitech device manager
@@ -179,6 +180,7 @@ cask "rectangle-pro"               # Window manager
 
 # Development
 # cask "block-goose"                 # AI coding agent
+cask "antigravity-ide"             # AI-powered IDE
 cask "claude"                      # AI assistant
 # cask "codexbar"                    # Menu bar snippets
 cask "cursor"                      # AI code editor
@@ -206,6 +208,7 @@ cask "proton-drive"                # Encrypted cloud storage
 cask "proton-mail"                 # Encrypted email
 
 # Media
+cask "insta360-link-controller"    # Insta360 webcam controller
 # cask "heroic"                      # Epic/GOG game launcher
 cask "spotify"                     # Music streaming
 cask "steam"                       # Gaming platform
