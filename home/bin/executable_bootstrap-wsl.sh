@@ -64,12 +64,14 @@ set -uo pipefail
 find_op_exe() {
   local p
   p="$(command -v op.exe 2>/dev/null || true)"; [ -n "$p" ] && { printf '%s' "$p"; return; }
-  local wu base
-  wu="$(cmd.exe /c 'echo %USERNAME%' 2>/dev/null | tr -d '\r\n')"
-  base="/mnt/c/Users/${wu}/AppData/Local/Microsoft/WinGet/Packages"
-  p="$(ls -td "$base"/AgileBits.1Password.CLI*/op.exe 2>/dev/null | head -n1 || true)"
-  [ -n "$p" ] && { printf '%s' "$p"; return; }
-  p="/mnt/c/Program Files/1Password CLI/op.exe"; [ -x "$p" ] && printf '%s' "$p"
+  # Glob WinGet package dirs across all Windows users, then Program Files.
+  # No cmd.exe dependency, so this works even over SSH where the Windows PATH
+  # is not appended to the WSL login shell.
+  for p in /mnt/c/Users/*/AppData/Local/Microsoft/WinGet/Packages/AgileBits.1Password.CLI*/op.exe \
+           "/mnt/c/Program Files/1Password CLI/op.exe" \
+           "/mnt/c/Program Files (x86)/1Password CLI/op.exe"; do
+    [ -x "$p" ] && { printf '%s' "$p"; return; }
+  done
 }
 
 OP_EXE="$(find_op_exe)"
@@ -96,17 +98,17 @@ cat > "$BIN_DIR/op-ssh-sign" <<'SIGNER'
 set -uo pipefail
 
 find_signer() {
-  local p wu base d
+  local p
   for p in op-ssh-sign-wsl.exe op-ssh-sign.exe; do
     p="$(command -v "$p" 2>/dev/null || true)"; [ -n "$p" ] && { printf '%s' "$p"; return; }
   done
-  wu="$(cmd.exe /c 'echo %USERNAME%' 2>/dev/null | tr -d '\r\n')"
-  base="/mnt/c/Users/${wu}/AppData/Local/Microsoft/WinGet/Packages"
-  for d in "$base"/AgileBits.1Password.CLI*; do
-    [ -x "$d/op-ssh-sign-wsl.exe" ] && { printf '%s' "$d/op-ssh-sign-wsl.exe"; return; }
-    [ -x "$d/op-ssh-sign.exe" ]     && { printf '%s' "$d/op-ssh-sign.exe"; return; }
-  done
-  for p in "/mnt/c/Program Files/1Password CLI/op-ssh-sign.exe"; do
+  # op-ssh-sign ships with the 1Password desktop app and/or the CLI package.
+  # Glob both across all Windows users (WSL-path-aware variant preferred).
+  for p in /mnt/c/Users/*/AppData/Local/Microsoft/WinGet/Packages/AgileBits.1Password.CLI*/op-ssh-sign-wsl.exe \
+           /mnt/c/Users/*/AppData/Local/Microsoft/WinGet/Packages/AgileBits.1Password.CLI*/op-ssh-sign.exe \
+           /mnt/c/Users/*/AppData/Local/1Password/app/*/op-ssh-sign-wsl.exe \
+           /mnt/c/Users/*/AppData/Local/1Password/app/*/op-ssh-sign.exe \
+           "/mnt/c/Program Files/1Password CLI/op-ssh-sign.exe"; do
     [ -x "$p" ] && { printf '%s' "$p"; return; }
   done
 }
