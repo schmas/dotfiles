@@ -21,7 +21,7 @@ warn() { echo -e "    ${YELLOW}[!] $1${NC}"; }
 
 # systemd is the canonical init when this dir exists. We need it for
 # `systemctl enable` (ssh + docker auto-start on boot).
-systemd_active() { [ -d /run/systemd/system ]; }
+systemd_active() { [[ -d /run/systemd/system ]]; }
 
 # ── 1. Ensure systemd is enabled in WSL ────────────────────────────────────
 # Ubuntu 24.04 on WSL enables systemd by default, but make it explicit so
