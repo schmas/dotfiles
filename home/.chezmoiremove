@@ -4,3 +4,7 @@
 .config/fish/conf.d/71-pay-respects.fish
 .config/fish/conf.d/00-pay-respects.fish
 .config/fish/conf.d/02-pay-respects.fish
+
+# Old podman->docker shim: `docker` is now the real Homebrew client (remote daemon
+# via context). macOS-only — `bin/macos` is already .chezmoiignore'd on Linux.
+bin/macos/docker

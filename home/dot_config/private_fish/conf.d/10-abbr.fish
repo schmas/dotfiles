@@ -28,6 +28,10 @@ if status is-interactive
     # DOCKER
     abbr --add dspall "docker system prune --all --volumes -f"
     abbr --add lzd lazydocker
+    # docker daemon target: `server` = remote win-dev, `default` = local podman VM
+    abbr --add dctx "docker context ls"
+    abbr --add dremote "docker context use server"
+    abbr --add dlocal "docker context use default"
 
     # homebrew
     abbr --add bi 'brew install '
