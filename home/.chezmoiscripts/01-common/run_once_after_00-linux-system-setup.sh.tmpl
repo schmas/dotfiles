@@ -88,9 +88,14 @@ if [[ -n "$FISH_PATH" ]]; then
     echo "$FISH_PATH" | sudo tee -a /etc/shells
   fi
 
-  if [[ "$SHELL" != "$FISH_PATH" ]]; then
+  # Compare against the real login shell (getent); $SHELL is stale in non-login
+  # shells such as SSH sessions, which makes this re-run every time. Use
+  # `sudo chsh` so it doesn't prompt for the login password via PAM, and never
+  # abort the setup if changing the shell fails.
+  current_shell="$(getent passwd "$(id -un)" | cut -d: -f7)"
+  if [[ "$current_shell" != "$FISH_PATH" ]]; then
     echo "Setting fish as default shell..."
-    chsh -s "$FISH_PATH"
+    sudo chsh -s "$FISH_PATH" "$(id -un)" || echo "Warning: could not set fish as default shell; run 'chsh -s $FISH_PATH' manually. Continuing."
   fi
 fi
 
@@ -135,11 +140,14 @@ fi
 if grep -qi microsoft /proc/version 2>/dev/null; then
   echo "WSL detected, applying WSL-specific configuration..."
 
-  # Create symlink to Windows home if it exists
-  WIN_HOME="/mnt/c/Users/$(cmd.exe /c 'echo %USERNAME%' 2>/dev/null | tr -d '\r')"
-  if [[ -d "$WIN_HOME" ]] && [[ ! -L "$HOME/winhome" ]]; then
-    ln -sf "$WIN_HOME" "$HOME/winhome"
-    echo "Created symlink: ~/winhome -> $WIN_HOME"
+  # Create symlink to Windows home if it exists. cmd.exe is not on PATH in
+  # non-login/SSH shells, so fall back to its full path and never let a failure
+  # here abort the setup (the trailing `|| true` neutralises set -e/pipefail).
+  win_cmd="$(command -v cmd.exe 2>/dev/null || echo /mnt/c/Windows/System32/cmd.exe)"
+  win_user="$("$win_cmd" /c 'echo %USERNAME%' 2>/dev/null | tr -d '\r\n' || true)"
+  if [[ -n "$win_user" && -d "/mnt/c/Users/$win_user" && ! -L "$HOME/winhome" ]]; then
+    ln -sf "/mnt/c/Users/$win_user" "$HOME/winhome"
+    echo "Created symlink: ~/winhome -> /mnt/c/Users/$win_user"
   fi
 
   # Configure Git to use Windows credential manager
