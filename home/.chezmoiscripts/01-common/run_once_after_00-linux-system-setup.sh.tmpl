@@ -118,7 +118,7 @@ BREWFILE="$HOME/Brewfile"
 if [[ -f "$BREWFILE" ]]; then
   echo "Installing packages from Brewfile..."
   # On Linux, casks are ignored automatically
-  brew bundle --file="$BREWFILE" --no-lock
+  brew bundle --file="$BREWFILE"
 else
   echo "Warning: Brewfile not found at $BREWFILE"
 fi
