@@ -1,2 +1,9 @@
+# Never drop an idle SSH session (client side): probe periodically and don't
+# give up. Pairs with the server-side sshd keepalive used on remote hosts.
+Host *
+  ServerAliveInterval 30
+  ServerAliveCountMax 1000000
+  TCPKeepAlive yes
+
 # Hosts keys are configure by 1password
 Include ~/.ssh/1Password/config
