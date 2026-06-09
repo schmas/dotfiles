@@ -108,7 +108,31 @@ else
 fi
 warn "Log out/in (or 'wsl --shutdown') for docker-group membership to apply."
 
-# ── 8. Write Windows PowerShell setup script ───────────────────────────────
+# ── 8. Write 1Password SSH agent.toml for Windows ─────────────────────────
+# Windows 1Password SSH agent reads vault config from %LOCALAPPDATA%\1Password\config\ssh\agent.toml.
+# Without this, the agent only serves keys from the Private vault.
+step "Writing 1Password SSH agent.toml for Windows..."
+# cmd.exe/powershell.exe return empty over SSH; find the real user dir via glob
+# (excludes Default, Public, and "All Users" which are not real user profiles).
+WIN_USER=$(find /mnt/c/Users -maxdepth 1 -mindepth 1 -type d \
+  ! -name 'Default' ! -name 'Default User' ! -name 'Public' ! -name 'All Users' \
+  -printf '%f\n' 2>/dev/null | head -1)
+AGENT_TOML_DIR="/mnt/c/Users/${WIN_USER}/AppData/Local/1Password/config/ssh"
+mkdir -p "$AGENT_TOML_DIR"
+cat > "$AGENT_TOML_DIR/agent.toml" << 'AGENTEOF'
+[[ssh-keys]]
+vault = "Private"
+
+[[ssh-keys]]
+vault = "Dotfiles"
+
+[[ssh-keys]]
+vault = "AAA"
+AGENTEOF
+info "Written to %LOCALAPPDATA%\\1Password\\config\\ssh\\agent.toml"
+info "Restart 1Password on Windows for the change to take effect."
+
+# ── 9. Write Windows PowerShell setup script ───────────────────────────────
 # Stable portproxy: Windows 2222 -> 127.0.0.1:22. WSL2 mirrors localhost into
 # the VM, so 127.0.0.1 always reaches sshd and NEVER needs a per-boot refresh
 # (the old dynamic-WSL-IP approach did — that scheduled task is gone).
@@ -163,14 +187,15 @@ info "Written to C:\\Windows\\Temp\\wsl-ssh-setup.ps1"
 # ── 9. Launch Windows PowerShell as admin ──────────────────────────────────
 step "Launching Windows PowerShell (Admin)..."
 powershell.exe -NoProfile -Command \
-  "Start-Process powershell -Verb RunAs -ArgumentList '-NoExit','-File','C:\Windows\Temp\wsl-ssh-setup.ps1'" \
+  "Start-Process powershell -Verb RunAs -ArgumentList '-NoExit','-ExecutionPolicy','Bypass','-File','C:\Windows\Temp\wsl-ssh-setup.ps1'" \
   2>/dev/null || warn "Auto-launch failed — run the script manually (see below)."
 
 echo ""
 echo -e "${GREEN}✓ WSL side complete.${NC}"
 echo ""
-echo "  A PowerShell (Admin) window should have opened on Windows. If not:"
-echo -e "  ${YELLOW}Right-click PowerShell → Run as administrator → C:\\Windows\\Temp\\wsl-ssh-setup.ps1${NC}"
+echo "  A PowerShell (Admin) window should have opened on Windows. If not,"
+echo "  open PowerShell as Administrator and run:"
+echo -e "  ${YELLOW}powershell -ExecutionPolicy Bypass -File C:\\Windows\\Temp\\wsl-ssh-setup.ps1${NC}"
 echo ""
 echo "  From your Mac:"
 echo -e "  ${CYAN}ssh-copy-id -p 2222 $USER@<windows-lan-ip>${NC}   (once, to install your key)"

@@ -142,6 +142,11 @@ fi
 # ---------------------------------------------------------------------------
 # 5. Apply
 # ---------------------------------------------------------------------------
+log "Re-verifying 1Password is still reachable before applying (re-lock can happen during apt install)..."
+if ! "$BIN_DIR/op" vault list >/dev/null 2>&1; then
+  die "1Password became unreachable. Unlock the desktop app on Windows and re-run."
+fi
+
 log "Running chezmoi init --apply (answer the profile / editor prompts)..."
 "${BIN_DIR}/chezmoi" init --apply "$REPO"
 
