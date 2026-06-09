@@ -1,0 +1,217 @@
+# Brewfile - Declarative package management
+# Run: brew bundle --file=~/Brewfile
+# macOS-only entries are wrapped in OS conditionals — this file is a chezmoi template.
+
+# ── Taps (cross-platform) ──────────────────────────────────────────────────
+tap "gromgit/brewtils"
+tap "dlvhdr/formulae"
+tap "atlassian/homebrew-acli"
+{{ if eq .chezmoi.os "darwin" }}
+# ── Taps (macOS only) ─────────────────────────────────────────────────────
+tap "slp/krunkit"
+tap "nikolaeu/numi"
+{{ end }}
+# ── Shells ────────────────────────────────────────────────────────────────
+brew "bash"           # Bash 5.x (newer than macOS default)
+brew "fish"           # Friendly interactive shell
+brew "zsh"            # Zsh (newer than macOS default)
+brew "nushell"        # Modern shell
+
+# ── Core Shell Tools ──────────────────────────────────────────────────────
+brew "atuin"          # Shell history sync
+brew "sheldon"        # Shell plugin manager
+brew "starship"       # Cross-shell prompt
+brew "tmux"           # Terminal multiplexer
+
+# ── GNU Utilities ─────────────────────────────────────────────────────────
+brew "coreutils"      # GNU core utilities
+brew "moreutils"      # Additional Unix utilities
+brew "findutils"      # GNU find, xargs, locate
+brew "gnu-sed"        # GNU sed
+brew "gnu-tar"        # GNU tar
+brew "gawk"           # GNU awk
+brew "watch"          # Execute program periodically
+
+# ── File Tools ────────────────────────────────────────────────────────────
+brew "bat"            # Cat with syntax highlighting
+brew "dust"           # Modern du replacement
+brew "eza"            # Modern ls replacement
+brew "fd"             # Modern find replacement
+brew "fzf"            # Fuzzy finder
+brew "television"     # Fast fuzzy finder (tv)
+brew "ripgrep"        # Fast grep replacement
+brew "sd"             # Modern sed replacement
+brew "tree-sitter"    # Parser generator
+brew "sevenzip"       # 7-Zip archive tool
+brew "unar"           # Universal archive extractor
+brew "yazi"           # Terminal file manager
+brew "zoxide"         # Smarter cd command
+brew "fswatch"        # File change monitor
+
+# ── Viewers ───────────────────────────────────────────────────────────────
+brew "chafa"              # Terminal image viewer
+brew "ffmpeg-full"        # Audio/video processing
+brew "ffmpegthumbnailer"  # Video thumbnailer
+brew "imagemagick-full"   # Image manipulation toolkit
+brew "resvg"              # SVG rendering library
+brew "poppler"            # PDF utilities
+brew "viu"                # Terminal image viewer
+
+# ── Data Processing ───────────────────────────────────────────────────────
+brew "csvlens"        # CSV file viewer
+brew "jq"             # JSON processor
+brew "yq"             # YAML processor
+brew "gettext"        # GNU gettext (includes envsubst)
+
+# ── Editors ───────────────────────────────────────────────────────────────
+brew "vim"
+brew "neovim"
+
+# ── Version Control ───────────────────────────────────────────────────────
+brew "git"
+brew "git-lfs"        # Large file storage
+brew "worktrunk"      # Git worktree manager
+brew "gitleaks"       # Secret scanner
+brew "gh"             # GitHub CLI
+brew "lazygit"        # Git TUI
+brew "dlvhdr/formulae/diffnav"  # Diff navigator
+brew "git-delta"      # Git diff viewer
+brew "diff-so-fancy"  # Better git diffs
+brew "difftastic"     # Structural diff
+
+# ── Development ───────────────────────────────────────────────────────────
+brew "jdtls"          # Java language server
+brew "gopls"          # Go language server
+brew "pyright"        # Python language server
+brew "ast-grep"       # AST-based search
+brew "just"           # Task runner
+brew "luarocks"       # Lua package manager
+brew "mise"           # Dev runtime manager (replaces asdf)
+brew "pkg-config"     # Compiler helper
+brew "tokei"          # Code statistics
+
+# ── Database ──────────────────────────────────────────────────────────────
+brew "libpq"          # PostgreSQL client (psql) without full server
+brew "freetds"        # SQL Server / Sybase client library
+
+# ── Containers ────────────────────────────────────────────────────────────
+brew "gromgit/brewtils/taproom" # Homebrew tap browser
+brew "docker"         # Docker CLI — drives remote daemon via SSH context
+brew "docker-compose" # Compose v2 plugin
+
+# ── Monitoring ────────────────────────────────────────────────────────────
+brew "btop"           # Resource monitor
+brew "fastfetch"      # System info (neofetch successor)
+brew "procs"          # Modern ps replacement
+
+# ── Networking ────────────────────────────────────────────────────────────
+brew "curl"
+brew "wget"
+brew "inetutils"      # Network utilities
+brew "bind"           # DNS tools (dig)
+
+# ── Security ──────────────────────────────────────────────────────────────
+brew "openssl"
+brew "gnupg"          # GPG
+brew "sshpass"        # SSH password auth
+brew "pinentry"       # GPG PIN entry
+
+# ── Utilities ─────────────────────────────────────────────────────────────
+brew "chezmoi"        # Dotfiles manager
+brew "hyperfine"      # CLI benchmarking
+brew "shfmt"          # Shell formatter
+brew "xz"             # Compression
+brew "urlview"        # URL extractor
+brew "acli"           # Atlassian CLI
+{{ if eq .chezmoi.os "darwin" }}
+# ── macOS-only formulae ───────────────────────────────────────────────────
+brew "pinentry-mac"                # macOS keychain PIN entry
+brew "mas"                         # Mac App Store CLI
+brew "mole"                        # macOS system cleaner (tw93/Mole)
+brew "reattach-to-user-namespace"  # tmux clipboard fix
+brew "pam-reattach"                # Touch ID in tmux
+brew "dockutil"                    # Dock management
+brew "krunkit"                     # Lightweight VM runtime (Virtualization.framework)
+brew "nikolaeu/numi/numi-cli"      # Numi calculator CLI
+
+# ── Fonts ─────────────────────────────────────────────────────────────────
+cask "font-meslo-lg-nerd-font"
+cask "font-jetbrains-mono-nerd-font"
+cask "font-geist-mono-nerd-font"
+cask "font-fira-code-nerd-font"
+cask "font-hack-nerd-font"
+cask "font-symbols-only-nerd-font"
+
+# ── Security & Privacy ────────────────────────────────────────────────────
+cask "1password"
+cask "1password-cli"
+cask "gpg-suite-no-mail"
+cask "proton-pass"
+cask "protonvpn"
+cask "twingate"
+
+# ── Productivity ──────────────────────────────────────────────────────────
+cask "alfred"
+cask "antinote"
+cask "raycast"
+cask "cleanshot"
+cask "clop"
+cask "doll"
+cask "grammarly-desktop"
+cask "imageoptim"
+cask "keepingyouawake"
+cask "leader-key"
+cask "neohtop"
+cask "notion"
+cask "notion-calendar"
+cask "numi"
+cask "obsidian"
+cask "pixelsnap"
+cask "rectangle-pro"
+
+# ── Development ───────────────────────────────────────────────────────────
+cask "antigravity-cli"
+cask "antigravity-ide"
+cask "claude"
+cask "cursor"
+cask "ghostty"
+cask "jetbrains-toolbox"
+cask "podman-desktop"
+cask "postman"
+cask "visual-studio-code"
+cask "zed"
+
+# ── Containers (macOS) ────────────────────────────────────────────────────
+brew "podman"
+brew "podman-compose"
+
+# ── Browsers & Communication ──────────────────────────────────────────────
+cask "brave-browser"
+cask "discord"
+cask "google-chrome"
+cask "microsoft-teams"
+cask "slack"
+cask "vivaldi"
+cask "zoom"
+
+# ── Cloud Storage ─────────────────────────────────────────────────────────
+cask "google-drive"
+cask "proton-drive"
+cask "proton-mail"
+
+# ── Media ─────────────────────────────────────────────────────────────────
+cask "insta360-link-controller"
+cask "spotify"
+cask "steam"
+cask "vlc"
+
+# ── Mac App Store ─────────────────────────────────────────────────────────
+mas "1Password for Safari", id: 1569813296
+mas "iStat Menus", id: 6499559693
+mas "Telegram", id: 747648890
+mas "The Unarchiver", id: 425424353
+mas "WhatsApp", id: 310633997
+mas "Windows App", id: 1295203466
+mas "World Clock", id: 956377119
+mas "ZoneShare", id: 6743621581
+{{ end -}}
