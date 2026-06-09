@@ -182,6 +182,7 @@ cask "rectangle-pro"               # Window manager
 
 # Development
 # cask "block-goose"                 # AI coding agent
+cask "antigravity-cli"             # Antigravity CLI
 cask "antigravity-ide"             # AI-powered IDE
 cask "claude"                      # AI assistant
 # cask "codexbar"                    # Menu bar snippets
