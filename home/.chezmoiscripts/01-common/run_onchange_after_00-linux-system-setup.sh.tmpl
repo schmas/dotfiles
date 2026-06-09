@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Brewfile hash: {{ include "Brewfile.tmpl" | sha256sum }}
 {{ if eq .chezmoi.os "darwin" }}
 # Skip on macOS
 exit 0
