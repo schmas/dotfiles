@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# aaa-remote-services-tunnel — SSH tunnels + bind-mount sync for connect-plus-backend on win-dev
+# Usage: aaa-remote-services-tunnel [sync|tunnel|all]
+
+set -euo pipefail
+
+if [[ -t 1 ]]; then
+  BOLD='\033[1m' DIM='\033[2m' GREEN='\033[32m' RED='\033[31m' YELLOW='\033[33m' CYAN='\033[36m' RESET='\033[0m'
+else
+  BOLD='' DIM='' GREEN='' RED='' YELLOW='' CYAN='' RESET=''
+fi
+
+REMOTE_HOST="win-dev"
+# Path relative to remote user's home — used in both ssh mkdir and rsync
+REMOTE_PROJECT_REL="projects/work/aaa/connect-plus-backend"
+LOCAL_PROJECT="$HOME/projects/work/aaa/connect-plus-backend"
+
+# local_port:remote_host:remote_port
+TUNNELS=("5432:localhost:5432" "6379:localhost:6379" "4566:localhost:4566")
+
+# Dirs (relative to project root) that must exist on remote before containers start
+SYNC_DIRS=("scripts/ministack/init")
+
+do_sync() {
+  echo -e "${BOLD}=== Syncing bind-mount dirs to $REMOTE_HOST ===${RESET}"
+  echo ""
+
+  for dir in "${SYNC_DIRS[@]}"; do
+    local src="$LOCAL_PROJECT/$dir"
+    [[ ! -d "$src" ]] && { echo -e "${RED}⚠ Error: $src not found${RESET}"; exit 1; }
+
+    echo -e "${CYAN}--- $dir ---${RESET}"
+    # mkdir before rsync avoids needing --mkpath (added in rsync 3.2.3)
+    ssh "$REMOTE_HOST" "mkdir -p ~/$REMOTE_PROJECT_REL/$dir"
+    rsync -az --delete "$src/" "$REMOTE_HOST:$REMOTE_PROJECT_REL/$dir/"
+    echo -e "${GREEN}✓${RESET} synced"
+  done
+
+  echo ""
+  echo -e "${GREEN}✓ Sync complete.${RESET}"
+}
+
+do_tunnel() {
+  echo -e "${BOLD}=== Opening SSH tunnels to $REMOTE_HOST ===${RESET}"
+  echo ""
+  echo -e "${CYAN}Forwarding:${RESET}"
+  echo -e "  ${DIM}postgres  localhost:5432${RESET}"
+  echo -e "  ${DIM}redis     localhost:6379${RESET}"
+  echo -e "  ${DIM}ministack localhost:4566${RESET}"
+  echo ""
+  echo -e "${YELLOW}Press Ctrl+C to close tunnels.${RESET}"
+  echo ""
+
+  local tunnel_args=()
+  for t in "${TUNNELS[@]}"; do
+    tunnel_args+=(-L "$t")
+  done
+
+  ssh -N "${tunnel_args[@]}" "$REMOTE_HOST"
+}
+
+case "${1:-all}" in
+  sync)   do_sync ;;
+  tunnel) do_tunnel ;;
+  all)
+    do_sync
+    echo ""
+    do_tunnel
+    ;;
+  *)
+    echo "Usage: aaa-remote-services-tunnel [sync|tunnel|all]"
+    echo "  sync   — rsync bind-mount dirs to $REMOTE_HOST"
+    echo "  tunnel — open SSH port tunnels (postgres 5432, redis 6379, ministack 4566)"
+    echo "  all    — sync then tunnel [default]"
+    exit 1
+    ;;
+esac
