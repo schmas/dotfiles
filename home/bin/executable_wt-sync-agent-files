@@ -26,6 +26,7 @@ sync_paths=(
     '.claude'
     '.agents'
     'tools'
+    'graphify-out'
 )
 
 for pattern in "${sync_paths[@]}"; do
