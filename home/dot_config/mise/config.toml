@@ -9,7 +9,6 @@
 "npm:@rama_nigg/open-cursor" = "latest"
 "npm:claudekit-cli" = "latest"
 "npm:prettier" = "latest"
-"npm:rulesync" = "latest"
 "pipx:graphifyy" = "latest"
 age = "latest"
 bun = "latest"
