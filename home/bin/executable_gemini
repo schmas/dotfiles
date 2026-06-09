@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+#
+# gemini -> agy shim.
+#
+# The Gemini CLI was migrated to antigravity-cli (`agy`). Tools and skills
+# (notably ~/.claude/skills/ai-multimodal) still invoke a `gemini` binary with
+# the old flag surface: `echo "<prompt>" | gemini -y -m <model>`.
+#
+# This wrapper makes `command -v gemini` succeed and translates the old flags
+# to agy's surface so those callers keep working unmodified. Living in ~/bin
+# (not ~/.claude) means `ck init` / ck-update never overwrites it, so no
+# reapply patch is needed.
+#
+# Flag translation:
+#   -y | --yolo            -> --dangerously-skip-permissions
+#   -m | --model <value>   -> --model "<agy display name>" (value mapped; empty dropped)
+#   (print mode)           -> -p injected unless an interactive flag is present
+# Everything else is passed through. Stdin is read natively by agy.
+
+set -euo pipefail
+
+args=()
+inject_print=1          # add -p unless caller wants interactive
+model_name=""
+
+# Map an old Gemini API model id (or anything) to an agy display name.
+# agy --model expects names like "Gemini 3.5 Flash (High)".
+map_model() {
+  local v="${1,,}"
+  case "$v" in
+    "")            echo "" ;;                       # empty -> let agy default
+    *pro*)         echo "Gemini 3.1 Pro (High)" ;;
+    *flash*|*)     echo "Gemini 3.5 Flash (High)" ;;
+  esac
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -y|--yolo)
+      args+=("--dangerously-skip-permissions")
+      shift
+      ;;
+    -m|--model)
+      model_name="$(map_model "${2:-}")"
+      shift 2 || shift
+      ;;
+    -i|--prompt-interactive|--continue|-c|--conversation)
+      inject_print=0
+      args+=("$1")
+      shift
+      ;;
+    -p|--print|--prompt)
+      inject_print=0
+      args+=("$1")
+      shift
+      ;;
+    *)
+      args+=("$1")
+      shift
+      ;;
+  esac
+done
+
+if [[ -n "$model_name" ]]; then
+  args+=("--model" "$model_name")
+fi
+
+if [[ "$inject_print" -eq 1 ]]; then
+  args=("-p" "${args[@]}")
+fi
+
+exec agy "${args[@]}"
