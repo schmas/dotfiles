@@ -67,14 +67,23 @@ The script will:
 so secrets, git SSH auth, and commit signing all bridge to Windows via WSL interop
 (`op.exe` / `ssh.exe` / `op-ssh-sign`).
 
-On **Windows** first:
+On **Windows** first (PowerShell as Administrator):
 
 ```powershell
+# Install WSL kernel (no distro yet)
+wsl --install --no-distribution
+
+# Reboot, then install Ubuntu 24.04
+wsl --install -d Ubuntu-24.04
+
+# Install 1Password CLI
 winget install 1Password.CLI
 ```
 
 Then in the 1Password desktop app: **Settings → Developer** → enable *Integrate with
 1Password CLI* and *Use the SSH agent*; **Settings → Security** → enable Windows Hello.
+
+> **Vault access:** The CLI only sees vaults you authorize. If chezmoi reads from a non-default vault (e.g. `Dotfiles`), open that vault in the desktop app, click its name → **Manage** and confirm CLI access is on. Verify with `op vault list` in WSL — all required vaults must appear before running the bootstrap. 1Password must also be **unlocked** whenever chezmoi runs.
 
 In **WSL** (download-then-run so the profile prompt stays interactive):
 
@@ -91,6 +100,23 @@ The script will:
 
 > Tip: to avoid repeated sudo prompts during apply, set up temporary passwordless
 > sudo first (`/etc/sudoers.d/`) and remove it afterward.
+
+### WSL SSH Setup (run inside WSL on Windows host)
+
+Configures openssh-server, systemd, Docker, and the Windows portproxy so you can `ssh win-dev` from your Mac.
+
+```bash
+curl -fsSL https://gist.githubusercontent.com/schmas/a604b0d433a836c5af8a877a3d0f37df/raw/wsl-ssh-setup.sh -o /tmp/wsl-ssh-setup.sh
+bash /tmp/wsl-ssh-setup.sh
+```
+
+The script will:
+1. Enable systemd in `/etc/wsl.conf`
+2. Install and configure `openssh-server` (pubkey + password auth, no idle timeout)
+3. Install Docker and enable both services on boot
+4. Write and launch a PowerShell (Admin) script that sets up `netsh portproxy` (Windows 2222 → WSL 22) and a firewall rule
+
+After it finishes, run `ssh-copy-id -p 2222 <user>@<windows-lan-ip>` once from your Mac to install your key.
 
 ### Existing Machine (chezmoi already installed)
 
