@@ -2,17 +2,6 @@ git:
   pagers:
     - colorArg: always
       pager: diff-so-fancy
-customCommands:
-  - key: <c-g>
-    description: Pick AI commit
-    command: aicommit2 --clipboard
-    context: files
-    output: terminal
-  - key: <c-n>
-    description: Pick AI commit (no verify)
-    command: aicommit2 --no-verify --clipboard
-    context: files
-    output: terminal
 gui:
   theme:
     activeBorderColor:

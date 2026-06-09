@@ -36,13 +36,6 @@ setup_mcp_servers() {
   local installed
   installed="$(claude mcp list 2>/dev/null || true)"
 
-  if ! echo "$installed" | grep -q "^human-mcp:"; then
-    claude mcp add -e "GOOGLE_GEMINI_API_KEY=\${GEMINI_API_KEY}" -s user \
-      human-mcp -- npx @goonnguyen/human-mcp || echo "Warning: failed to add human-mcp"
-  else
-    echo "human-mcp already configured"
-  fi
-
   if ! echo "$installed" | grep -q "^chrome-devtools:"; then
     claude mcp add -s user chrome-devtools -- npx -y chrome-devtools-mcp@latest \
       || echo "Warning: failed to add chrome-devtools"
