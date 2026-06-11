@@ -23,8 +23,8 @@ open "/Applications/WhatsApp.app"
 sleep 0.5
 # open "/Applications/Brave Browser.app"
 # sleep 0.5
-open "/Applications/Zen.app"
-sleep 0.5
+# open "/Applications/Zen.app"
+# sleep 0.5
 open "/Applications/Slack.app"
 sleep 0.5
 open "/Applications/Notion Calendar.app"
