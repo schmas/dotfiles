@@ -1,0 +1,15 @@
+#!/bin/bash
+# Fuzzy find files and navigate to them in yazi
+
+file=$(fd --hidden --no-ignore --type f -c never | fzf --preview 'bat -n --color=always {}' --preview-window='right:50%')
+
+if [ -z "$file" ]; then
+  exit 0
+fi
+
+dir=$(dirname "$file")
+filename=$(basename "$file")
+
+echo "Opening: $file"
+cd "$dir"
+$EDITOR "$filename" || true
