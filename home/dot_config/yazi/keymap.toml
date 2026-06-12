@@ -81,6 +81,11 @@ on   = "?"
 run  = "plugin keybinds-help"
 desc = "Show keybindings help"
 
+[[mgr.prepend_keymap]]
+on   = "<C-f>"
+run  = "shell --block '~/.local/bin/yazi-find-file'"
+desc = "Fuzzy find files globally (Ctrl-F)"
+
 # --- Input keybindings ---
 
 [[input.prepend_keymap]]
