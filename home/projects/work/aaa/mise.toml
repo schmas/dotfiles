@@ -3,5 +3,11 @@ java = "corretto-21"
 maven = "3"
 node = "24"
 
+[env]
+# Connect+ DB/MiniStack run on a remote docker host reached over a port-forward
+# tunnel, so skip starting the local containers in run-apps*.sh.
+# Override per-run with --force-db-start.
+SKIP_DB_START = "true"
+
 [settings]
 idiomatic_version_file = false
