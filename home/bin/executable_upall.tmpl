@@ -56,7 +56,7 @@ fi
 if command -v brew >/dev/null 2>&1; then
   section "Homebrew"
   run_step "Brew update" brew update
-  run_step "Brew upgrade" brew upgrade
+  run_step "Brew upgrade" brew upgrade -y
   run_step "Brew cleanup" brew cleanup
 fi
 
