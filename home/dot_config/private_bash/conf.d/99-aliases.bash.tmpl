@@ -278,7 +278,7 @@ fi
 ls --color=auto &>/dev/null && alias ls='ls --color=auto' || alias ls='ls -G'
 # alias showfiles="defaults write com.apple.finder AppleShowAllFiles YES && killall Finder"
 # alias hidefiles="defaults write com.apple.finder AppleShowAllFiles NO && killall Finder"
-alias brewup="brew update && brew upgrade && brew cleanup"
+alias brewup="brew update && brew upgrade -y && brew cleanup"
 alias osupdate="brewup"
 
 {{- else if (eq .chezmoi.os "linux") }}
@@ -287,7 +287,7 @@ alias osupdate="brewup"
 #################################
 alias ls="ls --color=auto"
 # alias open="gio open"
-alias brewup="brew update && brew upgrade && brew cleanup"
+alias brewup="brew update && brew upgrade -y && brew cleanup"
 
 {{  if eq .os_id_like "linux-ubuntu" }}
 # Ubuntu
