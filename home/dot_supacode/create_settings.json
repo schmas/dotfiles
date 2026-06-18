@@ -1,77 +1,92 @@
 {
-  "global" : {
-    "agentPresenceBadgesEnabled" : true,
-    "analyticsEnabled" : false,
-    "appearanceMode" : "dark",
-    "autoUpdateAgentIntegrationsEnabled" : true,
-    "automatedActionPolicy" : "cliOnly",
-    "confirmQuitMode" : "auto",
-    "copyIgnoredOnWorktreeCreate" : true,
-    "copyUntrackedOnWorktreeCreate" : true,
-    "crashReportsEnabled" : true,
-    "defaultEditorID" : "auto",
-    "deleteBranchOnDeleteWorktree" : true,
-    "fetchOriginBeforeWorktreeCreation" : true,
-    "githubIntegrationEnabled" : true,
-    "globalScripts" : [
+  "global": {
+    "agentPresenceBadgesEnabled": true,
+    "analyticsEnabled": false,
+    "appearanceMode": "dark",
+    "autoUpdateAgentIntegrationsEnabled": true,
+    "automatedActionPolicy": "cliOnly",
+    "confirmQuitMode": "auto",
+    "copyIgnoredOnWorktreeCreate": true,
+    "copyUntrackedOnWorktreeCreate": true,
+    "crashReportsEnabled": true,
+    "defaultEditorID": "auto",
+    "defaultWorktreeBaseDirectoryPath": "/Users/schmas/.worktrees/",
+    "deleteBranchOnDeleteWorktree": true,
+    "fetchOriginBeforeWorktreeCreation": true,
+    "githubIntegrationEnabled": true,
+    "globalScripts": [
       {
-        "command" : "echo \"Test\"",
-        "id" : "0A2EB55F-FEA6-4E46-BD03-BF4C90CA6977",
-        "kind" : "custom",
-        "name" : "Test"
+        "command": "echo \"Test\"",
+        "id": "0A2EB55F-FEA6-4E46-BD03-BF4C90CA6977",
+        "kind": "custom",
+        "name": "Test"
       }
     ],
-    "hideSingleTabBar" : false,
-    "inAppNotificationsEnabled" : true,
-    "mergedWorktreeAction" : "archive",
-    "moveNotifiedWorktreeToTop" : true,
-    "notificationSoundEnabled" : true,
-    "promptForWorktreeCreation" : true,
-    "pullRequestMergeStrategy" : "squash",
-    "richAgentNotificationsEnabled" : true,
-    "shortcutOverrides" : {
-    },
-    "systemNotificationsEnabled" : false,
-    "terminalThemeSyncEnabled" : false,
-    "terminateSessionsOnQuit" : true,
-    "updateChannel" : "stable",
-    "updatesAutomaticallyCheckForUpdates" : true,
-    "updatesAutomaticallyDownloadUpdates" : true
+    "hideSingleTabBar": false,
+    "inAppNotificationsEnabled": true,
+    "mergedWorktreeAction": "archive",
+    "moveNotifiedWorktreeToTop": true,
+    "notificationSoundEnabled": true,
+    "promptForWorktreeCreation": true,
+    "pullRequestMergeStrategy": "squash",
+    "richAgentNotificationsEnabled": true,
+    "shortcutOverrides": {},
+    "systemNotificationsEnabled": false,
+    "terminalThemeSyncEnabled": false,
+    "terminateSessionsOnQuit": true,
+    "updateChannel": "stable",
+    "updatesAutomaticallyCheckForUpdates": true,
+    "updatesAutomaticallyDownloadUpdates": true
   },
-  "pinnedWorktreeIDs" : [
-  ],
-  "repositories" : {
-    "/Users/schmas/.local/share/chezmoi/" : {
-      "archiveScript" : "",
-      "deleteScript" : "",
-      "openActionID" : "cursor",
-      "runScript" : "",
-      "scripts" : [
-      ],
-      "setupScript" : ""
+  "pinnedWorktreeIDs": [],
+  "repositories": {
+    "/Users/schmas/.local/share/chezmoi/": {
+      "archiveScript": "",
+      "deleteScript": "",
+      "openActionID": "cursor",
+      "runScript": "",
+      "scripts": [],
+      "setupScript": ""
     },
-    "/Users/schmas/projects/claude-plugins/schmas-marketplace/" : {
-      "archiveScript" : "",
-      "deleteScript" : "",
-      "openActionID" : "auto",
-      "runScript" : "",
-      "scripts" : [
-      ],
-      "setupScript" : ""
+    "/Users/schmas/projects/claude-plugins/schmas-marketplace/": {
+      "archiveScript": "",
+      "deleteScript": "",
+      "openActionID": "auto",
+      "runScript": "",
+      "scripts": [],
+      "setupScript": ""
     },
-    "/Users/schmas/projects/work/aaa/connect-plus-backend/" : {
-      "archiveScript" : "",
-      "deleteScript" : "",
-      "openActionID" : "intellij",
-      "runScript" : "",
-      "scripts" : [
-      ],
-      "setupScript" : ""
+    "/Users/schmas/projects/work/aaa/connect-plus-backend/": {
+      "archiveScript": "",
+      "deleteScript": "",
+      "openActionID": "intellij",
+      "runScript": "",
+      "scripts": [],
+      "setupScript": ""
+    },
+    "/Users/schmas/projects/work/aaa/connect-plus-data-migration/": {
+      "archiveScript": "",
+      "deleteScript": "",
+      "openActionID": "auto",
+      "runScript": "",
+      "scripts": [],
+      "setupScript": ""
+    },
+    "/Users/schmas/projects/work/aaa/connect-plus-frontend/": {
+      "archiveScript": "",
+      "deleteScript": "",
+      "openActionID": "auto",
+      "runScript": "",
+      "scripts": [],
+      "setupScript": ""
     }
   },
-  "repositoryRoots" : [
+  "repositoryRoots": [
     "/Users/schmas/projects/work/aaa/connect-plus-backend/",
     "/Users/schmas/.local/share/chezmoi/",
-    "/Users/schmas/projects/claude-plugins/schmas-marketplace/"
+    "/Users/schmas/projects/claude-plugins/schmas-marketplace/",
+    "/Users/schmas/projects/supacode/",
+    "/Users/schmas/projects/work/aaa/connect-plus-frontend/",
+    "/Users/schmas/projects/work/aaa/connect-plus-data-migration/"
   ]
 }
