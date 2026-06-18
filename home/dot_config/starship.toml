@@ -188,10 +188,10 @@ symbol = "🦀 "
 [zig]
 symbol = " "
 
-# zmx session name (supacode = uuid): show first 8 + … + last 4 when long
+# zmx session name (supacode = uuid): keep last 4, fill front up to 24 chars (first + … + last4)
 [custom.zmx_session]
 when = 'test -n "$ZMX_SESSION"'
-command = '''printf '%s' "$ZMX_SESSION" | awk '{ if (length($0) > 24) printf "%s…%s", substr($0,1,8), substr($0, length($0)-3); else printf "%s", $0 }' '''
+command = '''printf '%s' "$ZMX_SESSION" | awk '{ max=24; tail=4; if (length($0) > max) printf "%s…%s", substr($0,1,max-tail-1), substr($0, length($0)-tail+1); else printf "%s", $0 }' '''
 symbol = " "
 format = "[$symbol$output]($style) "
 description = "zmx session name"
