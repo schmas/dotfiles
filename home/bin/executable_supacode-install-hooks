@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Install the Supacode worktree agent-sync hooks into one or more repo roots
+# by writing a supacode.json that wires supacode-worktree-hook.
+#
+# Usage:
+#   supacode-install-hooks [--force] [REPO ...]
+#
+# With no REPO, targets the current git repo's root. An existing supacode.json
+# is left untouched unless --force is given (so repos with their own config,
+# e.g. a custom setupScript, are never clobbered by accident).
+set -euo pipefail
+
+force=0
+repos=()
+for arg in "$@"; do
+  case "$arg" in
+    --force) force=1 ;;
+    *) repos+=("$arg") ;;
+  esac
+done
+
+# Default to the current repo root when no targets are given.
+if [[ ${#repos[@]} -eq 0 ]]; then
+  repos+=("$(git rev-parse --show-toplevel)")
+fi
+
+# Canonical hook config. Single-quoted heredoc keeps $HOME literal in the JSON.
+hook_json=$(cat <<'JSON'
+{
+  "setupScript": "$HOME/bin/supacode-worktree-hook setup",
+  "archiveScript": "$HOME/bin/supacode-worktree-hook archive",
+  "deleteScript": "$HOME/bin/supacode-worktree-hook delete"
+}
+JSON
+)
+
+for repo in "${repos[@]}"; do
+  root="$(cd "$repo" && git rev-parse --show-toplevel)"
+  target="$root/supacode.json"
+  if [[ -e "$target" && $force -ne 1 ]]; then
+    echo "skip (exists, use --force): $target"
+    continue
+  fi
+  printf '%s\n' "$hook_json" >"$target"
+  echo "wrote: $target"
+done
