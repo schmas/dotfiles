@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Supacode worktree lifecycle hook dispatcher.
+# Mirrors the worktrunk agent-file sync + protected-branch guard for Supacode.
+# Reuses wt-sync-agent-files (newest-file-wins rsync) for the actual copy.
+#
+# Wired from each repo's supacode.json:
+#   "setupScript":   "$HOME/bin/supacode-worktree-hook setup"
+#   "archiveScript": "$HOME/bin/supacode-worktree-hook archive"
+#   "deleteScript":  "$HOME/bin/supacode-worktree-hook delete"
+#
+# Supacode runs these with the worktree as the working directory.
+#   setup           seed a new worktree    (primary  -> worktree)
+#   archive/delete  save agent files back  (worktree -> primary), guarding main/develop
+set -euo pipefail
+
+event="${1:?Usage: supacode-worktree-hook <setup|archive|delete>}"
+
+# Resolve current and primary worktree from git alone (no Supacode placeholder needed).
+current="$(git rev-parse --show-toplevel)"
+primary="$(cd "$(dirname "$(git rev-parse --git-common-dir)")" && pwd)"
+
+guard_protected_branch() {
+  local branch
+  branch="$(git -C "$current" branch --show-current)"
+  case "$branch" in
+    main | develop)
+      echo "supacode-worktree-hook: refusing to $event protected branch '$branch'" >&2
+      exit 1
+      ;;
+  esac
+}
+
+case "$event" in
+  setup)
+    wt-sync-agent-files "$primary" "$current"
+    ;;
+  archive | delete)
+    guard_protected_branch
+    wt-sync-agent-files "$current" "$primary"
+    ;;
+  *)
+    echo "supacode-worktree-hook: unknown event '$event'" >&2
+    exit 2
+    ;;
+esac
