@@ -33,6 +33,7 @@ guard_protected_branch() {
 case "$event" in
   setup)
     wt-sync-agent-files "$primary" "$current"
+    wt-seed-mise-config "$primary" "$current"
     ;;
   archive | delete)
     guard_protected_branch
