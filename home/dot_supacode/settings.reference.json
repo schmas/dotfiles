@@ -16,12 +16,6 @@
     "githubIntegrationEnabled": true,
     "globalScripts": [
       {
-        "command": "echo \"Test\"",
-        "id": "0A2EB55F-FEA6-4E46-BD03-BF4C90CA6977",
-        "kind": "custom",
-        "name": "Test"
-      },
-      {
         "command": "$HOME/bin/supacode-worktree-hook setup",
         "id": "E47E3602-2F4F-464B-83E9-9C7AED4CA973",
         "kind": "custom",
