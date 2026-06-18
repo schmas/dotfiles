@@ -6,6 +6,7 @@
 tap "gromgit/brewtils"
 tap "dlvhdr/formulae"
 tap "atlassian/homebrew-acli"
+tap "neurosnap/tap"
 {{ if eq .chezmoi.os "darwin" }}
 # ── Taps (macOS only) ─────────────────────────────────────────────────────
 tap "slp/krunkit"
@@ -22,6 +23,7 @@ brew "atuin"          # Shell history sync
 brew "sheldon"        # Shell plugin manager
 brew "starship"       # Cross-shell prompt
 brew "tmux"           # Terminal multiplexer
+brew "neurosnap/tap/zmx"  # tmux session manager (fuzzy switcher)
 
 # ── GNU Utilities ─────────────────────────────────────────────────────────
 brew "coreutils"      # GNU core utilities
@@ -178,6 +180,7 @@ cask "ghostty"
 cask "jetbrains-toolbox"
 cask "podman-desktop"
 cask "postman"
+cask "supacode"
 cask "visual-studio-code"
 cask "zed"
 
