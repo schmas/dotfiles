@@ -1,21 +1,28 @@
 #!/usr/bin/env bash
-# Install the Supacode worktree agent-sync hooks into one or more repo roots
-# by writing a supacode.json that wires supacode-worktree-hook.
+# Install the Supacode worktree agent-sync hooks (and a common worktree base)
+# into one or more repo roots by writing a supacode.json.
 #
 # Usage:
-#   supacode-install-hooks [--force] [REPO ...]
+#   supacode-install-hooks [--force] [--base DIR] [REPO ...]
+#
+# --base DIR  Common worktree base directory (default: $HOME/.worktrees).
+#             Each repo's worktrees go under DIR/<repo>, matching the worktrunk
+#             worktree-path template ~/.worktrees/{{ repo }}/{{ branch }}.
 #
 # With no REPO, targets the current git repo's root. An existing supacode.json
-# is left untouched unless --force is given (so repos with their own config,
-# e.g. a custom setupScript, are never clobbered by accident).
+# is left untouched unless --force is given (so repos with their own config are
+# never clobbered by accident).
 set -euo pipefail
 
 force=0
+base="$HOME/.worktrees"
 repos=()
-for arg in "$@"; do
-  case "$arg" in
-    --force) force=1 ;;
-    *) repos+=("$arg") ;;
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --force) force=1; shift ;;
+    --base) base="$2"; shift 2 ;;
+    --base=*) base="${1#*=}"; shift ;;
+    *) repos+=("$1"); shift ;;
   esac
 done
 
@@ -24,23 +31,25 @@ if [[ ${#repos[@]} -eq 0 ]]; then
   repos+=("$(git rev-parse --show-toplevel)")
 fi
 
-# Canonical hook config. Single-quoted heredoc keeps $HOME literal in the JSON.
-hook_json=$(cat <<'JSON'
-{
-  "setupScript": "$HOME/bin/supacode-worktree-hook setup",
-  "archiveScript": "$HOME/bin/supacode-worktree-hook archive",
-  "deleteScript": "$HOME/bin/supacode-worktree-hook delete"
-}
-JSON
-)
+# Supacode stores absolute paths; expand a leading ~ in --base.
+base="${base/#\~/$HOME}"
 
 for repo in "${repos[@]}"; do
   root="$(cd "$repo" && git rev-parse --show-toplevel)"
+  name="$(basename "$root")"
   target="$root/supacode.json"
   if [[ -e "$target" && $force -ne 1 ]]; then
     echo "skip (exists, use --force): $target"
     continue
   fi
-  printf '%s\n' "$hook_json" >"$target"
-  echo "wrote: $target"
+  # Unquoted heredoc: $base/$name expand now; \$HOME stays literal for the app.
+  cat >"$target" <<JSON
+{
+  "setupScript": "\$HOME/bin/supacode-worktree-hook setup",
+  "archiveScript": "\$HOME/bin/supacode-worktree-hook archive",
+  "deleteScript": "\$HOME/bin/supacode-worktree-hook delete",
+  "worktreeBaseDirectoryPath": "$base/$name"
+}
+JSON
+  echo "wrote: $target ($base/$name)"
 done
