@@ -15,7 +15,7 @@ $git_branch\
 $git_status\
 $fill\
 $shell\
-${env_var.ZMX_SESSION}\
+${custom.zmx_session}\
 $all\
 $character
 """
@@ -188,8 +188,11 @@ symbol = "🦀 "
 [zig]
 symbol = " "
 
-[env_var.ZMX_SESSION]
+# zmx session name (supacode = uuid): show first 8 + … + last 4 when long
+[custom.zmx_session]
+when = 'test -n "$ZMX_SESSION"'
+command = '''printf '%s' "$ZMX_SESSION" | awk '{ if (length($0) > 24) printf "%s…%s", substr($0,1,8), substr($0, length($0)-3); else printf "%s", $0 }' '''
 symbol = " "
-format = "[$symbol$env_value]($style) "
+format = "[$symbol$output]($style) "
 description = "zmx session name"
 style = "bold magenta"
