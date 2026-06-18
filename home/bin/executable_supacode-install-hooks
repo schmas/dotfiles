@@ -1,50 +1,98 @@
-#!/usr/bin/env bash
-# Install the Supacode worktree agent-sync hooks into one or more repo roots
-# by writing a supacode.json that wires supacode-worktree-hook.
-#
-# Usage:
-#   supacode-install-hooks [--force] [REPO ...]
-#
-# With no REPO, targets the current git repo's root. An existing supacode.json
-# is left untouched unless --force is given (so repos with their own config are
-# never clobbered by accident).
-#
-# Worktree location is intentionally NOT set here: Supacode uses its global
-# default (~/.supacode/repos/<repo>/). Set a per-repo override in the GUI only
-# if a specific repo needs one.
-set -euo pipefail
+#!/usr/bin/env python3
+"""Wire the Supacode worktree agent-sync hooks into ~/.supacode/settings.json.
 
-force=0
-repos=()
-for arg in "$@"; do
-  case "$arg" in
-    --force) force=1 ;;
-    *) repos+=("$arg") ;;
-  esac
-done
+Sets each repo's setupScript/archiveScript/deleteScript (lifecycle hooks that
+Supacode runs automatically on worktree create/archive/delete) and ensures
+matching globalScripts (manual, command-palette) entries. Every hook calls the
+shared ~/bin/supacode-worktree-hook dispatcher, so the logic lives in one place.
 
-# Default to the current repo root when no targets are given.
-if [[ ${#repos[@]} -eq 0 ]]; then
-  repos+=("$(git rev-parse --show-toplevel)")
-fi
+Usage:
+  supacode-install-hooks [REPO ...]   # default: every registered repositoryRoot
 
-# Canonical hook config. Single-quoted heredoc keeps $HOME literal in the JSON.
-hook_json=$(cat <<'JSON'
-{
-  "setupScript": "$HOME/bin/supacode-worktree-hook setup",
-  "archiveScript": "$HOME/bin/supacode-worktree-hook archive",
-  "deleteScript": "$HOME/bin/supacode-worktree-hook delete"
+Repos that ship their own supacode.json are skipped (file config wins there).
+Refuses to run while Supacode is open, since the app would overwrite the file.
+"""
+import json
+import os
+import subprocess
+import sys
+
+SETTINGS = os.path.expanduser("~/.supacode/settings.json")
+HOOK = "$HOME/bin/supacode-worktree-hook"  # $HOME stays literal; the app's shell expands it.
+
+LIFECYCLE = {
+    "setupScript": f"{HOOK} setup",
+    "archiveScript": f"{HOOK} archive",
+    "deleteScript": f"{HOOK} delete",
 }
-JSON
-)
 
-for repo in "${repos[@]}"; do
-  root="$(cd "$repo" && git rev-parse --show-toplevel)"
-  target="$root/supacode.json"
-  if [[ -e "$target" && $force -ne 1 ]]; then
-    echo "skip (exists, use --force): $target"
-    continue
-  fi
-  printf '%s\n' "$hook_json" >"$target"
-  echo "wrote: $target"
-done
+# Stable ids keep re-runs idempotent. archive == delete (sync up), so two manual
+# entries cover both directions.
+GLOBAL_SCRIPTS = [
+    {
+        "id": "E47E3602-2F4F-464B-83E9-9C7AED4CA973",
+        "kind": "custom",
+        "name": "Agent files: pull from primary",
+        "command": f"{HOOK} setup",
+    },
+    {
+        "id": "A8E4BF45-56F8-48F2-9C7A-024467D7818D",
+        "kind": "custom",
+        "name": "Agent files: push to primary",
+        "command": f"{HOOK} archive",
+    },
+]
+
+
+def supacode_running():
+    return subprocess.run(["pgrep", "-i", "supacode"], capture_output=True).returncode == 0
+
+
+def repo_root(path):
+    out = subprocess.run(
+        ["git", "-C", path, "rev-parse", "--show-toplevel"],
+        capture_output=True, text=True,
+    )
+    return out.stdout.strip() if out.returncode == 0 else None
+
+
+def main():
+    if supacode_running():
+        sys.exit("Supacode is running — quit it first (it would overwrite settings.json).")
+
+    with open(SETTINGS) as f:
+        data = json.load(f)
+
+    targets = sys.argv[1:] or list(data.get("repositoryRoots", []))
+    for raw in targets:
+        root = repo_root(raw) if os.path.isdir(raw) else raw.rstrip("/")
+        if not root:
+            print("skip (not a git repo):", raw)
+            continue
+        if os.path.exists(os.path.join(root, "supacode.json")):
+            print("skip (has supacode.json):", root)
+            continue
+        key = root.rstrip("/") + "/"
+        entry = data.setdefault("repositories", {}).setdefault(key, {
+            "archiveScript": "", "deleteScript": "", "openActionID": "auto",
+            "runScript": "", "scripts": [], "setupScript": "",
+        })
+        entry.update(LIFECYCLE)
+        print("wired:", key)
+
+    gscripts = data.setdefault("global", {}).setdefault("globalScripts", [])
+    by_id = {g.get("id"): g for g in gscripts}
+    for spec in GLOBAL_SCRIPTS:
+        if spec["id"] in by_id:
+            by_id[spec["id"]].update(spec)
+        else:
+            gscripts.append(spec)
+    print("globalScripts ensured:", [s["name"] for s in GLOBAL_SCRIPTS])
+
+    with open(SETTINGS, "w") as f:
+        json.dump(data, f, indent=2, sort_keys=True)
+        f.write("\n")
+
+
+if __name__ == "__main__":
+    main()

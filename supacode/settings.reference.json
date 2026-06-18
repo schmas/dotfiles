@@ -20,6 +20,18 @@
         "id": "0A2EB55F-FEA6-4E46-BD03-BF4C90CA6977",
         "kind": "custom",
         "name": "Test"
+      },
+      {
+        "command": "$HOME/bin/supacode-worktree-hook setup",
+        "id": "E47E3602-2F4F-464B-83E9-9C7AED4CA973",
+        "kind": "custom",
+        "name": "Agent files: pull from primary"
+      },
+      {
+        "command": "$HOME/bin/supacode-worktree-hook archive",
+        "id": "A8E4BF45-56F8-48F2-9C7A-024467D7818D",
+        "kind": "custom",
+        "name": "Agent files: push to primary"
       }
     ],
     "hideSingleTabBar": false,
@@ -41,44 +53,44 @@
   "pinnedWorktreeIDs": [],
   "repositories": {
     "/Users/schmas/.local/share/chezmoi/": {
-      "archiveScript": "",
-      "deleteScript": "",
+      "archiveScript": "$HOME/bin/supacode-worktree-hook archive",
+      "deleteScript": "$HOME/bin/supacode-worktree-hook delete",
       "openActionID": "cursor",
       "runScript": "",
       "scripts": [],
-      "setupScript": ""
+      "setupScript": "$HOME/bin/supacode-worktree-hook setup"
     },
     "/Users/schmas/projects/claude-plugins/schmas-marketplace/": {
-      "archiveScript": "",
-      "deleteScript": "",
+      "archiveScript": "$HOME/bin/supacode-worktree-hook archive",
+      "deleteScript": "$HOME/bin/supacode-worktree-hook delete",
       "openActionID": "auto",
       "runScript": "",
       "scripts": [],
-      "setupScript": ""
+      "setupScript": "$HOME/bin/supacode-worktree-hook setup"
     },
     "/Users/schmas/projects/work/aaa/connect-plus-backend/": {
-      "archiveScript": "",
-      "deleteScript": "",
+      "archiveScript": "$HOME/bin/supacode-worktree-hook archive",
+      "deleteScript": "$HOME/bin/supacode-worktree-hook delete",
       "openActionID": "intellij",
       "runScript": "",
       "scripts": [],
-      "setupScript": ""
+      "setupScript": "$HOME/bin/supacode-worktree-hook setup"
     },
     "/Users/schmas/projects/work/aaa/connect-plus-data-migration/": {
-      "archiveScript": "",
-      "deleteScript": "",
+      "archiveScript": "$HOME/bin/supacode-worktree-hook archive",
+      "deleteScript": "$HOME/bin/supacode-worktree-hook delete",
       "openActionID": "auto",
       "runScript": "",
       "scripts": [],
-      "setupScript": ""
+      "setupScript": "$HOME/bin/supacode-worktree-hook setup"
     },
     "/Users/schmas/projects/work/aaa/connect-plus-frontend/": {
-      "archiveScript": "",
-      "deleteScript": "",
+      "archiveScript": "$HOME/bin/supacode-worktree-hook archive",
+      "deleteScript": "$HOME/bin/supacode-worktree-hook delete",
       "openActionID": "auto",
       "runScript": "",
       "scripts": [],
-      "setupScript": ""
+      "setupScript": "$HOME/bin/supacode-worktree-hook setup"
     }
   },
   "repositoryRoots": [
