@@ -66,8 +66,7 @@
       "runScript" : "",
       "scripts" : [
       ],
-      "setupScript" : "",
-      "worktreeBaseDirectoryPath" : "/Users/schmas/projects/work/aaa/"
+      "setupScript" : ""
     }
   },
   "repositoryRoots" : [
