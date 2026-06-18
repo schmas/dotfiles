@@ -3,6 +3,10 @@ docs/
 etc/
 __*
 
+# Reference snapshot of the app-managed ~/.supacode/settings.json — versioned
+# in dotfiles for bootstrap/restore, but not applied (Supacode owns the live file).
+.supacode/settings.reference.json
+
 {{ if ne .chezmoi.os "darwin" }}
 bin/macos
 bin/setup-pam-watchid
