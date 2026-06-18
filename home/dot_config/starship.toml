@@ -15,6 +15,7 @@ $git_branch\
 $git_status\
 $fill\
 $shell\
+${env_var.ZMX_SESSION}\
 $all\
 $character
 """
@@ -50,6 +51,7 @@ blue = "#4EADF8"
 #base = "#24273a"
 #mantle = "#1e2030"
 #crust = "#181926"
+magenta = "#FF00FF"
 
 [fill]
 style = "black dimmed"
@@ -185,3 +187,9 @@ symbol = "🦀 "
 
 [zig]
 symbol = " "
+
+[env_var.ZMX_SESSION]
+symbol = " "
+format = "[$symbol$env_value]($style) "
+description = "zmx session name"
+style = "bold magenta"
