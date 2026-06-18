@@ -1,5 +1,6 @@
 {
   "setupScript": "$HOME/bin/supacode-worktree-hook setup",
   "archiveScript": "$HOME/bin/supacode-worktree-hook archive",
-  "deleteScript": "$HOME/bin/supacode-worktree-hook delete"
+  "deleteScript": "$HOME/bin/supacode-worktree-hook delete",
+  "worktreeBaseDirectoryPath": "/Users/schmas/.worktrees/chezmoi"
 }
