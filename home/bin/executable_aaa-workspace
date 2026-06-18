@@ -28,7 +28,7 @@ do_backup() {
   for src in "$AAA_DIR/tools/data-integration" "$AAA_DIR/connect-plus-db"; do
     [[ ! -d "$src" ]] && { echo -e "${RED}⚠ Error: $src not found${RESET}"; exit 1; }
   done
-  [[ ! -f "$AAA_DIR/mise.toml" ]] && { echo -e "${RED}⚠ Error: mise.toml not found${RESET}"; exit 1; }
+  [[ ! -f "$AAA_DIR/.mise.toml" ]] && { echo -e "${RED}⚠ Error: .mise.toml not found${RESET}"; exit 1; }
 
   # Compress once to temp dir, then copy to all backup locations
   local tmp_dir
@@ -65,7 +65,7 @@ do_backup() {
     mkdir -p "$backup_dir"
     cp "$tmp_dir/data-integration.tar.gz" "$backup_dir/"
     cp "$tmp_dir/connect-plus-db.tar.gz" "$backup_dir/"
-    cp "$AAA_DIR/mise.toml" "$backup_dir/mise.toml"
+    cp "$AAA_DIR/.mise.toml" "$backup_dir/mise.toml"
     [[ -f "$tmp_dir/git-excludes.tar.gz" ]] && cp "$tmp_dir/git-excludes.tar.gz" "$backup_dir/"
     echo -e "${GREEN}✓${RESET} $backup_dir"
   done
@@ -125,8 +125,8 @@ do_setup() {
   tar xzf "$restore_dir/data-integration.tar.gz" -C "$AAA_DIR/tools"
   echo "  Extracting connect-plus-db..."
   tar xzf "$restore_dir/connect-plus-db.tar.gz" -C "$AAA_DIR"
-  echo "  Copying mise.toml..."
-  cp "$restore_dir/mise.toml" "$AAA_DIR/mise.toml"
+  echo "  Copying .mise.toml..."
+  cp "$restore_dir/mise.toml" "$AAA_DIR/.mise.toml"
   if [[ -f "$restore_dir/git-excludes.tar.gz" ]]; then
     echo "  Restoring git exclude files..."
     local ext_dir

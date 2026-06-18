@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# Seed the shared aaa workspace mise config into a worktree's per-repo base.
+#
+# Worktrees live at ~/.worktrees/<repo>/<branch>, outside the original repo's
+# directory tree. The aaa repos (~/projects/work/aaa/<repo>) rely on a shared
+# parent config at ~/projects/work/aaa/.mise.toml for tool versions
+# (java/maven/node) and env (SKIP_DB_START). mise walks up from the cwd, so a
+# worktree under ~/.worktrees/<repo>/<branch> never sees that parent — tools and
+# env are lost and builds fail.
+#
+# Fix: copy the shared config to ~/.worktrees/<repo>/.mise.toml, one level above
+# the branch worktree. mise then picks it up for every branch of that repo.
+# Scoped to the per-repo base (NOT the shared ~/.worktrees root) so only aaa
+# worktrees get it; unrelated repos' worktrees stay untouched.
+#
+# Reused by both worktree managers (worktrunk post-start, Supacode setup), same
+# pattern as wt-sync-agent-files.
+#
+# The aaa-scope gate checks <primary>, but the copy target is derived from
+# <worktree>; callers must pass a matching pair from the same worktree operation
+# (both managers do). Usage: wt-seed-mise-config <primary-worktree> <worktree>
+set -euo pipefail
+
+primary="${1:?Usage: wt-seed-mise-config <primary-worktree> <worktree>}"
+worktree="${2:?Usage: wt-seed-mise-config <primary-worktree> <worktree>}"
+
+aaa_dir="$HOME/projects/work/aaa"
+src="$aaa_dir/.mise.toml"
+
+primary="$(cd "$primary" && pwd)"
+worktree="$(cd "$worktree" && pwd)"
+
+# Only aaa repos use the shared parent config; everything else is a no-op.
+case "$primary/" in
+    "$aaa_dir"/*) ;;
+    *) exit 0 ;;
+esac
+[[ -f "$src" ]] || exit 0
+
+# Per-repo worktree base = parent of the branch worktree (~/.worktrees/<repo>/).
+dst="$(dirname "$worktree")/.mise.toml"
+
+# Idempotent: nothing to do when the copy already matches the source.
+if [[ -f "$dst" ]] && cmp -s "$src" "$dst"; then
+    exit 0
+fi
+
+cp "$src" "$dst"
+echo "wt-seed-mise-config: seeded ${src} -> ${dst}"
