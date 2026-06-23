@@ -21,3 +21,14 @@ bin/linux
 {{ if not (lookPath "claude") }}
 .claude/skills/aaa-db
 {{ end }}
+
+# television cable channels: `tv update-channels` owns the upstream defaults,
+# so chezmoi tracks only the channels we customized or authored. To track a new
+# custom channel, add a matching `!` un-ignore line below.
+.config/television/cable/*.toml
+!.config/television/cable/commands.toml
+!.config/television/cable/shortcuts.toml
+!.config/television/cable/zmx-sessions.toml
+!.config/television/cable/git-branch.toml
+!.config/television/cable/dirs.toml
+!.config/television/cable/files.toml
