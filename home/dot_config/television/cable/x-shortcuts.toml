@@ -1,5 +1,5 @@
 [metadata]
-name = "shortcuts"
+name = "x-shortcuts"
 description = "Fuzzy-search the keybinding cheatsheet (SHORTCUTS-REFERENCE.md)"
 requirements = ["awk"]
 

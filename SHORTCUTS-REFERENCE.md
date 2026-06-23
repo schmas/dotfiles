@@ -144,7 +144,7 @@ Quick reference for terminal keyboard shortcuts across tools.
 | Key | Action |
 | --- | ------ |
 | `tv` | Pick a channel, then search it |
-| `tv <channel>` | Open a channel (e.g. `tv zmx-sessions`, `tv commands`) |
+| `tv <channel>` | Open a channel (our custom ones use the `x-` prefix, e.g. `tv x-zmx-sessions`, `tv x-commands`, `tv x-git-branch`) |
 | `shortcuts [section] [query]` | Render this cheatsheet in the terminal (no-tv fallback) |
 
 ---
