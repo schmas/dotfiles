@@ -1,27 +1,34 @@
 [metadata]
-name = "dirs"
-description = "A channel to select from directories"
+name = "x-dirs"
+description = "Directories (fd) — adds copy relative/absolute path actions (custom)"
 requirements = ["fd"]
 
 [source]
-command = ["fd -t d", "fd -t d --hidden"]
+# Modern named sources (Default / Hidden), per current upstream `dirs`.
+command = [
+  { name = "Default", run = "fd -t d" },
+  { name = "Hidden",  run = "fd -t d --hidden" },
+]
 
 [preview]
 command = "ls -la --color=always '{}'"
 
+# No `shortcut` here: the official `dirs` channel owns F2; this custom variant
+# is invoked by name (`tv x-dirs`).
 [keybindings]
-shortcut = "f2"
+ctrl-up = "actions:goto_parent_dir"
 
 [actions.cd]
 description = "Open a shell in the selected directory"
-command = "cd '{}' && $SHELL"
+command = "cd {} && $SHELL"
 mode = "execute"
 
 [actions.goto_parent_dir]
 description = "Re-opens tv in the parent directory"
-command = "tv dirs .."
+command = "tv x-dirs .."
 mode = "execute"
 
+# Custom: copy paths to the clipboard.
 [actions.copy_relative_path]
 description = "Copy relative path to clipboard"
 command = '''echo -n '{}' | pbcopy && echo "Relative path copied: {}"'''

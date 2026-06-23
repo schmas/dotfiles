@@ -1,15 +1,16 @@
 [metadata]
-name = "git-branch"
-description = "Select a git branch — Ctrl-S cycles all / local / remote"
+name = "x-git-branch"
+description = "Git branches — Ctrl-S cycles All / Local / Remote (custom)"
 requirements = ["git"]
 
 [source]
-# Ctrl-S (cycle_sources) toggles the filter: all -> local -> remote -> all,
-# mirroring the local/remote/all toggle from fzf.fish's Ctrl-Alt-B search.
+# Named sources: modern tv shows the active source name (All/Local/Remote) in
+# the UI, so Ctrl-S (cycle_sources) is self-labeling — the indicator the plain
+# string-array version lacked.
 command = [
-  "git --no-pager branch --all --format=\"%(refname:short)\"",
-  "git --no-pager branch --format=\"%(refname:short)\"",
-  "git --no-pager branch --remotes --format=\"%(refname:short)\"",
+  { name = "All",    run = "git --no-pager branch --all --format=\"%(refname:short)\"" },
+  { name = "Local",  run = "git --no-pager branch --format=\"%(refname:short)\"" },
+  { name = "Remote", run = "git --no-pager branch --remotes --format=\"%(refname:short)\"" },
 ]
 output = "{split: :0}"
 

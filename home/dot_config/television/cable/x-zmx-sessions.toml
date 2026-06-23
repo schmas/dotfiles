@@ -1,5 +1,5 @@
 [metadata]
-name = "zmx-sessions"
+name = "x-zmx-sessions"
 description = "zmx sessions — Enter pastes name, Ctrl-A attach, Ctrl-D kill"
 requirements = ["zmx", "awk"]
 

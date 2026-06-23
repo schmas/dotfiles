@@ -1,5 +1,5 @@
 [metadata]
-name = "commands"
+name = "x-commands"
 description = "Search executables and scripts on PATH (feeds prompt, e.g. zmx attach dev <cmd>)"
 requirements = ["find"]
 

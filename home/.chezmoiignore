@@ -26,9 +26,9 @@ bin/linux
 # so chezmoi tracks only the channels we customized or authored. To track a new
 # custom channel, add a matching `!` un-ignore line below.
 .config/television/cable/*.toml
-!.config/television/cable/commands.toml
-!.config/television/cable/shortcuts.toml
-!.config/television/cable/zmx-sessions.toml
-!.config/television/cable/git-branch.toml
-!.config/television/cable/dirs.toml
-!.config/television/cable/files.toml
+!.config/television/cable/x-commands.toml
+!.config/television/cable/x-shortcuts.toml
+!.config/television/cable/x-zmx-sessions.toml
+!.config/television/cable/x-git-branch.toml
+!.config/television/cable/x-dirs.toml
+!.config/television/cable/x-files.toml
