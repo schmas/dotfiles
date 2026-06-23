@@ -1,0 +1,24 @@
+[metadata]
+name = "commands"
+description = "Search executables and scripts on PATH (feeds prompt, e.g. zmx attach dev <cmd>)"
+requirements = ["find"]
+
+[source]
+# Every executable file reachable on PATH (follows symlinks, e.g. brew shims and
+# ~/bin scripts). Wrapped in `sh -c` because tv runs sources via $SHELL, which is
+# fish here and cannot parse this POSIX while-loop.
+command = '''sh -c 'echo "$PATH" | tr ":" "\n" | while read -r d; do [ -d "$d" ] && find -L "$d" -maxdepth 1 -type f -perm -u+x 2>/dev/null; done | sed "s#.*/##" | sort -u' '''
+
+[preview]
+# Slot 0 (default) = cascade: try `--help`, then `-h`, then `bat` if the resolved
+# path is a text script, then `man`, else fall back to `command -v` + `file`.
+# Ctrl-F (cycle_previews) steps through the focused views: help -> bat -> man.
+# `timeout 1` guards `--help`/`-h` so running an arbitrary binary can't hang the
+# preview. Each entry is a TOML literal ('''...''') so the inner sh -c single
+# quotes and the "$n"/file double quotes don't fight TOML escaping.
+command = [
+  '''sh -c 'n="{}"; p=$(command -v "$n" 2>/dev/null); if timeout 1 "$n" --help >/dev/null 2>&1; then timeout 1 "$n" --help 2>&1; elif timeout 1 "$n" -h >/dev/null 2>&1; then timeout 1 "$n" -h 2>&1; elif [ -n "$p" ] && file "$p" 2>/dev/null | grep -qi text; then bat --color=always --style=plain "$p"; elif man -w "$n" >/dev/null 2>&1; then man "$n" 2>/dev/null | col -bx; else command -v "$n"; file "$p" 2>/dev/null; fi' ''',
+  '''sh -c '{ timeout 1 "{}" --help 2>&1 || timeout 1 "{}" -h 2>&1; } | head -n 400' ''',
+  '''sh -c 'p=$(command -v "{}" 2>/dev/null); { [ -n "$p" ] && file "$p" | grep -qi text && bat --color=always --style=plain "$p"; } || echo "not a text script"' ''',
+  '''sh -c 'man "{}" 2>/dev/null | col -bx || echo "no man page"' ''',
+]
