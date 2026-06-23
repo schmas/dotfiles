@@ -31,7 +31,9 @@ if status is-interactive
     end
 
     if functions -q fzf_configure_bindings
-        # Disable fzf.fish history binding: Atuin owns Ctrl+R, tv owns Ctrl+Alt+R
-        fzf_configure_bindings --history= || true
+        # Disable fzf.fish bindings we hand to other tools:
+        #   --history=    Atuin owns Ctrl+R, tv owns Ctrl+Alt+R
+        #   --git_branch= tv owns Ctrl+Alt+B (x-git-branch picker, see zzz-99-tv-pickers)
+        fzf_configure_bindings --history= --git_branch= || true
     end
 end

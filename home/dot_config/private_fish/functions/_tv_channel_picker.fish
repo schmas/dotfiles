@@ -5,9 +5,5 @@ function _tv_channel_picker --description "Open the tv channel browser, insert r
     if not command -q tv
         return
     end
-    set -l result (tv channels)
-    if test -n "$result"
-        commandline -i -- $result
-    end
-    commandline -f repaint
+    _tv_paste_selection (tv channels)
 end

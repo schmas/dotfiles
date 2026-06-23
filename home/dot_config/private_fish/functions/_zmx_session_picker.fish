@@ -5,9 +5,5 @@ function _zmx_session_picker --description "Pick a zmx session via tv (Enter=pas
     if not command -q tv; or not command -q zmx
         return
     end
-    set -l selected (tv x-zmx-sessions)
-    if test -n "$selected"
-        commandline -i -- $selected
-    end
-    commandline -f repaint
+    _tv_paste_selection (tv x-zmx-sessions)
 end

@@ -1,6 +1,6 @@
 [metadata]
 name = "x-git-branch"
-description = "Git branches — Ctrl-S cycles All / Local / Remote (custom)"
+description = "Git branches — Enter pastes name, Ctrl-O checkout, Ctrl-F cycles message/diff, Ctrl-S cycles All/Local/Remote (custom)"
 requirements = ["git"]
 
 [source]
@@ -14,11 +14,25 @@ command = [
 ]
 output = "{split: :0}"
 
+# Two previews, cycled with Ctrl-F (cycle_previews):
+#   1. Commit message (tip commit metadata + message, no diff).
+#   2. Pretty diff of the tip commit, piped through delta (syntax-highlighted).
+# delta colorizes even when piped to tv's non-tty preview, so no --color flag is
+# passed to git for the diff (delta does its own coloring); the message preview
+# keeps git's --color=always since it is shown raw.
 [preview]
-command = "git show -p --stat --pretty=fuller --color=always '{0}'"
+command = [
+  "git show -s --pretty=fuller --color=always '{0}'",
+  "git show -p --stat '{0}' | delta --paging=never",
+]
 
+# Enter = confirm_selection (default, unbound here): outputs the branch name so
+# standalone use echoes it and the fish `_tv_branch_picker` (Ctrl-Alt-B) pastes
+# it at the cursor — matching the x-commands / x-zmx-sessions pickers.
+# Checkout/delete/merge/rebase are explicit keys; Ctrl-Y (global) copies the
+# branch name to the clipboard. All actions also reachable via Ctrl-X.
 [keybindings]
-enter = "actions:checkout"
+ctrl-o = "actions:checkout"
 ctrl-d = "actions:delete"
 ctrl-m = "actions:merge"
 ctrl-r = "actions:rebase"
