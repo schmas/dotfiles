@@ -31,7 +31,7 @@ if status is-interactive
     end
 
     if functions -q fzf_configure_bindings
-        # Changed history binding to ctrl-alt-r
-        fzf_configure_bindings --history=\e\cr || true
+        # Disable fzf.fish history binding: Atuin owns Ctrl+R, tv owns Ctrl+Alt+R
+        fzf_configure_bindings --history= || true
     end
 end

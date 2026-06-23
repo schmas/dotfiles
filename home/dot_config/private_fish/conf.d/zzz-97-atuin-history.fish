@@ -2,11 +2,7 @@ if status is-interactive; and command -q atuin
     # set -gx ATUIN_NOBIND "true"
     atuin init fish --disable-up-arrow | source
 
-    # bind to ctrl-r in normal and insert mode, add any other bindings you want here too
-    # bind \cr _atuin_search
-    # bind -M insert \cr _atuin_search
-
-    # bind to ctrl-alt-r in normal and insert mode
-    bind \e\cr _atuin_bind_up
-    bind -M insert \e\cr _atuin_bind_up
+    # Ctrl+R is already bound to atuin search by `atuin init fish` above.
+    # Ctrl+Alt+R is intentionally left free for the tv channel picker
+    # (bound in functions/fish_user_key_bindings.fish).
 end
