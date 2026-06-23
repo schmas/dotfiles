@@ -461,3 +461,4 @@ cython_debug/
 .ck-*/
 AGENTS.md
 .claude/session-state
+.handoffs/
