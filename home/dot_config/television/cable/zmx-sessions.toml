@@ -1,0 +1,33 @@
+[metadata]
+name = "zmx-sessions"
+description = "zmx sessions — Enter pastes name, Ctrl-A attach, Ctrl-D kill"
+requirements = ["zmx", "awk"]
+
+[source]
+# zmx ls emits tab-separated `key=value` fields; strip the `name=`/`start_dir=`
+# prefixes (and the `→ ` active-session marker) to two clean columns: name<TAB>dir
+command = '''zmx ls | awk -F'\t' '{ n=$1; d=$5; sub(/^.*name=/,"",n); sub(/^start_dir=/,"",d); printf "%s\t%s\n", n, d }' '''
+display = "{split:\t:0}  —  {split:\t:1}"
+output = "{split:\t:0}"
+
+# Names from `zmx ls` are already full/real; unset ZMX_SESSION_PREFIX so zmx
+# does not re-prepend it (supacode sessions use `supa-`, not the `d.` prefix).
+[preview]
+command = "env -u ZMX_SESSION_PREFIX zmx history '{split:\t:0}' 2>/dev/null | tail -n 200"
+
+# Enter = confirm_selection (default): outputs the session name so the fish
+# picker pastes it at the cursor. Attach/kill are explicit keyed actions
+# (also reachable via the Ctrl-X action picker).
+[keybindings]
+ctrl-a = "actions:attach"
+ctrl-d = "actions:kill"
+
+[actions.attach]
+description = "Attach to the selected zmx session"
+command = "env -u ZMX_SESSION_PREFIX zmx attach '{split:\t:0}'"
+mode = "execute"
+
+[actions.kill]
+description = "Kill the selected zmx session"
+command = "env -u ZMX_SESSION_PREFIX zmx kill '{split:\t:0}'"
+mode = "fork"
