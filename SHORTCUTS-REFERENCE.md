@@ -5,8 +5,10 @@ Quick reference for terminal keyboard shortcuts across tools.
 ## Table of Contents
 
 - [Fish Shell](#fish-shell)
+- [fzf.fish & fifc](#fzffish--fifc)
+- [zmx & tv](#zmx--tv)
 - [Zsh / Bash (Readline)](#zsh--bash-readline)
-- [FZF](#fzf)
+- [FZF (vanilla)](#fzf-vanilla)
 - [Tmux](#tmux)
 - [Vim / Neovim](#vim--neovim)
 
@@ -61,8 +63,9 @@ Quick reference for terminal keyboard shortcuts across tools.
 | --- | ------ |
 | `↑` / `Ctrl+P` | Previous command |
 | `↓` / `Ctrl+N` | Next command |
-| `Ctrl+R` | Search history (Atuin / pager) |
-| `Alt+↑` | Search history with current token as prefix |
+| `Ctrl+R` | Atuin history search |
+| `Ctrl+Alt+R` | Open tv channel browser |
+| `Alt+↑` | Fish token-prefix history search |
 
 ### Misc
 
@@ -76,6 +79,73 @@ Quick reference for terminal keyboard shortcuts across tools.
 | `Alt+P` | Page output of previous command |
 | `Alt+H` | Open man page for current command |
 | `Alt+W` | Print short description of current command |
+
+---
+
+## fzf.fish & fifc
+
+> Active fish fuzzy bindings. Vanilla fzf shell widgets are overridden by these.
+
+### fzf.fish plugin
+
+| Key | Action |
+| --- | ------ |
+| `Ctrl+Alt+F` | Search directory (files/folders) |
+| `Ctrl+Alt+L` | Search git log |
+| `Ctrl+Alt+S` | Search git status |
+| `Ctrl+Alt+B` | Search git branches |
+| `Ctrl+Alt+P` | Search running processes |
+| `Ctrl+V` | Search shell variables |
+| `Tab` | Search completions |
+
+> History is handled by Atuin on `Ctrl+R` (see Fish » History).
+
+### fifc (fzf tab completion)
+
+| Key | Action |
+| --- | ------ |
+| `Tab` | fzf-driven completion menu (context-aware) |
+| `Ctrl+X` | fifc completion menu (alternate trigger) |
+
+---
+
+## zmx & tv
+
+> Session manager (zmx) + fuzzy finder (tv) custom pickers.
+
+### Pickers (keybindings)
+
+| Key | Action |
+| --- | ------ |
+| `Ctrl+Alt+Z` | zmx session picker — fuzzy list + scrollback preview |
+| `Ctrl+Alt+E` | Command picker — search PATH executables, insert at cursor |
+| `Ctrl+Alt+R` | tv channel browser — open any tv channel |
+| `?` | Open this cheatsheet in tv (fuzzy search) |
+
+### In the zmx picker
+
+| Key | Action |
+| --- | ------ |
+| `Enter` | Paste session name at cursor |
+| `Ctrl+A` | Attach to selected session |
+| `Ctrl+D` | Kill selected session |
+
+### zmx CLI
+
+| Key | Action |
+| --- | ------ |
+| `zmx ls` | List sessions |
+| `zmx attach <name> [cmd]` | Attach (create if new), optionally run a command |
+| `zmx history <name>` | Print session scrollback |
+| `zmx kill <name>` | Kill a session |
+
+### tv CLI
+
+| Key | Action |
+| --- | ------ |
+| `tv` | Pick a channel, then search it |
+| `tv <channel>` | Open a channel (e.g. `tv zmx-sessions`, `tv commands`) |
+| `shortcuts [section] [query]` | Render this cheatsheet in the terminal (no-tv fallback) |
 
 ---
 
@@ -113,13 +183,13 @@ Quick reference for terminal keyboard shortcuts across tools.
 
 ---
 
-## FZF
+## FZF (vanilla)
+
+> In-picker navigation (applies inside any fzf UI). Shell widgets like `Ctrl+T`
+> may be overridden by fzf.fish — see the fzf.fish & fifc section.
 
 | Key | Action |
 | --- | ------ |
-| `Ctrl+T` | Fuzzy-find files, paste to command line |
-| `Ctrl+R` | Fuzzy-search history |
-| `Alt+C` | Fuzzy-cd into directory |
 | `Tab` | Multi-select item |
 | `Shift+Tab` | Deselect item |
 | `Ctrl+/` | Toggle preview window |
