@@ -93,7 +93,6 @@ Quick reference for terminal keyboard shortcuts across tools.
 | `Ctrl+Alt+F` | Search directory (files/folders) |
 | `Ctrl+Alt+L` | Search git log |
 | `Ctrl+Alt+S` | Search git status |
-| `Ctrl+Alt+B` | Search git branches |
 | `Ctrl+Alt+P` | Search running processes |
 | `Ctrl+V` | Search shell variables |
 | `Tab` | Search completions |
@@ -119,6 +118,7 @@ Quick reference for terminal keyboard shortcuts across tools.
 | --- | ------ |
 | `Ctrl+Alt+Z` | zmx session picker — fuzzy list + scrollback preview |
 | `Ctrl+Alt+E` | Command picker — search PATH executables, insert at cursor |
+| `Ctrl+Alt+B` | Git branch picker — insert branch at cursor (replaces fzf.fish git-branch) |
 | `Ctrl+Alt+R` | tv channel browser — open any tv channel |
 | `?` | Open this cheatsheet in tv (fuzzy search) |
 
@@ -129,6 +129,19 @@ Quick reference for terminal keyboard shortcuts across tools.
 | `Enter` | Paste session name at cursor |
 | `Ctrl+A` | Attach to selected session |
 | `Ctrl+D` | Kill selected session |
+
+### In the git branch picker
+
+| Key | Action |
+| --- | ------ |
+| `Enter` | Paste branch name at cursor |
+| `Ctrl+F` | Cycle preview: commit message → diff (delta) |
+| `Ctrl+S` | Cycle source: All / Local / Remote |
+| `Ctrl+Y` | Copy branch name to clipboard |
+| `Ctrl+O` | Checkout selected branch |
+| `Ctrl+D` | Delete selected branch |
+| `Ctrl+M` | Merge selected branch into current |
+| `Ctrl+R` | Rebase current onto selected branch |
 
 ### zmx CLI
 

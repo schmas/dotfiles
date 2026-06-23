@@ -5,9 +5,5 @@ function _tv_command_picker --description "Pick an executable via tv, insert at 
     if not command -q tv
         return
     end
-    set -l selected (tv x-commands)
-    if test -n "$selected"
-        commandline -i -- $selected
-    end
-    commandline -f repaint
+    _tv_paste_selection (tv x-commands)
 end
