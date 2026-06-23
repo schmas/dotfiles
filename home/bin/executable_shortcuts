@@ -27,7 +27,7 @@ usage() {
   echo -e "  ${BOLD}shortcuts ctrl+r${RESET}        Search for 'ctrl+r' across all sections"
   echo -e "  ${BOLD}shortcuts tmux zoom${RESET}     Search for 'zoom' in Tmux section"
   echo
-  echo -e "${C_USAGE}Sections:${RESET} fish · zsh · bash · fzf · tmux · vim · neovim"
+  echo -e "${C_USAGE}Sections:${RESET} fish · fzf · fifc · zmx · tv · zsh · bash · tmux · vim · neovim"
 }
 
 render_line() {
@@ -146,7 +146,7 @@ SEARCH_QUERY=""
 if [[ $# -ge 1 ]]; then
   arg1_lower="${1,,}"
   case "$arg1_lower" in
-    fish|zsh|bash|fzf|tmux|vim|neovim)
+    fish|zsh|bash|fzf|fifc|zmx|tv|tmux|vim|neovim)
       SECTION_FILTER="$1"
       SEARCH_QUERY="${2:-}"
       ;;
