@@ -12,8 +12,10 @@ output = "{split:\t:0}"
 
 # Names from `zmx ls` are already full/real; unset ZMX_SESSION_PREFIX so zmx
 # does not re-prepend it (supacode sessions use `supa-`, not the `d.` prefix).
+# `--vt` keeps the scrollback's ANSI/VT escapes so tv renders the preview in
+# color (matching the live terminal); the plain default strips them to text.
 [preview]
-command = "env -u ZMX_SESSION_PREFIX zmx history '{split:\t:0}' 2>/dev/null | tail -n 200"
+command = "env -u ZMX_SESSION_PREFIX zmx history '{split:\t:0}' --vt 2>/dev/null | tail -n 200"
 
 # Enter = confirm_selection (default): outputs the session name so the fish
 # picker pastes it at the cursor. Attach/kill are explicit keyed actions
