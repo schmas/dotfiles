@@ -469,3 +469,10 @@ Zsh includes all the Bash aliases plus the following:
 | `gpg-download-op`    | Downloads GPG keys from 1Password |
 | `gpg-restore-backup` | Restores GPG keys from backup     |
 | `gpg-upload-op`      | Uploads GPG keys to 1Password     |
+
+### Worktree Scripts
+
+| Script                 | Description                                                                |
+| ---------------------- | -------------------------------------------------------------------------- |
+| `wt-sync-all`          | Sync AI agent files across all worktrees, both directions (newest wins)    |
+| `wt-cleanup-leftovers` | Remove leftover worktree folders git no longer tracks (dry-run by default) |
