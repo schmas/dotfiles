@@ -1,0 +1,227 @@
+#!/usr/bin/env bash
+# Remove leftover worktree folders that git no longer tracks, on demand.
+#
+# Companion to wt-sync-all. Worktrees live under ~/.worktrees/<repo>/<branch>
+# (the base shared by worktrunk and Supacode). Over time two kinds of cruft
+# accumulate:
+#   1. Leftover folders  — a <branch> directory that lingers on disk after its
+#                          worktree was removed; git no longer lists it.
+#   2. Stale records     — git still references a worktree whose directory is
+#                          gone (fixed with `git worktree prune`).
+# This script reports and removes both. `git worktree list` is the source of
+# truth: any on-disk <branch> dir not in it is a leftover.
+#
+# Safety:
+#   * DRY-RUN by default — prints what would be removed. Pass -f/--force to
+#     actually delete (same idea as `git clean -n` then `git clean -f`).
+#   * Rescue first — a leftover may still hold unsynced plans/handoffs, and
+#     wt-sync-all cannot reach it (it is not a registered worktree). Before
+#     removing, its agent files are synced up to the primary (newest wins) via
+#     wt-sync-agent-files, so nothing is lost.
+#   * Orphaned namespaces — a namespace with no live worktree has no primary to
+#     rescue to, so its leftovers are reported with a manual rm command but
+#     never auto-removed (deletion there would be unrecoverable).
+#   * Only depth-2 directories under the base are ever touched; never a live
+#     worktree, never the primary, never the namespace-level .mise.toml.
+#
+# Usage:
+#   wt-cleanup-leftovers              preview leftovers in every repo (no changes)
+#   wt-cleanup-leftovers -f           rescue + remove them
+#   wt-cleanup-leftovers <repo> ...   limit to the named repo namespace(s)
+#
+# Env:
+#   WT_BASE   worktree base dir (default: ~/.worktrees)
+#   NO_COLOR  disable ANSI colors (also auto-disabled when stdout is not a tty)
+set -euo pipefail
+
+base="${WT_BASE:-$HOME/.worktrees}"
+force=0
+
+usage() {
+    cat <<'EOF'
+Usage: wt-cleanup-leftovers [-f] [<repo>...]
+  Remove leftover worktree folders under the base (default ~/.worktrees) that
+  git no longer tracks, and prune stale git worktree records.
+
+  (no repo)  process every repo with a namespace under the base.
+  <repo>     limit to the named repo namespace(s).
+  -f|--force actually rescue + remove (default is a dry-run preview).
+
+Env: WT_BASE overrides the worktree base; NO_COLOR disables colors.
+EOF
+}
+
+# --- argument parsing -------------------------------------------------------
+repos=()
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h | --help) usage; exit 0 ;;
+        -f | --force) force=1 ;;
+        --) shift; repos+=("$@"); break ;;
+        -*) echo "wt-cleanup-leftovers: unknown option '$1'" >&2; usage >&2; exit 2 ;;
+        *) repos+=("$1") ;;
+    esac
+    shift
+done
+
+# --- colors -----------------------------------------------------------------
+if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
+    BOLD=$'\e[1m'; DIM=$'\e[2m'; RED=$'\e[31m'; GREEN=$'\e[32m'
+    YELLOW=$'\e[33m'; CYAN=$'\e[36m'; RESET=$'\e[0m'
+else
+    BOLD=''; DIM=''; RED=''; GREEN=''; YELLOW=''; CYAN=''; RESET=''
+fi
+GONE='⊘'; OK='✓'; WARN='⚠'; ARROW='→'
+tilde() { printf '%s' "${1/#$HOME/\~}"; }
+realdir() { (cd "$1" 2>/dev/null && pwd -P); }                       # physical path of an existing dir
+count_files() { local n; n="$(grep -cE '^[<>]f' <<<"${1:-}" || true)"; printf '%s' "${n:-0}"; }
+dirsize() { du -sh "$1" 2>/dev/null | cut -f1; }
+
+# --- preconditions ----------------------------------------------------------
+[[ -d "$base" ]] || { echo "wt-cleanup-leftovers: no worktree base at $base" >&2; exit 0; }
+if [[ $force -eq 1 ]]; then
+    command -v wt-sync-agent-files >/dev/null 2>&1 \
+        || { echo "wt-cleanup-leftovers: wt-sync-agent-files required to rescue before removal (-f); aborting" >&2; exit 1; }
+fi
+
+shopt -s nullglob
+
+namespaces=()
+if [[ ${#repos[@]} -gt 0 ]]; then
+    for name in "${repos[@]}"; do namespaces+=("$base/${name%/}"); done
+else
+    namespaces=("$base"/*/)
+fi
+
+# --- header -----------------------------------------------------------------
+if [[ $force -eq 1 ]]; then mode="${RED}${BOLD}[APPLY]${RESET}"; else mode="${YELLOW}[DRY-RUN]${RESET}"; fi
+printf '%s%s%s %s· base %s%s  %s\n' "$BOLD" "wt-cleanup-leftovers" "$RESET" "$DIM" "$(tilde "$base")" "$RESET" "$mode"
+
+# --- process each namespace -------------------------------------------------
+g_left=0; g_removed=0; g_pruned=0; g_orphan=0; g_namespaces=0; namew=0
+summary=''      # rows: reponame \t count
+
+for ns in "${namespaces[@]}"; do
+    ns="${ns%/}"
+    [[ -d "$ns" ]] || { echo "wt-cleanup-leftovers: skip (no such namespace) ${ns##*/}" >&2; continue; }
+
+    candidates=("$ns"/*/)
+    [[ ${#candidates[@]} -gt 0 ]] || continue
+    g_namespaces=$((g_namespaces + 1))
+    reponame="${ns##*/}"
+    [[ ${#reponame} -gt $namew ]] && namew=${#reponame}
+
+    # Resolve the repo's primary from any candidate that is a live git worktree.
+    primary=''
+    for cand in "${candidates[@]}"; do
+        cand="${cand%/}"
+        if git -C "$cand" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+            primary="$(cd "$cand" && cd "$(dirname "$(git rev-parse --git-common-dir)")" && pwd)"
+            break
+        fi
+    done
+
+    # Authoritative set of live worktree dirs (normalized, existing only).
+    registered=''
+    if [[ -n "$primary" ]]; then
+        while IFS= read -r line; do
+            [[ "$line" == "worktree "* ]] || continue
+            p="${line#worktree }"
+            [[ -d "$p" ]] && registered+="$(realdir "$p")"$'\n'
+        done < <(git -C "$primary" worktree list --porcelain)
+    fi
+
+    pbranch=''
+    [[ -n "$primary" ]] && pbranch="$(git -C "$primary" branch --show-current 2>/dev/null || true)"
+    if [[ -n "$primary" ]]; then
+        printf '\n%s%s%s %s%s primary%s%s\n' "$CYAN$BOLD" "$reponame" "$RESET" "$DIM" "$ARROW" "${pbranch:+ ($pbranch)}" "$RESET"
+    else
+        printf '\n%s%s%s %s%s %sno live worktree — orphaned namespace, cannot rescue%s\n' \
+            "$CYAN$BOLD" "$reponame" "$RESET" "$RED" "$WARN" "$DIM" "$RESET"
+    fi
+
+    # Classify each candidate dir: live worktree (keep) or leftover (remove).
+    kept=0; ns_left=0
+    for cand in "${candidates[@]}"; do
+        cand="${cand%/}"
+        cand_real="$(realdir "$cand")"
+        if [[ -n "$cand_real" ]] && grep -qxF "$cand_real" <<<"$registered"; then
+            kept=$((kept + 1)); continue
+        fi
+
+        # Leftover. Hard safety guards before any destructive action.
+        case "$cand" in "$base"/*/*) ;; *) printf '  %s%s refuse (outside base): %s%s\n' "$RED" "$WARN" "$cand" "$RESET"; continue ;; esac
+        [[ -d "$cand" ]] || continue
+        if [[ -n "$primary" && "$cand_real" == "$(realdir "$primary")" ]]; then continue; fi
+
+        size="$(dirsize "$cand")"
+        name="${cand##*/}"
+
+        # Orphan: no primary to rescue agent files to. Never auto-delete (it could
+        # destroy unsynced files with nowhere to go); report with a manual command.
+        if [[ -z "$primary" ]]; then
+            ns_left=$((ns_left + 1)); g_orphan=$((g_orphan + 1))
+            printf '  %s%s orphan%s    %s%-32s%s %s%5s%s  %sno primary to rescue to — remove manually:%s rm -rf %s\n' \
+                "$YELLOW" "$WARN" "$RESET" "$BOLD" "$name" "$RESET" "$DIM" "$size" "$RESET" "$YELLOW" "$RESET" "$cand"
+            continue
+        fi
+
+        ns_left=$((ns_left + 1)); g_left=$((g_left + 1))
+        if [[ $force -eq 0 ]]; then
+            printf '  %s%s leftover%s  %s%-32s%s %s%5s%s  %swould rescue agent files %s primary, then remove%s\n' \
+                "$YELLOW" "$GONE" "$RESET" "$BOLD" "$name" "$RESET" "$DIM" "$size" "$RESET" "$DIM" "$ARROW" "$RESET"
+            continue
+        fi
+
+        # Apply: rescue agent files up to primary (newest wins), then remove.
+        out="$(wt-sync-agent-files "$cand" "$primary" 2>&1 || true)"
+        rescued="$(count_files "$out")"
+        if rm -rf "$cand"; then
+            g_removed=$((g_removed + 1))
+            printf '  %s%s removed%s   %s%-32s%s %s%5s%s  %srescued %s file(s) %s primary%s\n' \
+                "$GREEN" "$GONE" "$RESET" "$BOLD" "$name" "$RESET" "$DIM" "$size" "$RESET" "$DIM" "$rescued" "$ARROW" "$RESET"
+        else
+            printf '  %s%s failed to remove %s%s\n' "$RED" "$WARN" "$name" "$RESET"
+        fi
+    done
+
+    [[ $kept -gt 0 ]] && printf '  %s%s %d live worktree(s) kept%s\n' "$GREEN" "$OK" "$kept" "$RESET"
+
+    # Stale git records (dir gone, git still references it).
+    if [[ -n "$primary" ]]; then
+        if [[ $force -eq 1 ]]; then prune_out="$(git -C "$primary" worktree prune -v 2>&1 || true)"
+        else prune_out="$(git -C "$primary" worktree prune --dry-run -v 2>&1 || true)"; fi
+        prune_n="$(grep -c . <<<"$prune_out" || true)"; prune_n="${prune_n:-0}"
+        if [[ "$prune_n" -gt 0 ]]; then
+            g_pruned=$((g_pruned + prune_n))
+            verb='pruned'; [[ $force -eq 0 ]] && verb='would prune'
+            printf '  %s%s %s %d stale git record(s)%s\n' "$DIM" "$ARROW" "$verb" "$prune_n" "$RESET"
+        fi
+    fi
+
+    [[ $ns_left -gt 0 ]] && summary+="$reponame"$'\t'"$ns_left"$'\n'
+done
+
+# --- summary ----------------------------------------------------------------
+rule() { printf '%s%s%s\n' "$DIM" "────────────────────────────────────────────────────" "$RESET"; }
+printf '\n%sSummary%s\n' "$BOLD" "$RESET"
+rule
+if [[ -n "$summary" ]]; then
+    printf '%b' "$summary" | while IFS=$'\t' read -r rp n; do
+        [[ -n "$rp" ]] || continue
+        printf '  %s%s%s  %s%-*s%s  %s leftover(s)\n' "$YELLOW" "$GONE" "$RESET" "$BOLD" "$namew" "$rp" "$RESET" "$n"
+    done
+else
+    printf '  %s%s no leftovers found%s\n' "$GREEN" "$OK" "$RESET"
+fi
+rule
+if [[ $force -eq 1 ]]; then
+    printf '  %s%d namespace(s) · removed %d leftover(s) · pruned %d record(s)%s\n' \
+        "$DIM" "$g_namespaces" "$g_removed" "$g_pruned" "$RESET"
+else
+    printf '  %s%d namespace(s) · %d leftover(s) · %d stale record(s)%s\n' \
+        "$DIM" "$g_namespaces" "$g_left" "$g_pruned" "$RESET"
+    [[ $((g_left + g_pruned)) -gt 0 ]] && printf '  %sre-run with -f to rescue + remove%s\n' "$YELLOW" "$RESET"
+fi
+[[ $g_orphan -gt 0 ]] && printf '  %s%s %d orphan(s) skipped — no primary to rescue to; remove manually (paths above)%s\n' "$YELLOW" "$WARN" "$g_orphan" "$RESET"
+exit 0
