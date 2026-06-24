@@ -1,0 +1,229 @@
+#!/usr/bin/env bash
+# Sync AI agent files across ALL existing worktrees, on demand, with a summary.
+#
+# Run at the start of the day to converge plans, reports, handoffs, and the
+# other agent directories between each repo's primary checkout and its worktrees.
+#
+# Worktrees are centralized under ~/.worktrees/<repo>/<branch> (the base shared
+# by worktrunk and Supacode). This script discovers each repo that has worktrees
+# there, then asks git itself for the authoritative worktree list. That way a
+# leftover folder (a directory that lingers after its worktree was removed) is
+# skipped because git no longer tracks it, and a prunable entry (git still
+# references a directory that was deleted) is skipped because the path is gone.
+# Only real, on-disk worktrees are synced.
+#
+# For each repo it runs a two-phase, newest-file-wins converge built on
+# wt-sync-agent-files (rsync -u, which never clobbers a newer destination file):
+#   Phase 1 (gather):     each worktree -> primary  (primary collects newest of all)
+#   Phase 2 (distribute): primary -> each worktree  (every worktree gets the newest)
+# Net effect: primary and all sibling worktrees end up holding the newest version
+# of each synced file. The order is irrelevant and the sync is non-destructive.
+#
+# Per worktree it reports files moved up (worktree -> primary) and down
+# (primary -> worktree), counted from rsync's itemized output, then prints a
+# per-repo and a grand-total summary at the end.
+#
+# Usage:
+#   wt-sync-all                      sync every repo under the worktree base
+#   wt-sync-all <repo> [<repo>...]   sync only the named repo namespace(s)
+#   wt-sync-all -v                   also list every file moved, per direction
+#
+# Env:
+#   WT_BASE   worktree base dir (default: ~/.worktrees)
+#   NO_COLOR  disable ANSI colors (also auto-disabled when stdout is not a tty)
+set -euo pipefail
+
+base="${WT_BASE:-$HOME/.worktrees}"
+verbose=0
+
+usage() {
+    cat <<'EOF'
+Usage: wt-sync-all [-v] [<repo>...]
+  Converge AI agent files (plans, reports, handoffs, .claude, ...) between each
+  repo's primary checkout and all its real worktrees, newest file wins, and
+  print a summary of files moved in each direction.
+
+  (no repo)  sync every repo with worktrees under the base (default ~/.worktrees).
+  <repo>     sync only the named repo namespace(s), e.g. wt-sync-all connect-plus-backend.
+  -v|--verbose  list each file moved, grouped by worktree and direction.
+
+Env: WT_BASE overrides the worktree base; NO_COLOR disables colors.
+EOF
+}
+
+# --- argument parsing -------------------------------------------------------
+repos=()
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h | --help) usage; exit 0 ;;
+        -v | --verbose) verbose=1 ;;
+        --) shift; repos+=("$@"); break ;;
+        -*) echo "wt-sync-all: unknown option '$1'" >&2; usage >&2; exit 2 ;;
+        *) repos+=("$1") ;;
+    esac
+    shift
+done
+
+# --- colors -----------------------------------------------------------------
+if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
+    BOLD=$'\e[1m'; DIM=$'\e[2m'; RED=$'\e[31m'; GREEN=$'\e[32m'
+    YELLOW=$'\e[33m'; BLUE=$'\e[34m'; CYAN=$'\e[36m'; RESET=$'\e[0m'
+else
+    BOLD=''; DIM=''; RED=''; GREEN=''; YELLOW=''; BLUE=''; CYAN=''; RESET=''
+fi
+UP='↑'; DOWN='↓'; OK='✓'; FAIL='✗'; ARROW='→'
+tilde() { printf '%s' "${1/#$HOME/\~}"; }
+
+# --- preconditions ----------------------------------------------------------
+[[ -d "$base" ]] || { echo "wt-sync-all: no worktree base at $base" >&2; exit 0; }
+command -v wt-sync-agent-files >/dev/null 2>&1 \
+    || { echo "wt-sync-all: wt-sync-agent-files not found on PATH" >&2; exit 1; }
+
+shopt -s nullglob
+
+# Namespaces to scan: explicit repo args, else every namespace under the base.
+namespaces=()
+if [[ ${#repos[@]} -gt 0 ]]; then
+    for name in "${repos[@]}"; do namespaces+=("$base/${name%/}"); done
+else
+    namespaces=("$base"/*/)
+fi
+
+# --- discover repo primaries ------------------------------------------------
+# The primary checkout of every repo that has at least one real worktree under
+# the base. Non-git leftover folders fail the resolve and are dropped here.
+primaries=''
+for ns in "${namespaces[@]}"; do
+    ns="${ns%/}"
+    [[ -d "$ns" ]] || { echo "wt-sync-all: skip (no such namespace) ${ns##*/}" >&2; continue; }
+    for cand in "$ns"/*/; do
+        cand="${cand%/}"
+        git -C "$cand" rev-parse --is-inside-work-tree >/dev/null 2>&1 || continue
+        primary="$(cd "$cand" && cd "$(dirname "$(git rev-parse --git-common-dir)")" && pwd)"
+        primaries+="$primary"$'\n'
+    done
+done
+primaries="$(printf '%s' "$primaries" | sort -u)"
+
+# --- helpers ----------------------------------------------------------------
+# Count file transfers in rsync's itemized output ('>f...' / '<f...' lines).
+count_files() { local n; n="$(grep -cE '^[<>]f' <<<"${1:-}" || true)"; printf '%s' "${n:-0}"; }
+# Extract the transferred file paths (strip the leading itemize code).
+list_files() { grep -E '^[<>]f' <<<"${1:-}" | sed -E 's/^[^[:space:]]+[[:space:]]+//' || true; }
+# Render an arrow + right-aligned count cell, colored (dim when zero).
+cell() { # <arrow> <count> <color>
+    local color="$3"
+    [[ "$2" == 0 ]] && color="$DIM"
+    [[ "$2" =~ ^[0-9]+$ ]] || color="$RED"
+    printf '%s%s %3s%s' "$color" "$1" "$2" "$RESET"
+}
+
+# --- header -----------------------------------------------------------------
+printf '%s%s%s %s· base %s%s\n' "$BOLD" "wt-sync-all" "$RESET" "$DIM" "$(tilde "$base")" "$RESET"
+
+[[ -n "$primaries" ]] || { printf '\n%sNo worktrees found under %s%s\n' "$YELLOW" "$(tilde "$base")" "$RESET"; exit 0; }
+
+# --- sync each repo ---------------------------------------------------------
+summary=''            # rows: state \t reponame \t wtcount \t up \t down
+g_repos=0; g_wt=0; g_up=0; g_down=0; g_fail=0; namew=0
+
+while IFS= read -r primary; do
+    [[ -n "$primary" ]] || continue
+
+    # Authoritative worktree list from git. Drop the primary itself and any
+    # entry whose directory no longer exists (prunable / manually deleted).
+    worktrees=()
+    while IFS= read -r line; do
+        [[ "$line" == "worktree "* ]] || continue
+        path="${line#worktree }"
+        [[ "$path" != "$primary" ]] || continue
+        [[ -d "$path" ]] || continue
+        worktrees+=("$path")
+    done < <(git -C "$primary" worktree list --porcelain)
+    [[ ${#worktrees[@]} -gt 0 ]] || continue
+
+    reponame="${primary##*/}"
+    pbranch="$(git -C "$primary" branch --show-current 2>/dev/null || true)"
+    [[ ${#reponame} -gt $namew ]] && namew=${#reponame}
+
+    # Column width for worktree names (capped).
+    width=0
+    for wt in "${worktrees[@]}"; do n="${wt##*/}"; if [[ ${#n} -gt $width ]]; then width=${#n}; fi; done
+    [[ $width -gt 56 ]] && width=56
+
+    printf '\n%s%s%s %s%s primary%s%s\n' \
+        "$CYAN$BOLD" "$reponame" "$RESET" \
+        "$DIM" "$ARROW" "${pbranch:+ ($pbranch)}" "$RESET"
+
+    up=(); down=(); upf=(); downf=(); state='ok'
+
+    # Phase 1: gather worktree -> primary.
+    for i in "${!worktrees[@]}"; do
+        if out="$(wt-sync-agent-files "${worktrees[i]}" "$primary" 2>&1)"; then
+            up[i]="$(count_files "$out")"; upf[i]="$(list_files "$out")"
+        else
+            up[i]='x'; state='fail'
+        fi
+    done
+    # Phase 2: distribute primary -> worktree.
+    for i in "${!worktrees[@]}"; do
+        if out="$(wt-sync-agent-files "$primary" "${worktrees[i]}" 2>&1)"; then
+            down[i]="$(count_files "$out")"; downf[i]="$(list_files "$out")"
+        else
+            down[i]='x'; state='fail'
+        fi
+    done
+
+    # Per-worktree lines.
+    repo_up=0; repo_down=0
+    for i in "${!worktrees[@]}"; do
+        name="${worktrees[$i]##*/}"; u="${up[$i]}"; d="${down[$i]}"
+        if [[ "$u" =~ ^[0-9]+$ ]]; then repo_up=$((repo_up + u)); fi
+        if [[ "$d" =~ ^[0-9]+$ ]]; then repo_down=$((repo_down + d)); fi
+        printf '  %s%-*s%s   %s   %s\n' \
+            "$DIM" "$width" "$name" "$RESET" "$(cell "$UP" "$u" "$GREEN")" "$(cell "$DOWN" "$d" "$BLUE")"
+        if [[ $verbose -eq 1 ]]; then
+            while IFS= read -r f; do [[ -n "$f" ]] && printf '      %s%s %s%s\n' "$DIM" "$UP" "$f" "$RESET"; done <<<"${upf[$i]:-}"
+            while IFS= read -r f; do [[ -n "$f" ]] && printf '      %s%s %s%s\n' "$DIM" "$DOWN" "$f" "$RESET"; done <<<"${downf[$i]:-}"
+        fi
+    done
+
+    # Per-repo status line.
+    if [[ "$state" == 'ok' ]]; then
+        printf '  %s%s%s %s%d worktree(s)%s · %s%s %d to primary%s · %s%s %d to worktrees%s\n' \
+            "$GREEN" "$OK" "$RESET" "$DIM" "${#worktrees[@]}" "$RESET" \
+            "$GREEN" "$UP" "$repo_up" "$RESET" "$BLUE" "$DOWN" "$repo_down" "$RESET"
+    else
+        printf '  %s%s some syncs failed (see output above)%s\n' "$RED" "$FAIL" "$RESET"
+        g_fail=$((g_fail + 1))
+    fi
+
+    summary+="$state"$'\t'"$reponame"$'\t'"${#worktrees[@]}"$'\t'"$repo_up"$'\t'"$repo_down"$'\n'
+    g_repos=$((g_repos + 1)); g_wt=$((g_wt + ${#worktrees[@]}))
+    g_up=$((g_up + repo_up)); g_down=$((g_down + repo_down))
+done <<< "$primaries"
+
+# --- summary ----------------------------------------------------------------
+if [[ $g_repos -eq 0 ]]; then
+    printf '\n%sNo worktrees found under %s%s\n' "$YELLOW" "$(tilde "$base")" "$RESET"
+    exit 0
+fi
+
+rule() { printf '%s%s%s\n' "$DIM" "────────────────────────────────────────────────────" "$RESET"; }
+printf '\n%sSummary%s\n' "$BOLD" "$RESET"
+rule
+printf '%b' "$summary" | while IFS=$'\t' read -r state rp wt u d; do
+    [[ -n "$rp" ]] || continue
+    if [[ "$state" == 'ok' ]]; then glyph="$GREEN$OK$RESET"; else glyph="$RED$FAIL$RESET"; fi
+    printf '  %s  %s%-*s%s  %s   %s   %s%s wt%s\n' \
+        "$glyph" "$BOLD" "$namew" "$rp" "$RESET" \
+        "$(cell "$UP" "$u" "$GREEN")" "$(cell "$DOWN" "$d" "$BLUE")" "$DIM" "$wt" "$RESET"
+done
+rule
+sync_note=''
+[[ $((g_up + g_down)) -eq 0 ]] && sync_note=" ${DIM}(already in sync)${RESET}"
+printf '  %s%d repo(s) · %d worktree(s)%s · %s%s %d to primaries%s · %s%s %d to worktrees%s%s\n' \
+    "$DIM" "$g_repos" "$g_wt" "$RESET" \
+    "$GREEN" "$UP" "$g_up" "$RESET" "$BLUE" "$DOWN" "$g_down" "$RESET" "$sync_note"
+[[ $g_fail -gt 0 ]] && printf '  %s%s %d repo(s) had sync failures%s\n' "$RED" "$FAIL" "$g_fail" "$RESET"
+exit 0
