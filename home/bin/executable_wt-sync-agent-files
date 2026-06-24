@@ -21,6 +21,7 @@ sync_paths=(
     '.ck*'
     '.sisyphus'
     '.omc'
+    '.handoffs'
     'CLAUDE.md'
     'AGENTS.md'
     '.claude'
