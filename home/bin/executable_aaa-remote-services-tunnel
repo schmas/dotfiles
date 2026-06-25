@@ -121,6 +121,7 @@ usage() {
 Usage: aaa-remote-services-tunnel [sync|tunnel|service <cmd>|all]
   sync             rsync bind-mount dirs to $REMOTE_HOST
   tunnel           open SSH tunnels in the foreground (Ctrl+C to close)
+  service up       sync, then start the background tunnel
   service start    start a self-healing background tunnel (manual; not on reboot)
   service stop     stop the background tunnel
   service restart  restart it
@@ -135,12 +136,13 @@ case "${1:-all}" in
   tunnel) do_tunnel ;;
   service)
     case "${2:-status}" in
+      up)      do_sync; echo ""; do_service_start ;;
       start)   do_service_start ;;
       stop)    do_service_stop ;;
       restart) do_service_stop; do_service_start ;;
       status)  do_service_status ;;
       logs)    do_service_logs ;;
-      *)       echo "usage: service start|stop|restart|status|logs"; exit 1 ;;
+      *)       echo "usage: service up|start|stop|restart|status|logs"; exit 1 ;;
     esac
     ;;
   all)
