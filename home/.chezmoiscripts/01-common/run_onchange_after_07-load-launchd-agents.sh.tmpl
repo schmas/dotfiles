@@ -9,7 +9,6 @@ set -e
 # Reload launchd agents
 # Triggered when plists change:
 #   atuin-dedup:     {{ include "private_Library/LaunchAgents/com.schmas.atuin-dedup.plist" | sha256sum }}
-#   claude-snapshot: {{ include "private_Library/LaunchAgents/com.schmas.claude-snapshot.plist" | sha256sum }}
 
 load_agent() {
   local plist="$1"
@@ -29,6 +28,3 @@ load_agent() {
 
 load_agent "$HOME/Library/LaunchAgents/com.schmas.atuin-dedup.plist" \
   "atuin-dedup" "Mon & Thu 15:00"
-
-load_agent "$HOME/Library/LaunchAgents/com.schmas.claude-snapshot.plist" \
-  "claude-snapshot" "daily 02:00 → ~/Google Drive/.../claude-snapshots/"
