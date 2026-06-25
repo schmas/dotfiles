@@ -107,8 +107,12 @@
     ],
     [
       {
-        "id": "c89f8d95-7c7f-464e-ae37-1c64239a1e25",
-        "type": "skills"
+        "id": "subagents-tasks",
+        "type": "custom-command",
+        "commandPath": "/Users/schmas/bin/ck-statusline-subagents both",
+        "timeout": 3000,
+        "preserveColors": false,
+        "color": "brightBlack"
       }
     ]
   ],

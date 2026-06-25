@@ -1,0 +1,200 @@
+#!/usr/bin/env python3
+"""ccstatusline custom-command widget: subagent workflow chain + task progress.
+
+Reads the Claude Code status-line payload (JSON) on stdin, locates the session
+transcript via `transcript_path`, and reconstructs from the JSONL:
+
+  - subagent chain  : sequence of `Agent` tool calls (by `subagent_type`),
+                      how many finished, how many still running
+  - task progress   : `TaskCreate`/`TaskUpdate` rollup (done / in-progress / pending)
+                      plus the currently in-progress task subject
+
+Output is a single line (statusline widgets must not contain newlines).
+
+Usage:  ck-statusline-subagents [agents|tasks|both]   (default: both)
+
+Designed for ccstatusline's `custom_command` widget, which forwards the full
+Claude Code JSON (including transcript_path) on stdin. Prints nothing and exits 0
+when there is no transcript or no relevant activity, so the widget stays hidden.
+"""
+
+import json
+import sys
+
+MODE = sys.argv[1] if len(sys.argv) > 1 else "both"
+
+# Glyphs / formatting knobs
+ARROW = " → "          # →  between subagents
+RUNNING = "▶"          # ▶  marks an active (unfinished) item
+SEP = "  ·  "          # ·  between the agents and tasks segments
+MAX_CHAIN = 6               # show at most this many trailing subagents
+SUBJECT_MAX = 40            # truncate active task subject to this many chars
+
+# Only these tokens matter; lines without one are skipped before JSON parsing.
+# This keeps the hot path cheap on large transcripts (most lines are Bash/Read/Edit).
+RELEVANT = ('"Agent"', "TaskCreate", "TaskUpdate", "tool_result")
+
+
+def read_payload():
+    try:
+        return json.load(sys.stdin)
+    except Exception:
+        return {}
+
+
+def iter_blocks(msg_content):
+    """Yield content blocks; tolerate string content (user text)."""
+    if isinstance(msg_content, list):
+        for block in msg_content:
+            if isinstance(block, dict):
+                yield block
+
+
+def parse_transcript(path):
+    agents = []            # [{type, id, running}]
+    completed_ids = set()  # tool_use ids that got a tool_result
+    tasks = []             # [{subject, state}] in creation order; id == index+1
+    task_index = {}        # task_id (str) -> position in `tasks`
+
+    try:
+        fh = open(path, "r", encoding="utf-8", errors="replace")
+    except OSError:
+        return agents, completed_ids, tasks
+
+    with fh:
+        for line in fh:
+            if not any(tok in line for tok in RELEVANT):
+                continue
+            try:
+                obj = json.loads(line)
+            except Exception:
+                continue
+            msg = obj.get("message")
+            if not isinstance(msg, dict):
+                continue
+            content = msg.get("content")
+
+            for block in iter_blocks(content):
+                btype = block.get("type")
+
+                if btype == "tool_use":
+                    name = block.get("name")
+                    inp = block.get("input") or {}
+                    if name == "Agent":
+                        agents.append({
+                            "type": inp.get("subagent_type") or "agent",
+                            "id": block.get("id"),
+                        })
+                    elif name == "TaskCreate":
+                        # Field names vary across Claude Code versions:
+                        # subject|description, and an optional state|status.
+                        tasks.append({
+                            "subject": inp.get("subject") or inp.get("description") or "",
+                            "state": inp.get("state") or inp.get("status") or "pending",
+                        })
+                        # Ids are assigned sequentially by creation order ("1","2",…),
+                        # which is what TaskUpdate references.
+                        task_index[str(len(tasks))] = len(tasks) - 1
+                    elif name == "TaskUpdate":
+                        tid = str(inp.get("task_id") or inp.get("taskId"))
+                        state = inp.get("state") or inp.get("status")
+                        pos = task_index.get(tid)
+                        if pos is not None and state:
+                            tasks[pos]["state"] = state
+
+                elif btype == "tool_result":
+                    tuid = block.get("tool_use_id")
+                    if tuid:
+                        completed_ids.add(tuid)
+
+    for a in agents:
+        a["running"] = a["id"] not in completed_ids
+    return agents, completed_ids, tasks
+
+
+def collapse_consecutive(items):
+    """Collapse runs of the same subagent type: [a,a,b] -> [(a,2),(b,1)]."""
+    out = []
+    for type_, running in items:
+        if out and out[-1][0] == type_:
+            out[-1][1] += 1
+            out[-1][2] = out[-1][2] or running
+        else:
+            out.append([type_, 1, running])
+    return out
+
+
+def render_agents(agents):
+    if not agents:
+        return ""
+    done = sum(1 for a in agents if not a["running"])
+    running = sum(1 for a in agents if a["running"])
+
+    seq = [(a["type"], a["running"]) for a in agents]
+    groups = collapse_consecutive(seq)
+    overflow = len(groups) > MAX_CHAIN
+    groups = groups[-MAX_CHAIN:]
+
+    parts = []
+    for type_, count, running_flag in groups:
+        label = type_ if count == 1 else f"{type_}×{count}"  # ×
+        if running_flag:
+            label = f"{RUNNING}{label}"
+        parts.append(label)
+    chain = ARROW.join(parts)
+    if overflow:
+        chain = "…" + ARROW + chain  # …
+
+    counts = f"{done} done"
+    if running:
+        counts += f", {running} running"
+    return f"{chain} ({counts})"
+
+
+def render_tasks(tasks):
+    if not tasks:
+        return ""
+    done = sum(1 for t in tasks if t["state"] == "completed")
+    pending = sum(1 for t in tasks if t["state"] == "pending")
+    active = next((t for t in tasks if t["state"] == "in_progress"), None)
+
+    counts = f"{done} done, {pending} pending"
+    if active:
+        subj = active["subject"].strip()
+        if len(subj) > SUBJECT_MAX:
+            subj = subj[: SUBJECT_MAX - 1].rstrip() + "…"
+        return f"{RUNNING} {subj} ({counts})"
+    return f"tasks: {counts}"
+
+
+def main():
+    payload = read_payload()
+    path = payload.get("transcript_path")
+    if not path:
+        return
+    agents, _completed, tasks = parse_transcript(path)
+
+    segments = []
+    if MODE in ("agents", "both"):
+        a = render_agents(agents)
+        if a:
+            segments.append(a)
+    if MODE in ("tasks", "both"):
+        t = render_tasks(tasks)
+        if t:
+            segments.append(t)
+
+    out = SEP.join(segments)
+    if not out:
+        return
+
+    # ccstatusline appends terminal_width; truncate so the opaque widget output
+    # never forces the status line to wrap (ccstatusline can't compact it for us).
+    width = payload.get("terminal_width")
+    if isinstance(width, int) and width > 0 and len(out) > width:
+        out = out[: width - 1].rstrip() + "…"  # …
+    sys.stdout.write(out)
+
+
+if __name__ == "__main__":
+    main()
