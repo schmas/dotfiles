@@ -105,10 +105,24 @@ do_service_stop() {
 do_service_status() {
   if launchctl print "$GUI_DOMAIN/$SERVICE_LABEL" >/dev/null 2>&1; then
     echo -e "${GREEN}● running${RESET}"
-    launchctl print "$GUI_DOMAIN/$SERVICE_LABEL" | grep -E '^\s*(state|pid|last exit) ' || true
+    # leading [[:space:]] + keyword keeps only top-level fields (nested entries
+    # are indented further, so their first char after the keyword position differs)
+    launchctl print "$GUI_DOMAIN/$SERVICE_LABEL" | grep -E '^[[:space:]](state|pid|last exit code) ' || true
   else
-    echo -e "${DIM}○ not running${RESET}"
+    echo -e "${DIM}○ not running${RESET}  (start: aaa-remote-services-tunnel service up)"
+    return
   fi
+  # Proof the tunnel is actually up: ssh -N is silent on success, so check the
+  # forwarded ports are bound locally (they listen only while the tunnel lives).
+  echo -e "${CYAN}forwarded ports:${RESET}"
+  for t in "${TUNNELS[@]}"; do
+    local lport="${t%%:*}"
+    if lsof -nP -iTCP:"$lport" -sTCP:LISTEN >/dev/null 2>&1; then
+      echo -e "  ${GREEN}✓${RESET} localhost:$lport listening"
+    else
+      echo -e "  ${RED}✗${RESET} localhost:$lport not listening"
+    fi
+  done
 }
 
 do_service_logs() {
