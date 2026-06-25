@@ -53,16 +53,17 @@ sudo sed -i 's/^#*PasswordAuthentication .*/PasswordAuthentication yes/' "$SSHD"
 sudo sed -i 's/^#*PubkeyAuthentication .*/PubkeyAuthentication yes/'      "$SSHD"
 grep -q "^ListenAddress" "$SSHD" || echo "ListenAddress 0.0.0.0" | sudo tee -a "$SSHD" > /dev/null
 
-# ── 4. Keep idle SSH sessions alive forever ────────────────────────────────
-# Server sends keepalive probes (NAT/port-proxy friendly) and never gives up,
-# so an idle session is never dropped. Drop-in is read via the default
+# ── 4. Keep idle SSH sessions alive (and reap dead ones) ───────────────────
+# Server probes idle clients to survive NAT/port-proxy idle timeouts, but reaps
+# a session after 3 missed probes (~45s) so dead sessions don't linger holding
+# forwarded ports. Drop-in is read via the default
 # `Include /etc/ssh/sshd_config.d/*.conf` in Ubuntu's sshd_config.
-step "Disabling SSH idle timeout (keepalive drop-in)..."
+step "Configuring SSH keepalive drop-in..."
 sudo mkdir -p /etc/ssh/sshd_config.d
 sudo tee /etc/ssh/sshd_config.d/99-keepalive.conf > /dev/null << 'EOF'
-# Never drop an idle SSH session: probe every 30s, effectively never time out.
-ClientAliveInterval 30
-ClientAliveCountMax 1000000
+# Probe idle clients every 15s; drop after 3 missed probes (~45s).
+ClientAliveInterval 15
+ClientAliveCountMax 3
 TCPKeepAlive yes
 EOF
 info "Wrote /etc/ssh/sshd_config.d/99-keepalive.conf"
@@ -169,8 +170,9 @@ Write-Host "Host win-dev"
 Write-Host "  HostName $winIp"
 Write-Host "  Port 2222"
 Write-Host "  User $wslUser"
-Write-Host "  ServerAliveInterval 30"
-Write-Host "  ServerAliveCountMax 1000000"
+Write-Host "  ServerAliveInterval 15"
+Write-Host "  ServerAliveCountMax 3"
+Write-Host "  ExitOnForwardFailure yes"
 Write-Host "  TCPKeepAlive yes"
 Write-Host "  LocalForward 5432 localhost:5432"
 Write-Host "  LocalForward 6379 localhost:6379"

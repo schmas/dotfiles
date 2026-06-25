@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # aaa-remote-services-tunnel — SSH tunnels + bind-mount sync for connect-plus-backend on win-dev
-# Usage: aaa-remote-services-tunnel [sync|tunnel|all]
+# Usage: aaa-remote-services-tunnel [sync|tunnel|service <cmd>|all]
 
 set -euo pipefail
 
@@ -16,10 +16,34 @@ REMOTE_PROJECT_REL="projects/work/aaa/connect-plus-backend"
 LOCAL_PROJECT="$HOME/projects/work/aaa/connect-plus-backend"
 
 # local_port:remote_host:remote_port
+# Keep in sync with the LocalForward entries in the launchd plist (below).
 TUNNELS=("5432:localhost:5432" "6379:localhost:6379" "4566:localhost:4566")
 
 # Dirs (relative to project root) that must exist on remote before containers start
 SYNC_DIRS=("scripts/ministack/init")
+
+# Shared ssh options for the foreground tunnel. Detect a dead path FAST and exit
+# cleanly (interval 15s * 3 misses ≈ 45s) instead of hanging on a dead socket
+# until the kernel TCP timeout fires ("Read from remote host: Operation timed
+# out"). ExitOnForwardFailure aborts a reconnect if the local ports are still
+# held, rather than leaving a useless tunnel. The launchd plist sets the same.
+SSH_OPTS=(
+  -o ServerAliveInterval=15
+  -o ServerAliveCountMax=3
+  -o ExitOnForwardFailure=yes
+  -o ConnectTimeout=10
+)
+
+# launchd service (manual start; self-heals; does NOT auto-start on reboot).
+# The plist is chezmoi-managed and deployed to ~/.config/... ON PURPOSE rather
+# than ~/Library/LaunchAgents: launchd auto-loads that folder at login, and
+# KeepAlive=true would then start the tunnel on every boot. Living here, it only
+# runs when `service start` bootstraps it — never on reboot.
+SERVICE_LABEL="com.schmas.aaa-tunnel"
+SERVICE_DIR="$HOME/.config/aaa-remote-services-tunnel"
+PLIST_PATH="$SERVICE_DIR/$SERVICE_LABEL.plist"
+LOG_PATH="$SERVICE_DIR/tunnel.log"
+GUI_DOMAIN="gui/$(id -u)"
 
 do_sync() {
   echo -e "${BOLD}=== Syncing bind-mount dirs to $REMOTE_HOST ===${RESET}"
@@ -48,7 +72,7 @@ do_tunnel() {
   echo -e "  ${DIM}redis     localhost:6379${RESET}"
   echo -e "  ${DIM}ministack localhost:4566${RESET}"
   echo ""
-  echo -e "${YELLOW}Press Ctrl+C to close tunnels.${RESET}"
+  echo -e "${YELLOW}Press Ctrl+C to close tunnels. (For a self-healing background tunnel: ${RESET}${BOLD}service start${RESET}${YELLOW})${RESET}"
   echo ""
 
   local tunnel_args=()
@@ -56,22 +80,74 @@ do_tunnel() {
     tunnel_args+=(-L "$t")
   done
 
-  ssh -N "${tunnel_args[@]}" "$REMOTE_HOST"
+  ssh -N "${SSH_OPTS[@]}" "${tunnel_args[@]}" "$REMOTE_HOST"
+}
+
+do_service_start() {
+  if [[ ! -f "$PLIST_PATH" ]]; then
+    echo -e "${RED}⚠ plist not found at $PLIST_PATH${RESET}"
+    echo -e "  Deploy it first: ${BOLD}chezmoi apply${RESET}"
+    exit 1
+  fi
+  # idempotent: tear down any prior instance before re-loading
+  launchctl bootout "$GUI_DOMAIN/$SERVICE_LABEL" 2>/dev/null || true
+  launchctl bootstrap "$GUI_DOMAIN" "$PLIST_PATH"
+  echo -e "${GREEN}✓ Tunnel service started.${RESET} Self-heals on drop/sleep; will ${BOLD}not${RESET} auto-start on reboot."
+  echo -e "  ${DIM}status: aaa-remote-services-tunnel service status   logs: … service logs${RESET}"
+}
+
+do_service_stop() {
+  launchctl bootout "$GUI_DOMAIN/$SERVICE_LABEL" 2>/dev/null \
+    && echo -e "${GREEN}✓ Tunnel service stopped.${RESET}" \
+    || echo -e "${YELLOW}Tunnel service was not running.${RESET}"
+}
+
+do_service_status() {
+  if launchctl print "$GUI_DOMAIN/$SERVICE_LABEL" >/dev/null 2>&1; then
+    echo -e "${GREEN}● running${RESET}"
+    launchctl print "$GUI_DOMAIN/$SERVICE_LABEL" | grep -E '^\s*(state|pid|last exit) ' || true
+  else
+    echo -e "${DIM}○ not running${RESET}"
+  fi
+}
+
+do_service_logs() {
+  [[ -f "$LOG_PATH" ]] || { echo -e "${DIM}no log yet at $LOG_PATH${RESET}"; return; }
+  tail -n 50 "$LOG_PATH"
+}
+
+usage() {
+  cat <<EOF
+Usage: aaa-remote-services-tunnel [sync|tunnel|service <cmd>|all]
+  sync             rsync bind-mount dirs to $REMOTE_HOST
+  tunnel           open SSH tunnels in the foreground (Ctrl+C to close)
+  service start    start a self-healing background tunnel (manual; not on reboot)
+  service stop     stop the background tunnel
+  service restart  restart it
+  service status   show whether it is running
+  service logs     show recent tunnel log
+  all              sync then tunnel (foreground) [default]
+EOF
 }
 
 case "${1:-all}" in
   sync)   do_sync ;;
   tunnel) do_tunnel ;;
+  service)
+    case "${2:-status}" in
+      start)   do_service_start ;;
+      stop)    do_service_stop ;;
+      restart) do_service_stop; do_service_start ;;
+      status)  do_service_status ;;
+      logs)    do_service_logs ;;
+      *)       echo "usage: service start|stop|restart|status|logs"; exit 1 ;;
+    esac
+    ;;
   all)
     do_sync
     echo ""
     do_tunnel
     ;;
-  *)
-    echo "Usage: aaa-remote-services-tunnel [sync|tunnel|all]"
-    echo "  sync   — rsync bind-mount dirs to $REMOTE_HOST"
-    echo "  tunnel — open SSH port tunnels (postgres 5432, redis 6379, ministack 4566)"
-    echo "  all    — sync then tunnel [default]"
-    exit 1
-    ;;
+  -h|--help|help) usage ;;
+  *) usage; exit 1 ;;
 esac

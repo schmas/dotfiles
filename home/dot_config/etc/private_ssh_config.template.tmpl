@@ -1,8 +1,10 @@
-# Never drop an idle SSH session (client side): probe periodically and don't
-# give up. Pairs with the server-side sshd keepalive used on remote hosts.
+# Keep idle SSH sessions alive across NAT/port-proxy idle timeouts, but give up
+# after 3 missed probes (~45s) so a dead path exits cleanly instead of hanging
+# on a stale socket until the kernel TCP timeout fires. Pairs with the
+# server-side sshd keepalive used on remote hosts.
 Host *
-  ServerAliveInterval 30
-  ServerAliveCountMax 1000000
+  ServerAliveInterval 15
+  ServerAliveCountMax 3
   TCPKeepAlive yes
 
 # Hosts keys are configure by 1password
