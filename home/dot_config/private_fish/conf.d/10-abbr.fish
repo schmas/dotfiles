@@ -39,13 +39,6 @@ if status is-interactive
     abbr --add brews 'brew list'
     abbr --add casks 'brew list --cask'
 
-    # directories
-    abbr --add home --position anywhere '~/'
-    abbr --add configd --position anywhere '~/.config/'
-    abbr --add locald --position anywhere '~/.local/'
-    abbr --add fishd --position anywhere '~/.config/fish'
-    abbr --add chezmoid --position anywhere '~/.local/share/chezmoi'
-
     abbr --add dotfiles 'webstorm ~/.local/share/chezmoi'
     abbr --add dotfilesf 'webstorm ~/.config/fish'
 

@@ -48,16 +48,6 @@ This document provides a comprehensive reference for all aliases, functions, and
 | `-`        | `__dircycle_update_cycled +1`                      | Navigate to previous directory in stack              | B,Z    |
 | `+`        | `__dircycle_update_cycled -0`                      | Navigate to next directory in stack                  | B,Z    |
 
-## Directory Shortcuts
-
-| Command    | Path                     | Description                       | Shells |
-| ---------- | ------------------------ | --------------------------------- | ------ |
-| `home`     | `~/`                     | Shortcut to home directory        | F,B,Z  |
-| `configd`  | `~/.config/`             | Shortcut to config directory      | F,B,Z  |
-| `locald`   | `~/.local/`              | Shortcut to local directory       | F,B,Z  |
-| `fishd`    | `~/.config/fish`         | Shortcut to fish config directory | F,B,Z  |
-| `chezmoid` | `~/.local/share/chezmoi` | Shortcut to chezmoi directory     | F,B,Z  |
-
 ## Directory Listing
 
 | Command | Full Command | Description                                     | Shells |
@@ -74,11 +64,6 @@ This document provides a comprehensive reference for all aliases, functions, and
 | `lag`        | `la --group-directories-first`                  | List all files with directories first                |
 | `lat`        | `la --tree --level=2`                           | List all files in a tree view with depth 2           |
 | `lagt`       | `la --group-directories-first --tree --level=2` | List all files in a tree view with directories first |
-| `home`       | `~/`                                            | Shortcut to home directory                           |
-| `configd`    | `~/.config/`                                    | Shortcut to config directory                         |
-| `locald`     | `~/.local/`                                     | Shortcut to local directory                          |
-| `fishd`      | `~/.config/fish`                                | Shortcut to fish config directory                    |
-| `chezmoid`   | `~/.local/share/chezmoi`                        | Shortcut to chezmoi directory                        |
 | `dotfiles`   | `webstorm ~/.local/share/chezmoi`               | Open dotfiles in WebStorm                            |
 | `dotfilesf`  | `webstorm ~/.config/fish`                       | Open fish config in WebStorm                         |
 | `..`         | `cd ../`                                        | Navigate up one directory (via multicd function)     |
