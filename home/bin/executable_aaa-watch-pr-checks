@@ -1,0 +1,155 @@
+#!/usr/bin/env bash
+# aaa-watch-pr-checks — Watch a Bitbucket PR's CI/build checks and notify on finish.
+#
+# Wraps `bkt pr checks <id> --wait` (polls with backoff until all builds finish)
+# and fires a macOS notification on the outcome — useful for long pipelines
+# (~20 min) you don't want to babysit. Notifies on BOTH success and failure.
+#
+# Usage:
+#   aaa-watch-pr-checks [PR_ID] [options]
+#
+# Examples:
+#   aaa-watch-pr-checks              # PR for the current git branch
+#   aaa-watch-pr-checks 3636         # explicit PR id
+#   aaa-watch-pr-checks --timeout 1h --fail-fast
+#   aaa-watch-pr-checks 3636 --interval 1m --no-sound
+#
+# Options:
+#   --timeout <dur>    Max time to wait (default 45m). 0 = no timeout.
+#   --interval <dur>   Initial poll interval (default 30s; backs off to 2m).
+#   --fail-fast        Stop and notify on the first failed check.
+#   --no-sound         Silent notification.
+#   --icon <path|url>  Notification icon (default: Bitbucket logo).
+#                      Override the default with $AAA_PR_NOTIFY_ICON.
+#   --no-icon          Use terminal-notifier's default icon.
+#   -h, --help         Show this help.
+#
+# Exit codes (mirrors `bkt pr checks --wait`):
+#   0  all checks passed
+#   1  a check failed
+#   8  timed out with checks still pending
+#   2  usage / preflight error
+#
+# Requires: bkt (Bitbucket CLI, authed), jq. Notifies via terminal-notifier
+# (clickable → opens the PR, custom icon, per-outcome sound), falling back to
+# osascript (sound only — osascript can't set a custom icon). Run from inside
+# the Bitbucket repo so `bkt` infers workspace/repo from the git remote.
+
+set -uo pipefail
+
+# ── Defaults ────────────────────────────────────────────────────────────────
+PR_ID=""
+TIMEOUT="45m"
+INTERVAL="30s"
+FAIL_FAST=false
+SOUND=true
+# Notification icon: env override wins, else official Bitbucket logo (terminal-notifier
+# downloads + caches it; if unreachable it silently falls back to its default icon).
+ICON="${AAA_PR_NOTIFY_ICON:-https://wac-cdn.atlassian.com/assets/img/favicons/bitbucket/android-chrome-192x192.png}"
+
+# Print the leading comment block (the header above) as help, minus the shebang.
+usage() { awk 'NR==1{next} /^[^#]/{exit} {sub(/^# ?/,"");print}' "$0"; }
+
+die() { printf 'error: %s\n' "$*" >&2; exit 2; }
+
+# ── Arg parsing ─────────────────────────────────────────────────────────────
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --timeout)   TIMEOUT="${2:-}"; shift 2 ;;
+    --interval)  INTERVAL="${2:-}"; shift 2 ;;
+    --fail-fast) FAIL_FAST=true; shift ;;
+    --no-sound)  SOUND=false; shift ;;
+    --icon)      ICON="${2:-}"; shift 2 ;;
+    --no-icon)   ICON=""; shift ;;
+    -h|--help)   usage; exit 0 ;;
+    -*)          die "unknown option: $1 (see --help)" ;;
+    *)
+      [ -z "$PR_ID" ] || die "unexpected argument: $1"
+      PR_ID="$1"; shift ;;
+  esac
+done
+
+# ── Preflight ───────────────────────────────────────────────────────────────
+command -v bkt >/dev/null 2>&1 || die "bkt not found (Bitbucket CLI). Install and run 'bkt auth login'."
+command -v jq  >/dev/null 2>&1 || die "jq not found."
+
+# ── Resolve PR id from the current branch when not given ────────────────────
+if [ -z "$PR_ID" ]; then
+  branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) \
+    || die "not in a git repo; pass a PR id: aaa-watch-pr-checks <id>"
+
+  pr_json=$(bkt pr list --json 2>/dev/null) \
+    || die "could not list PRs (check 'bkt auth status' and run inside the Bitbucket repo)."
+
+  PR_ID=$(printf '%s' "$pr_json" \
+    | jq -r --arg b "$branch" \
+        'first((.pull_requests // [])[] | select(.source.branch.name == $b) | .id) // empty')
+
+  [ -n "$PR_ID" ] || die "no open PR found for branch '$branch'. Pass a PR id: aaa-watch-pr-checks <id>"
+  printf 'Auto-detected PR #%s for branch %s\n' "$PR_ID" "$branch"
+fi
+
+# ── PR web URL (for a clickable notification) ───────────────────────────────
+PR_URL=$(bkt pr view "$PR_ID" --json 2>/dev/null \
+  | jq -r --arg id "$PR_ID" \
+      '[.. | objects | .href? // empty] | map(select(endswith("/pull-requests/" + $id))) | first // empty')
+
+# ── notify <title> <message> <sound-name> ───────────────────────────────────
+notify() {
+  local title="$1" message="$2" sound_name="$3"
+  if command -v terminal-notifier >/dev/null 2>&1; then
+    local args=(-title "$title" -message "$message" -group "aaa-pr-checks-$PR_ID")
+    [ "$SOUND" = true ] && args+=(-sound "$sound_name")
+    [ -n "$ICON" ] && args+=(-appIcon "$ICON")
+    [ -n "$PR_URL" ] && args+=(-open "$PR_URL")
+    terminal-notifier "${args[@]}" >/dev/null 2>&1
+  elif command -v osascript >/dev/null 2>&1; then
+    local script="display notification \"${message//\"/\\\"}\" with title \"${title//\"/\\\"}\""
+    [ "$SOUND" = true ] && script="$script sound name \"$sound_name\""
+    osascript -e "$script" >/dev/null 2>&1
+  fi
+}
+
+# ── Wait for checks to finish ───────────────────────────────────────────────
+printf 'Watching checks for PR #%s (timeout %s, poll %s)...\n' "$PR_ID" "$TIMEOUT" "$INTERVAL"
+[ -n "$PR_URL" ] && printf '%s\n' "$PR_URL"
+
+wait_args=(pr checks "$PR_ID" --wait --timeout "$TIMEOUT" --interval "$INTERVAL")
+[ "$FAIL_FAST" = true ] && wait_args+=(--fail-fast)
+bkt "${wait_args[@]}"
+rc=$?
+
+# ── Summarize outcome from the final statuses ───────────────────────────────
+summary=$(bkt pr checks "$PR_ID" --json 2>/dev/null | jq -r '
+  (.statuses // []) as $s
+  | ($s | length) as $total
+  | ([$s[] | select(.state == "SUCCESSFUL")] | length) as $ok
+  | ([$s[] | select(.state == "INPROGRESS")] | length) as $pending
+  | ([$s[] | select(.state == "FAILED" or .state == "STOPPED")]) as $bad
+  | "\($total)\t\($ok)\t\($pending)\t\($bad | length)\t\([$bad[].name] | join(", "))"
+')
+IFS=$'\t' read -r total ok pending nfailed failed_names <<< "${summary:-0	0	0	0	}"
+
+# ── Notify + report based on exit code ──────────────────────────────────────
+case "$rc" in
+  0)
+    title="✅ PR #$PR_ID — checks passed"
+    msg="${ok}/${total} builds OK"
+    notify "$title" "$msg" "Glass" ;;
+  1)
+    title="❌ PR #$PR_ID — checks FAILED"
+    msg="${nfailed}/${total} failed"
+    [ -n "$failed_names" ] && msg="$msg: $failed_names"
+    notify "$title" "$msg" "Basso" ;;
+  8)
+    title="⏳ PR #$PR_ID — still pending"
+    msg="Timed out after $TIMEOUT; $pending still running"
+    notify "$title" "$msg" "Funk" ;;
+  *)
+    title="⚠️ PR #$PR_ID — watch error"
+    msg="bkt exited $rc"
+    notify "$title" "$msg" "Funk" ;;
+esac
+
+printf '\n%s\n%s\n' "$title" "$msg"
+exit "$rc"
