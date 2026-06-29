@@ -21,6 +21,7 @@ sops = "latest"
 usage = "latest"
 uv = "latest"
 gcloud = "latest"
+"npm:headroom-ai" = "latest"
 
 [settings]
 experimental = true
