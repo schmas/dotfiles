@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+set -e
+set -u
+set -o pipefail
+
+echo ""
+echo "-----------------------------------------------------------------------"
+echo " Install uv Tools"
+echo "-----------------------------------------------------------------------"
+echo ""
+
+{{ template "brew-shellenv" . }}
+
+# Python CLIs that need PEP 508 extras. mise's pipx backend strips [extras],
+# so these are installed via `uv tool` instead. Edit the list below; this
+# run_onchange script re-runs whenever its contents change.
+uv_tools=(
+  'headroom-ai[all]'
+)
+
+if command -v mise >/dev/null 2>&1; then
+  for tool in "${uv_tools[@]}"; do
+    echo "uv tool install ${tool}"
+    mise exec uv -- uv tool install "${tool}"
+  done
+else
+  echo "mise not found, skipping uv tool installation."
+fi

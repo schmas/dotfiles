@@ -74,6 +74,12 @@ if command -v rustup >/dev/null 2>&1; then
   run_step "Cargo install-update" cargo install-update -a
 fi
 
+# uv Tools (CLIs installed via `uv tool`, e.g. headroom-ai[all] — mise can't carry extras)
+if command -v uv >/dev/null 2>&1; then
+  section "uv Tools"
+  run_step "uv tool upgrade" uv tool upgrade --all
+fi
+
 # Chezmoi
 if command -v chezmoi >/dev/null 2>&1; then
   section "Chezmoi"

@@ -462,3 +462,4 @@ cython_debug/
 AGENTS.md
 .claude/session-state
 .handoffs/
+.serena/
