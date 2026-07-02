@@ -2,8 +2,10 @@
 # aaa-watch-pr-checks — Watch a Bitbucket PR's CI/build checks and notify on finish.
 #
 # Wraps `bkt pr checks <id> --wait` (polls with backoff until all builds finish)
-# and fires a macOS notification on the outcome — useful for long pipelines
-# (~20 min) you don't want to babysit. Notifies on BOTH success and failure.
+# and, while it waits, renders a LIVE step-by-step view of each pipeline: what's
+# done ✓, failed ✗, running ▶, or pending ·. Fires a macOS notification on the
+# outcome — useful for long pipelines (~20 min) you don't want to babysit.
+# Notifies on BOTH success and failure.
 #
 # Usage:
 #   aaa-watch-pr-checks [PR_ID] [options]
@@ -16,7 +18,8 @@
 #
 # Options:
 #   --timeout <dur>    Max time to wait (default 45m). 0 = no timeout.
-#   --interval <dur>   Initial poll interval (default 30s; backs off to 2m).
+#   --interval <dur>   Poll interval (default 30s; backs off to 2m). Also sets the
+#                      live-view refresh cadence (clamped to 5-20s).
 #   --fail-fast        Stop and notify on the first failed check.
 #   --no-sound         Silent notification.
 #   --icon <path|url>  Notification icon (default: Bitbucket logo).
@@ -34,6 +37,8 @@
 # (clickable → opens the PR, custom icon, per-outcome sound), falling back to
 # osascript (sound only — osascript can't set a custom icon). Run from inside
 # the Bitbucket repo so `bkt` infers workspace/repo from the git remote.
+# The live step view is Bitbucket Cloud only (uses `bkt pipeline view`); on Data
+# Center it degrades to the top-level check list.
 
 set -uo pipefail
 
@@ -110,17 +115,167 @@ notify() {
   fi
 }
 
-# ── Wait for checks to finish ───────────────────────────────────────────────
+# ── Live-view helpers ────────────────────────────────────────────────────────
+# Colors + glyphs only when stdout is a TTY (piped/CI output stays plain).
+if [ -t 1 ]; then TTY=true; else TTY=false; fi
+if [ "$TTY" = true ]; then
+  C_RST=$'\033[0m'; C_GRN=$'\033[32m'; C_RED=$'\033[31m'
+  C_YEL=$'\033[33m'; C_DIM=$'\033[2m';  C_BLU=$'\033[1;34m'
+else
+  C_RST=""; C_GRN=""; C_RED=""; C_YEL=""; C_DIM=""; C_BLU=""
+fi
+
+# Duration string ("30s", "2m", "1h", or bare seconds) → seconds.
+to_seconds() {
+  case "$1" in
+    *h) printf '%d' $(( ${1%h} * 3600 )) ;;
+    *m) printf '%d' $(( ${1%m} * 60 )) ;;
+    *s) printf '%d' "${1%s}" ;;
+    *)  printf '%d' "$1" ;;
+  esac
+}
+
+# Seconds → "Mm SSs".
+fmt_dur() { printf '%dm%02ds' $(( $1 / 60 )) $(( $1 % 60 )); }
+
+# State name → colored status glyph. Handles both build-status states
+# (SUCCESSFUL/FAILED/INPROGRESS/STOPPED) and pipeline-step states
+# (COMPLETED-resolved-to-result, IN_PROGRESS, PENDING, …).
+cglyph() {
+  case "$1" in
+    SUCCESSFUL)                     printf '%s✓%s' "$C_GRN" "$C_RST" ;;
+    FAILED|ERROR)                   printf '%s✗%s' "$C_RED" "$C_RST" ;;
+    STOPPED)                        printf '%s■%s' "$C_RED" "$C_RST" ;;
+    INPROGRESS|IN_PROGRESS|RUNNING) printf '%s▶%s' "$C_YEL" "$C_RST" ;;
+    PENDING|NOT_RUN|PAUSED|HALTED)  printf '%s·%s' "$C_DIM" "$C_RST" ;;
+    *)                              printf '?' ;;
+  esac
+}
+
+# Bitbucket Cloud pipeline URL → "workspace repo build_number" (empty if not one).
+pipeline_coords() {
+  printf '%s' "$1" \
+    | sed -nE 's#^https?://bitbucket\.org/([^/]+)/([^/]+)/pipelines/results/([0-9]+).*#\1 \2 \3#p'
+}
+
+# checks-JSON → coords ("ws repo build") of the latest pipeline (highest build),
+# or empty when no pipeline is attached. Reused by render + final summary.
+latest_pipeline_coords() {
+  printf '%s' "$1" | jq -r '.statuses[]?.url // empty' | while read -r u; do
+    c=$(pipeline_coords "$u"); [ -n "$c" ] && printf '%s\n' "$c"
+  done | sort -k3 -n | tail -1
+}
+
+# checks-JSON → build number of the latest pipeline (empty when none).
+latest_pipeline_build() {
+  local c; c=$(latest_pipeline_coords "$1"); [ -n "$c" ] && { read -r _ _ b <<< "$c"; printf '%s' "$b"; }
+}
+
+# Render the current status block to stdout: every top-level check, and for each
+# check that points at a pipeline, the per-step breakdown indented beneath it.
+render_block() {
+  local checks state name url coords ws repo build pv steps ok bad run total tail latest
+
+  printf '%sPR #%s%s  %s elapsed  (refresh %ss, Ctrl-C to stop)\n' \
+    "$C_BLU" "$PR_ID" "$C_RST" "$(fmt_dur "$SECONDS")" "$RENDER_EVERY"
+
+  checks=$(bkt pr checks "$PR_ID" --json 2>/dev/null)
+  # When several pipeline runs are attached (re-runs), only expand the latest
+  # (highest build number); older ones collapse to a one-liner.
+  latest=$(latest_pipeline_build "$checks")
+  while IFS=$'\t' read -r state name url; do
+    [ -n "$name" ] || continue
+    coords=$(pipeline_coords "$url")
+    if [ -n "$coords" ]; then
+      read -r ws repo build <<< "$coords"
+      if [ -n "$latest" ] && [ "$build" != "$latest" ]; then
+        printf '%s %s  #%s  [%s] %s(superseded)%s\n' \
+          "$(cglyph "$state")" "$name" "$build" "$state" "$C_DIM" "$C_RST"
+        continue
+      fi
+      pv=$(bkt pipeline view "$build" --workspace "$ws" --repo "$repo" --json 2>/dev/null)
+      read -r ok bad run total <<< "$(printf '%s' "$pv" | jq -r '
+        [.steps[]?] as $s
+        | ([$s[] | select(.state.name=="COMPLETED" and .result.name=="SUCCESSFUL")] | length) as $ok
+        | ([$s[] | select(.state.name=="COMPLETED" and (.result.name|IN("FAILED","ERROR","STOPPED")))] | length) as $bad
+        | ([$s[] | select(.state.name=="IN_PROGRESS")] | length) as $run
+        | "\($ok) \($bad) \($run) \($s|length)"' 2>/dev/null)"
+      : "${ok:=0}" "${bad:=0}" "${run:=0}" "${total:=0}"
+      tail="${ok}/${total} done"
+      [ "$run" -gt 0 ] && tail="$tail, $run running"
+      [ "$bad" -gt 0 ] && tail="$tail, ${C_RED}${bad} failed${C_RST}"
+      printf '%s %s  #%s  %s\n' "$(cglyph "$state")" "$name" "$build" "$tail"
+      steps=$(printf '%s' "$pv" | jq -r '
+        .steps[]?
+        | (if .state.name=="COMPLETED" then .result.name else .state.name end) as $st
+        | [$st, .name] | @tsv' 2>/dev/null)
+      while IFS=$'\t' read -r st sname; do
+        [ -n "$sname" ] || continue
+        printf '    %s %s\n' "$(cglyph "$st")" "$sname"
+      done <<< "$steps"
+    else
+      printf '%s %s  [%s]\n' "$(cglyph "$state")" "$name" "$state"
+    fi
+  done < <(printf '%s' "$checks" | jq -r '.statuses[]? | [.state, .name, .url] | @tsv' 2>/dev/null)
+}
+
+# ── Restore terminal state on exit / interrupt ───────────────────────────────
+waiter=""
+cleanup() {
+  [ "$TTY" = true ] && printf '\033[?25h'          # show cursor
+  [ -n "$waiter" ] && kill "$waiter" 2>/dev/null || true
+}
+trap 'exit 130' INT TERM
+trap cleanup EXIT
+
+# ── Watch: bkt owns the authoritative wait; we render the live step view ─────
 printf 'Watching checks for PR #%s (timeout %s, poll %s)...\n' "$PR_ID" "$TIMEOUT" "$INTERVAL"
 [ -n "$PR_URL" ] && printf '%s\n' "$PR_URL"
 
+RENDER_EVERY=$(to_seconds "$INTERVAL")
+[ "$RENDER_EVERY" -lt 5 ]  && RENDER_EVERY=5
+[ "$RENDER_EVERY" -gt 20 ] && RENDER_EVERY=20
+
 wait_args=(pr checks "$PR_ID" --wait --timeout "$TIMEOUT" --interval "$INTERVAL")
 [ "$FAIL_FAST" = true ] && wait_args+=(--fail-fast)
-bkt "${wait_args[@]}"
-rc=$?
+bkt "${wait_args[@]}" >/dev/null 2>&1 &
+waiter=$!
+
+[ "$TTY" = true ] && printf '\033[?25l'            # hide cursor during redraws
+prev_lines=0
+first=true
+while kill -0 "$waiter" 2>/dev/null; do
+  block=$(render_block)
+  n=$(printf '%s\n' "$block" | wc -l | tr -d ' ')
+  if [ "$TTY" = true ]; then
+    [ "$first" = false ] && printf '\033[%dA\033[J' "$prev_lines"   # redraw in place
+  else
+    [ "$first" = false ] && printf '\n'                              # append snapshots
+  fi
+  printf '%s\n' "$block"
+  prev_lines=$n
+  first=false
+  # Sleep the refresh interval, but wake early when the waiter finishes.
+  slept=0
+  while [ "$slept" -lt "$RENDER_EVERY" ]; do
+    kill -0 "$waiter" 2>/dev/null || break
+    sleep 1; slept=$((slept + 1))
+  done
+done
+wait "$waiter"; rc=$?
+
+# Final redraw so the terminal shows the fully-resolved state.
+block=$(render_block)
+if [ "$TTY" = true ]; then
+  [ "$first" = false ] && printf '\033[%dA\033[J' "$prev_lines"
+else
+  [ "$first" = false ] && printf '\n'
+fi
+printf '%s\n' "$block"
 
 # ── Summarize outcome from the final statuses ───────────────────────────────
-summary=$(bkt pr checks "$PR_ID" --json 2>/dev/null | jq -r '
+checks_json=$(bkt pr checks "$PR_ID" --json 2>/dev/null)
+summary=$(printf '%s' "$checks_json" | jq -r '
   (.statuses // []) as $s
   | ($s | length) as $total
   | ([$s[] | select(.state == "SUCCESSFUL")] | length) as $ok
@@ -129,6 +284,18 @@ summary=$(bkt pr checks "$PR_ID" --json 2>/dev/null | jq -r '
   | "\($total)\t\($ok)\t\($pending)\t\($bad | length)\t\([$bad[].name] | join(", "))"
 ')
 IFS=$'\t' read -r total ok pending nfailed failed_names <<< "${summary:-0	0	0	0	}"
+
+# Prefer failed *step* names (more actionable) over the coarse "Pipeline ..." name.
+# Only the latest pipeline run matters for the outcome.
+failed_steps=""
+latest_coords=$(latest_pipeline_coords "$checks_json")
+if [ -n "$latest_coords" ]; then
+  read -r ws repo build <<< "$latest_coords"
+  failed_steps=$(bkt pipeline view "$build" --workspace "$ws" --repo "$repo" --json 2>/dev/null | jq -r '
+    .steps[]? | select(.state.name=="COMPLETED" and (.result.name|IN("FAILED","ERROR","STOPPED"))) | .name' \
+    | paste -sd', ' -)
+fi
+failed_detail="${failed_steps:-$failed_names}"
 
 # ── Notify + report based on exit code ──────────────────────────────────────
 case "$rc" in
@@ -139,7 +306,7 @@ case "$rc" in
   1)
     title="❌ PR #$PR_ID — checks FAILED"
     msg="${nfailed}/${total} failed"
-    [ -n "$failed_names" ] && msg="$msg: $failed_names"
+    [ -n "$failed_detail" ] && msg="$msg: $failed_detail"
     notify "$title" "$msg" "Basso" ;;
   8)
     title="⏳ PR #$PR_ID — still pending"
