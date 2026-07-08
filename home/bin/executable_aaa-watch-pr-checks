@@ -40,6 +40,10 @@
 # the Bitbucket repo so `bkt` infers workspace/repo from the git remote.
 # The live step view is Bitbucket Cloud only (uses `bkt pipeline view`); on Data
 # Center it degrades to the top-level check list.
+#
+# When checks pass inside connect-plus-backend and the `sonar` CLI (authed) is
+# on PATH, also prints each microservice's SonarCloud PR quality gate
+# (connectplus_<service>, skipping services with no analysis for this PR).
 
 set -uo pipefail
 
@@ -164,6 +168,39 @@ pipeline_coords() {
 bb_coords() {
   local u; u=$(git remote get-url origin 2>/dev/null); u=${u%.git}
   printf '%s' "$u" | sed -nE 's#.*bitbucket\.org[:/]+([^/]+)/([^/]+)$#\1 \2#p'
+}
+
+# connect-plus-backend's SonarCloud projects, one per microservice (see
+# scripts/combine_sonar.sh: `-Dsonar.projectKey=connectplus_$SERVICE_NAME`).
+SONAR_SERVICES=(auth-service clb-service config-service db-service
+  integration-service member-service note-service report-service service-discovery)
+
+# Print each service's SonarCloud PR quality-gate status. Best-effort: skips
+# quietly if `sonar` isn't installed, and skips a service with no analysis
+# for this PR (its API call returns nothing on stdout).
+print_sonar_summary() {
+  command -v sonar >/dev/null 2>&1 || return 0
+
+  printf '\n%sSonar Quality Gate%s (PR #%s)\n' "$C_BLU" "$C_RST" "$PR_ID"
+  local svc key resp status conds found=false
+  for svc in "${SONAR_SERVICES[@]}"; do
+    key="connectplus_${svc}"
+    resp=$(sonar api get "/api/qualitygates/project_status?projectKey=${key}&pullRequest=${PR_ID}" 2>/dev/null)
+    [ -n "$resp" ] || continue
+    found=true
+    status=$(printf '%s' "$resp" | jq -r '.projectStatus.status // "UNKNOWN"')
+    if [ "$status" = "OK" ]; then
+      printf '  %s✓%s %s: PASSED\n' "$C_GRN" "$C_RST" "$svc"
+    else
+      printf '  %s✗%s %s: %s\n' "$C_RED" "$C_RST" "$svc" "$status"
+      conds=$(printf '%s' "$resp" | jq -r '
+        .projectStatus.conditions[]? | select(.status != "OK")
+        | (if .comparator == "LT" then "≥" elif .comparator == "GT" then "≤" else .comparator end) as $op
+        | "      \(.metricKey): \(.actualValue // "?") (need \($op) \(.errorThreshold))"')
+      [ -n "$conds" ] && printf '%s\n' "$conds"
+    fi
+  done
+  [ "$found" = true ] || printf '  %s(no Sonar analysis found for this PR)%s\n' "$C_DIM" "$C_RST"
 }
 
 # jq prelude: ISO8601 → epoch (tolerating fractional seconds and a +00:00 offset),
@@ -375,6 +412,8 @@ case "$rc" in
     msg="bkt exited $rc"
     notify "$title" "$msg" "Funk" ;;
 esac
+
+[ "$rc" -eq 0 ] && [ "$REPO" = "connect-plus-backend" ] && print_sonar_summary
 
 printf '\n%s\n%s\n' "$title" "$msg"
 exit "$rc"
