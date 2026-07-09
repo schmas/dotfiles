@@ -96,9 +96,9 @@ if status is-interactive
     abbr --add gurd 'git up-rebase-develop'
     abbr --add gurm 'git up-rebase-main'
     abbr --add gurb --set-cursor 'git up-rebase-branch %'
-    abbr --add gud 'git update-develop'
+    abbr --add gupd 'git update-develop'
     abbr --add gupm 'git update-main'
-    abbr --add gub --set-cursor 'git update-branch %'
+    abbr --add gupb --set-cursor 'git update-branch %'
 
     # Git Tools
     abbr --add lzg lazygit
