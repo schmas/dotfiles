@@ -97,7 +97,7 @@ if status is-interactive
     abbr --add gurm 'git up-rebase-main'
     abbr --add gurb --set-cursor 'git up-rebase-branch %'
     abbr --add gud 'git update-develop'
-    abbr --add gum 'git update-main'
+    abbr --add gupm 'git update-main'
     abbr --add gub --set-cursor 'git update-branch %'
 
     # Git Tools
