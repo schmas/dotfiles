@@ -1,141 +1,128 @@
 #!/usr/bin/env bash
+# upall — update everything, with per-step banners + full-size live logs.
+#
+# Runs each tool's updater in order. Each step prints a banner (index, running
+# glyph, and an overall progress line ✓✓▶·····) then streams its output at full
+# terminal width/height — native scrollback stays intact, so scroll up any time.
+# Every executed step is also tee'd to ~/.cache/upall/<ts>/ (newest 10 runs kept);
+# on failure it offers the log in a pager and fires a desktop notification. A
+# closing summary lists every step's result and elapsed time.
+#
+# Usage:
+#   upall                 Run every applicable step, in order.
+#   upall brew mise       Run only the named steps.
+#   upall --list          List step keys and labels.
+#   upall --plain         Force plain output (no color), still tees logs.
+#   upall -h | --help     Show this help.
+#
+# Env: UPALL_KEEP=N  retain N run-log dirs under ~/.cache/upall (default 10).
+#
+# Order: os → chezmoi → brew → mise → rust → uv → claude → ck → fisher → atuin.
+# (v1 is preserved as `upall-v1`.)
 
-BOLD='\033[1m'
-DIM='\033[2m'
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-CYAN='\033[0;36m'
-NC='\033[0m'
+set -uo pipefail
 
-step_names=()
-step_results=()
+# ── Load shared engine ────────────────────────────────────────────────────────
+LIB="$HOME/bin/lib/upall-lib.sh"
+[ -f "$LIB" ] || LIB="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)/lib/upall-lib.sh"
+# shellcheck source=/dev/null
+. "$LIB" || { echo "upall: cannot load $LIB" >&2; exit 3; }
 
 set_title() { printf '\033]0;upall: %s\007' "$1"; }
+usage() { awk 'NR==1{next} /^[^#]/{exit} {sub(/^# ?/,"");print}' "$0"; }
+die() { printf 'upall: %s\n' "$*" >&2; exit 2; }
 
-section() {
-  echo
-  echo -e "${DIM}════════════════════════════════════════════════════════════════════════════════${NC}"
-  echo -e "${BOLD}${CYAN}  $1${NC}"
-  echo -e "${DIM}════════════════════════════════════════════════════════════════════════════════${NC}"
-  set_title "$1"
-}
-
-run_step() {
-  local name="$1"
-  shift
-  if "$@"; then
-    step_names+=("$name")
-    step_results+=("success")
-  else
-    step_names+=("$name")
-    step_results+=("failed")
-  fi
-}
-
-echo -e "${BOLD}Updating all the things...${NC}"
-set_title "starting"
-
-# Ask for the administrator password upfront
-sudo -v -p "Enter your sudo password:"
-
-# OS Update
-if command -v osupdate >/dev/null 2>&1; then
-  section "OS Update"
-  run_step "OS Update" osupdate
-fi
+# ── Step implementations ──────────────────────────────────────────────────────
+# Multi-command steps attempt every command and fail the step if any fails.
+# shellcheck disable=SC2329  # step_* are dispatched indirectly via STEP_FNS[] (upall-lib.sh)
+step_os()      { osupdate; }
+step_nix()     { nix-config-update; }
+step_chezmoi() { chezmoi update; }
+step_brew()    { local rc=0; brew update || rc=1; brew upgrade || rc=1; brew cleanup || rc=1; return "$rc"; }
+step_mise()    { mise up; }
+step_rust()    { local rc=0; rustup self update || rc=1; rustup update || rc=1; cargo install-update -a || rc=1; return "$rc"; }
+step_uv()      { uv tool upgrade --all; }
+step_claude()  { if command -v claude >/dev/null 2>&1; then claude update; else "$HOME/.local/bin/claude" update; fi; }
+step_ck()      { UPALL_ACTIVE=1 "$HOME/bin/ck-update"; }
+step_fisher()  { fish -c "fisher update"; }
+step_atuin()   { local rc=0; atuin history dedup --before "now" --dupkeep 1 || rc=1; atuin sync || rc=1; return "$rc"; }
 
 {{ if eq .using_nix true -}}
-# Nix config update
-if [ -d ~/.config/nix-config ]; then
-  section "Nix Config"
-  run_step "Nix Config" nix-config-update
-fi
-{{ end }}
+KNOWN="os nix chezmoi brew mise rust uv claude ck fisher atuin"
+{{- else -}}
+KNOWN="os chezmoi brew mise rust uv claude ck fisher atuin"
+{{- end }}
 
-# Brew
-if command -v brew >/dev/null 2>&1; then
-  section "Homebrew"
-  run_step "Brew update" brew update
-  run_step "Brew upgrade" brew upgrade -y
-  run_step "Brew cleanup" brew cleanup
-fi
+# ── Arg parsing ───────────────────────────────────────────────────────────────
+SELECTED=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -h|--help) usage; exit 0 ;;
+    --list)    LIST=1; shift ;;
+    --plain)   _UPALL_WANT_PLAIN=true; shift ;;
+    -*)        die "unknown option: $1 (see --help)" ;;
+    *)         SELECTED+=("$1"); shift ;;
+  esac
+done
 
-# Mise
-if command -v mise >/dev/null 2>&1; then
-  section "Mise"
-  run_step "Mise" mise up
-fi
-
-# Rust
-if command -v rustup >/dev/null 2>&1; then
-  section "Rust & Cargo"
-  run_step "Rustup self-update" rustup self update
-  run_step "Rustup update" rustup update
-  run_step "Cargo install-update" cargo install-update -a
+# Validate any requested step keys against the known set.
+if [ ${#SELECTED[@]} -gt 0 ]; then
+  for k in "${SELECTED[@]}"; do
+    case " $KNOWN " in *" $k "*) ;; *) die "unknown step: $k (known: $KNOWN)" ;; esac
+  done
 fi
 
-# uv Tools (CLIs installed via `uv tool`, e.g. headroom-ai[all] — mise can't carry extras)
-if command -v uv >/dev/null 2>&1; then
-  section "uv Tools"
-  run_step "uv tool upgrade" uv tool upgrade --all
+# Register a step only when nothing was selected or its key was selected.
+maybe() {
+  local key="$1"
+  if [ ${#SELECTED[@]} -eq 0 ]; then upall_register "$@"; return; fi
+  local s; for s in "${SELECTED[@]}"; do [ "$s" = "$key" ] && { upall_register "$@"; return; }; done
+}
+
+# Guard snippets are stored literally and eval'd at check time, so $HOME must
+# NOT expand here — single quotes are intentional.
+# shellcheck disable=SC2016
+upall_reset
+maybe os      "OS Update"    "command -v osupdate"                                 step_os
+{{ if eq .using_nix true -}}
+maybe nix     "Nix Config"   '[ -d "$HOME/.config/nix-config" ]'                    step_nix
+{{ end -}}
+maybe chezmoi "Chezmoi"      "command -v chezmoi"                                   step_chezmoi
+maybe brew    "Homebrew"     "command -v brew"                                      step_brew
+maybe mise    "Mise"         "command -v mise"                                      step_mise
+maybe rust    "Rust & Cargo" "command -v rustup"                                    step_rust
+maybe uv      "uv Tools"     "command -v uv"                                        step_uv
+maybe claude  "Claude CLI"   'command -v claude || [ -x "$HOME/.local/bin/claude" ]' step_claude
+maybe ck      "ClaudeKit"    "command -v ck"                                        step_ck
+maybe fisher  "Fisher"       'command -v fish && fish -c "functions -q fisher"'     step_fisher
+maybe atuin   "Atuin"        "command -v atuin"                                     step_atuin
+
+# ── --list ────────────────────────────────────────────────────────────────────
+if [ "${LIST:-0}" = 1 ]; then
+  [ ${#STEP_KEYS[@]} -gt 0 ] && for i in "${!STEP_KEYS[@]}"; do
+    printf '  %-10s %s\n' "${STEP_KEYS[$i]}" "${STEP_LABELS[$i]}"
+  done
+  exit 0
 fi
 
-# Chezmoi
-if command -v chezmoi >/dev/null 2>&1; then
-  section "Chezmoi"
-  run_step "Chezmoi" chezmoi update
+[ ${#STEP_KEYS[@]} -gt 0 ] || die "no matching steps to run"
+
+# ── Prime sudo only when a sudo-needing step (OS Update) is in the run set ─────
+# Prompt happens here, BEFORE the TUI starts (normal terminal, fully interactive).
+# A background keep-alive then refreshes the sudo timestamp for the whole run so
+# no password prompt ever interrupts the live TUI. It self-exits when upall does.
+SUDO_KEEPALIVE=""
+if [ -t 0 ] && printf '%s\n' "${STEP_KEYS[@]}" | grep -qx os; then
+  sudo -v -p "Enter your sudo password: " || die "sudo is required for the OS Update step"
+  ( while true; do sudo -n true 2>/dev/null; sleep 50; kill -0 "$$" 2>/dev/null || exit; done ) &
+  SUDO_KEEPALIVE=$!
 fi
 
-# Claude CLI
-if command -v claude >/dev/null 2>&1; then
-  section "Claude CLI"
-  run_step "Claude CLI" claude update
-elif [ -x "$HOME/.local/bin/claude" ]; then
-  section "Claude CLI"
-  run_step "Claude CLI" "$HOME/.local/bin/claude" update
-fi
-
-# Fisher (fish only - run if fish is available and fisher is installed)
-if command -v fish >/dev/null 2>&1 && fish -c "functions -q fisher" 2>/dev/null; then
-  section "Fisher"
-  run_step "Fisher" fish -c "fisher update"
-fi
-
-# Atuin - deduplicate history and sync
-if command -v atuin >/dev/null 2>&1; then
-  section "Atuin"
-  run_step "Atuin dedup" atuin history dedup --before "now" --dupkeep 1
-  run_step "Atuin sync" atuin sync
-fi
-
-# Summary report
+# ── Run ───────────────────────────────────────────────────────────────────────
+set_title "starting"
+upall_begin "upall"
+upall_run_all
 set_title "done"
-total=${#step_names[@]}
-passed=0
-failed=0
-for i in "${!step_results[@]}"; do
-  if [[ "${step_results[$i]}" == "success" ]]; then ((passed++)); else ((failed++)); fi
-done
-
-echo
-echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${BOLD}  Update Summary${NC}  (${passed} passed, ${failed} failed, ${total} total)"
-echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-for i in "${!step_names[@]}"; do
-  n=$((i + 1))
-  if [[ "${step_results[$i]}" == "success" ]]; then
-    icon="✅"
-    label="${GREEN}success${NC}"
-  else
-    icon="❌"
-    label="${RED}failed${NC}"
-  fi
-  printf "  %2d. %-24s %s %b\n" "$n" "${step_names[$i]}" "$icon" "$label"
-done
-echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-
-if [[ $failed -gt 0 ]]; then
-  echo -e "${RED}⚠️  ${failed} step(s) failed. Review output above.${NC}"
-else
-  echo -e "${GREEN}✅ All updates completed successfully!${NC}"
-fi
+upall_end "upall"; rc=$?
+[ -n "$SUDO_KEEPALIVE" ] && kill "$SUDO_KEEPALIVE" 2>/dev/null
+exit "$rc"

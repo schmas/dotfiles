@@ -370,7 +370,7 @@ This document provides a comprehensive reference for all aliases, functions, and
 | `asdfupdate`           | `asdf update && asdf plugin update --all && asdf-install-plugins`                                     | Update asdf and all plugins            |
 | `upprecleanup`         | `echo "No cleanup"`                                                                                   | Placeholder for cleanup before updates |
 | `osupdate`             | `echo "osupdate: OS not supported"`                                                                   | OS-specific update command             |
-| `upall`                | `asdfupdate && upchezmoi && upprecleanup && upzshplugin && osupdate`                                  | Update everything                      |
+| `upall`                | *(bin script)* TUI updater: os→chezmoi→brew→mise→rust→uv→claude→ck→fisher→atuin                       | Update everything; `--list`, `--plain`, `upall <keys>` for a subset |
 | `print-colors-palette` | `for i in {0..255}; do print -Pn "%K{$i}  %k%F{$i}${(l:3::0:)i}%f " ${${(M)$((i%6)):#3}:+"\n"}; done` | Print color palette                    |
 | `t`                    | `tail -f`                                                                                             | Tail file with follow                  |
 | `ag`                   | `antigravity-ide`                                                                                     | Launch antigravity                     |
@@ -432,7 +432,9 @@ Zsh includes all the Bash aliases plus the following:
 | `setup-claude-code`            | Sets up Claude Code CLI & configuration |
 | `setup-dotfiles-repo-url`      | Sets up dotfiles repository URL         |
 | `show-zsh-startup-files-order` | Shows the order of zsh startup files    |
-| `upall.tmpl`                   | Updates everything (template)           |
+| `upall.tmpl`                   | Update-everything TUI runner (v2)       |
+| `upall-v1.tmpl`                | Previous linear updater (kept as `upall-v1`) |
+| `lib/upall-lib.sh`             | Shared TUI/runner engine (sourced by `upall` + `ck-update`) |
 
 ### Git Scripts
 
