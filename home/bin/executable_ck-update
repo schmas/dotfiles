@@ -1,108 +1,52 @@
 #!/usr/bin/env bash
+# ck-update — refresh ClaudeKit config and reapply local customizations.
+#
+# Runs `ck init`, reapplies naming patches, restores the custom statusline, and
+# fixes script permissions. Shares the upall TUI/runner engine: standalone it
+# shows a fixed status header + live logs; when invoked by `upall`
+# (UPALL_ACTIVE=1) it runs plain and streams into upall's output.
 
-BOLD='\033[1m'
-DIM='\033[2m'
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-CYAN='\033[0;36m'
-YELLOW='\033[0;33m'
-NC='\033[0m'
+set -uo pipefail
 
-step_names=()
-step_results=()
+LIB="$HOME/bin/lib/upall-lib.sh"
+[ -f "$LIB" ] || LIB="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)/lib/upall-lib.sh"
+# shellcheck source=/dev/null
+. "$LIB" || { echo "ck-update: cannot load $LIB" >&2; exit 3; }
 
 set_title() { printf '\033]0;ck-update: %s\007' "$1"; }
 
-section() {
-  echo
-  echo -e "${DIM}════════════════════════════════════════════════════════════════════════════════${NC}"
-  echo -e "${BOLD}${CYAN}  $1${NC}"
-  echo -e "${DIM}════════════════════════════════════════════════════════════════════════════════${NC}"
-  set_title "$1"
+# ── Step implementations ──────────────────────────────────────────────────────
+# shellcheck disable=SC2329  # step_* are dispatched indirectly via STEP_FNS[] (upall-lib.sh)
+step_ckinit() {
+  ck init -g --kit engineer --yes --install-skills --prefix \
+    --docs-dir ".ck-docs" --plans-dir ".ck-plans"
 }
 
-run_step() {
-  local name="$1"
-  shift
-  if "$@"; then
-    step_names+=("$name")
-    step_results+=("success")
-  else
-    step_names+=("$name")
-    step_results+=("failed")
-  fi
+step_naming() { "$HOME/bin/ck-reapply-claude-naming"; }
+
+step_statusline() {
+  local f="$HOME/.claude/settings.json"
+  jq '.statusLine = {"type": "command", "command": "npx -y ccstatusline@latest", "padding": 0, "refreshInterval": 10}' \
+    "$f" > "$f.tmp" && mv "$f.tmp" "$f"
 }
 
-echo -e "${BOLD}Updating ClaudeKit configuration...${NC}"
+step_perms() {
+  find "$HOME/.claude" -type f \( \
+    -name '*.sh' -o -name '*.bash' -o -name '*.fish' -o -name '*.zsh' \
+    -o -name '*.ksh' -o -name '*.csh' -o -name '*.pl' -o -name '*.py' -o -name '*.rb' \
+  \) -exec chmod +x {} +
+}
+
+# ── Register + run ────────────────────────────────────────────────────────────
+upall_reset
+upall_register ckinit     "ClaudeKit init"    "command -v ck"                          step_ckinit
+upall_register naming     "Reapply naming"    '[ -x "$HOME/bin/ck-reapply-claude-naming" ]' step_naming
+upall_register statusline "Restore statusline" 'command -v jq && [ -f "$HOME/.claude/settings.json" ]' step_statusline
+upall_register perms      "Fix permissions"   '[ -d "$HOME/.claude" ]'                  step_perms
+
 set_title "starting"
-
-# Update ClaudeKit
-section "ClaudeKit"
-run_step "ClaudeKit init" ck init -g --kit engineer --yes --install-skills --prefix --docs-dir ".ck-docs" --plans-dir ".ck-plans"
-
-# Reapply custom naming patches (ck init overwrites hooks/lib)
-section "Reapply naming patches"
-run_step "Reapply naming patches" ~/bin/ck-reapply-claude-naming
-
-# Restore custom statusline
-section "Restore statusline"
-if [ -f ~/.claude/settings.json ]; then
-  if jq '.statusLine = {"type": "command", "command": "npx -y ccstatusline@latest", "padding": 0, "refreshInterval": 10}' \
-    ~/.claude/settings.json > ~/.claude/settings.json.tmp \
-    && mv ~/.claude/settings.json.tmp ~/.claude/settings.json; then
-    step_names+=("Restore statusline")
-    step_results+=("success")
-    echo -e "${GREEN}Custom statusline restored${NC}"
-  else
-    step_names+=("Restore statusline")
-    step_results+=("failed")
-  fi
-else
-  echo -e "${YELLOW}No ~/.claude/settings.json found to update${NC}"
-fi
-
-# Fix permissions on all shell scripts (plugins/hooks may lose +x after update)
-section "Fix permissions"
-run_step "Fix permissions" find ~/.claude -type f \( \
-  -name '*.sh' -o \
-  -name '*.bash' -o \
-  -name '*.fish' -o \
-  -name '*.zsh' -o \
-  -name '*.ksh' -o \
-  -name '*.csh' -o \
-  -name '*.pl' -o \
-  -name '*.py' -o \
-  -name '*.rb' \
-\) -exec chmod +x {} +
-
-# Summary report
+upall_begin "ck-update"
+upall_run_all
 set_title "done"
-total=${#step_names[@]}
-passed=0
-failed=0
-for i in "${!step_results[@]}"; do
-  if [[ "${step_results[$i]}" == "success" ]]; then ((passed++)); else ((failed++)); fi
-done
-
-echo
-echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${BOLD}  ClaudeKit Update Summary${NC}  (${passed} passed, ${failed} failed, ${total} total)"
-echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-for i in "${!step_names[@]}"; do
-  n=$((i + 1))
-  if [[ "${step_results[$i]}" == "success" ]]; then
-    icon="✅"
-    label="${GREEN}success${NC}"
-  else
-    icon="❌"
-    label="${RED}failed${NC}"
-  fi
-  printf "  %2d. %-24s %s %b\n" "$n" "${step_names[$i]}" "$icon" "$label"
-done
-echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-
-if [[ $failed -gt 0 ]]; then
-  echo -e "${RED}⚠️  ${failed} step(s) failed. Review output above.${NC}"
-else
-  echo -e "${GREEN}✅ ClaudeKit updated successfully!${NC}"
-fi
+upall_end "ck-update"
+exit $?
