@@ -4,3 +4,15 @@
 # exact = false
 # stripComponents = 1
 # refreshPeriod = "168h"
+
+# upall — the Go TUI updater, auto-fetched from the latest GitHub release.
+# Refreshes every 168h on `chezmoi apply`; force now with
+# `chezmoi apply --refresh-externals`. Pin a version by swapping
+# /latest/download/ for /download/vX.Y.Z/. The v2 bash script lives on as
+# `upall-classic` (home/bin/executable_upall-classic.tmpl).
+[".local/bin/upall"]
+  type = "archive-file"
+  url  = "https://github.com/schmas/upall/releases/latest/download/upall_{{ .chezmoi.os }}_{{ .chezmoi.arch }}.tar.gz"
+  path = "upall"
+  executable = true
+  refreshPeriod = "168h"

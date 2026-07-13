@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# upall — update everything, with per-step banners + full-size live logs.
+# upall-classic — update everything, with per-step banners + full-size live logs.
+# (v2 bash updater; superseded by the Go `upall` binary in ~/.local/bin.)
 #
 # Runs each tool's updater in order. Each step prints a banner (index, running
 # glyph, and an overall progress line ✓✓▶·····) then streams its output at full
@@ -9,11 +10,11 @@
 # closing summary lists every step's result and elapsed time.
 #
 # Usage:
-#   upall                 Run every applicable step, in order.
-#   upall brew mise       Run only the named steps.
-#   upall --list          List step keys and labels.
-#   upall --plain         Force plain output (no color), still tees logs.
-#   upall -h | --help     Show this help.
+#   upall-classic                 Run every applicable step, in order.
+#   upall-classic brew mise       Run only the named steps.
+#   upall-classic --list          List step keys and labels.
+#   upall-classic --plain         Force plain output (no color), still tees logs.
+#   upall-classic -h | --help     Show this help.
 #
 # Env: UPALL_KEEP=N  retain N run-log dirs under ~/.cache/upall (default 10).
 #
@@ -26,11 +27,11 @@ set -uo pipefail
 LIB="$HOME/bin/lib/upall-lib.sh"
 [ -f "$LIB" ] || LIB="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)/lib/upall-lib.sh"
 # shellcheck source=/dev/null
-. "$LIB" || { echo "upall: cannot load $LIB" >&2; exit 3; }
+. "$LIB" || { echo "upall-classic: cannot load $LIB" >&2; exit 3; }
 
-set_title() { printf '\033]0;upall: %s\007' "$1"; }
+set_title() { printf '\033]0;upall-classic: %s\007' "$1"; }
 usage() { awk 'NR==1{next} /^[^#]/{exit} {sub(/^# ?/,"");print}' "$0"; }
-die() { printf 'upall: %s\n' "$*" >&2; exit 2; }
+die() { printf 'upall-classic: %s\n' "$*" >&2; exit 2; }
 
 # ── Step implementations ──────────────────────────────────────────────────────
 # Multi-command steps attempt every command and fail the step if any fails.
@@ -120,9 +121,9 @@ fi
 
 # ── Run ───────────────────────────────────────────────────────────────────────
 set_title "starting"
-upall_begin "upall"
+upall_begin "upall-classic"
 upall_run_all
 set_title "done"
-upall_end "upall"; rc=$?
+upall_end "upall-classic"; rc=$?
 [ -n "$SUDO_KEEPALIVE" ] && kill "$SUDO_KEEPALIVE" 2>/dev/null
 exit "$rc"

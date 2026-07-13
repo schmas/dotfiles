@@ -101,7 +101,7 @@ Scripts automatically install packages during `chezmoi apply`:
 
 | Script | Purpose |
 |--------|---------|
-| `upall` | Master update (brew, mise, rust, chezmoi, fisher, claude) |
+| `upall` | Master update TUI (Go binary, auto-fetched to `~/.local/bin`); `upall-classic` = v2 bash fallback |
 | `osupdate` | OS-specific updates (apt/dnf/pacman/mas) |
 | `gpg-backup` / `gpg-restore-backup` | GPG key backup to 1Password |
 | `setup-atuin` | Configure history system |
