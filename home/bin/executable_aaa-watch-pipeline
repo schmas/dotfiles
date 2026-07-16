@@ -1,0 +1,424 @@
+#!/usr/bin/env bash
+# aaa-watch-pipeline — Watch a Bitbucket PR's checks OR a branch's pipelines and notify on finish.
+#
+# PR mode (default when the current branch has an open PR): wraps
+# `bkt pr checks <id> --wait` and, while it waits, renders a LIVE step-by-step
+# view of each pipeline — what's done ✓, failed ✗, running ▶, pending · — each
+# with its elapsed/run time. Fires a macOS notification on the outcome.
+#
+# Branch mode (no open PR): discovers pipelines targeting the current branch
+# directly (e.g. `develop`, which runs its own pipeline per merge) and watches
+# them with a self-implemented poll loop that mirrors bkt's wait/backoff/exit
+# contract. 0-1 running → auto-watch it (same live step view); 2+ running →
+# a numbered picker, or --all for a compact macro view of all of them.
+#
+# Notifies on BOTH success and failure — useful for long pipelines (~20 min)
+# you don't want to babysit.
+#
+# Usage:
+#   aaa-watch-pipeline [PR_ID] [options]
+#
+# Examples:
+#   aaa-watch-pipeline               # PR for the current branch, else its pipelines
+#   aaa-watch-pipeline 3636          # explicit PR id (always PR mode)
+#   aaa-watch-pipeline --timeout 1h --fail-fast
+#   aaa-watch-pipeline --all         # branch mode: macro-watch every running pipeline
+#   aaa-watch-pipeline 3636 --interval 1m --no-sound
+#
+# Options:
+#   --all              Branch mode with 2+ running pipelines: skip the picker and
+#                      watch them all at once (compact table, per-pipeline notify).
+#   --timeout <dur>    Max time to wait (default 45m). 0 = no timeout.
+#   --interval <dur>   Poll interval (default 30s; backs off to 2m). Also sets the
+#                      live-view refresh cadence (clamped to 10-30s).
+#   --fail-fast        PR mode: stop and notify on the first failed check. Branch
+#                      mode: no-op (a single pipeline has one terminal result; the
+#                      macro view runs every pipeline to completion regardless).
+#   --no-sound         Silent notification.
+#   --icon <path|url>  Notification icon (default: Bitbucket logo).
+#                      Override the default with $AAA_PR_NOTIFY_ICON.
+#   --no-icon          Use terminal-notifier's default icon.
+#   -h, --help         Show this help.
+#
+# Exit codes (mirrors `bkt pr checks --wait` in both modes):
+#   0  all checks passed / pipeline SUCCESSFUL
+#   1  a check failed / pipeline FAILED/STOPPED/ERROR
+#   8  timed out with checks/pipeline still pending
+#   9  branch mode: gave up after repeated bkt/jq failures polling the pipeline
+#   2  usage / preflight error
+#   (--all macro mode always exits 0 — outcomes are conveyed per-pipeline via
+#    notifications, not aggregated into one exit code.)
+#
+# Requires: bkt (Bitbucket CLI, authed), jq. Notifies via terminal-notifier
+# (clickable → opens the PR/pipeline, custom icon, per-outcome sound), falling
+# back to osascript (sound only). Run from inside the Bitbucket repo so `bkt`
+# infers workspace/repo from the git remote. The live step view is Bitbucket
+# Cloud only (uses `bkt pipeline view`); on Data Center it degrades gracefully.
+#
+# Inside connect-plus-backend, with the `sonar` CLI (authed) on PATH: every
+# single-target refresh also prints each microservice's SonarCloud quality gate
+# (connectplus_<service>) plus New/Accepted Issues, Security Hotspots, Coverage,
+# and Duplications — PR-scoped in PR mode, branch-scoped in branch mode. (Branch
+# mode's "new code" means the project's configured new-code period, not a PR
+# diff. The macro --all view omits Sonar.)
+
+set -uo pipefail
+
+# ── Shared lib (mirror upall-lib.sh's sourcing pattern, error clause included:
+#    a missing/broken lib must exit cleanly, not fail on the first call) ───────
+LIB="$HOME/bin/lib/aaa-watch-pipeline-lib.sh"
+[ -f "$LIB" ] || LIB="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)/lib/aaa-watch-pipeline-lib.sh"
+# shellcheck source=/dev/null
+source "$LIB" || { echo "aaa-watch-pipeline: could not load $LIB" >&2; exit 3; }
+
+# ── Defaults ────────────────────────────────────────────────────────────────
+PR_ID=""
+TIMEOUT="45m"
+INTERVAL="30s"
+FAIL_FAST=false
+ALL_MODE=false
+SOUND=true
+# Notification icon: env override wins, else official Bitbucket logo (terminal-notifier
+# downloads + caches it; if unreachable it silently falls back to its default icon).
+ICON="${AAA_PR_NOTIFY_ICON:-https://wac-cdn.atlassian.com/assets/img/favicons/bitbucket/android-chrome-192x192.png}"
+# Consecutive bkt/jq poll failures (branch mode) before giving up with exit 9.
+: "${AAA_POLL_MAX_FAILS:=3}"
+
+# Print the leading comment block (the header above) as help, minus the shebang.
+usage() { awk 'NR==1{next} /^[^#]/{exit} {sub(/^# ?/,"");print}' "$0"; }
+
+die() { printf 'error: %s\n' "$*" >&2; exit 2; }
+
+# ── Arg parsing ─────────────────────────────────────────────────────────────
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --all)       ALL_MODE=true; shift ;;
+    --timeout)   TIMEOUT="${2:-}"; shift 2 ;;
+    --interval)  INTERVAL="${2:-}"; shift 2 ;;
+    --fail-fast) FAIL_FAST=true; shift ;;
+    --no-sound)  SOUND=false; shift ;;
+    --icon)      ICON="${2:-}"; shift 2 ;;
+    --no-icon)   ICON=""; shift ;;
+    -h|--help)   usage; exit 0 ;;
+    -*)          die "unknown option: $1 (see --help)" ;;
+    *)
+      [ -z "$PR_ID" ] || die "unexpected argument: $1"
+      PR_ID="$1"; shift ;;
+  esac
+done
+
+# ── Preflight ───────────────────────────────────────────────────────────────
+command -v bkt >/dev/null 2>&1 || die "bkt not found (Bitbucket CLI). Install and run 'bkt auth login'."
+command -v jq  >/dev/null 2>&1 || die "jq not found."
+
+# ── notify <title> <message> <sound-name> <group-key> <click-url> ────────────
+# Group key + click-URL are explicit so branch/macro mode can key each pipeline's
+# notification independently (a per-build key stops terminal-notifier from
+# silently replacing an unread FAILED notification with a later one).
+notify() {
+  local title="$1" message="$2" sound_name="$3" group="$4" url="$5"
+  if command -v terminal-notifier >/dev/null 2>&1; then
+    local args=(-title "$title" -message "$message" -group "$group")
+    [ "$SOUND" = true ] && args+=(-sound "$sound_name")
+    [ -n "$ICON" ] && args+=(-appIcon "$ICON")
+    [ -n "$url" ] && args+=(-open "$url")
+    terminal-notifier "${args[@]}" >/dev/null 2>&1
+  elif command -v osascript >/dev/null 2>&1; then
+    # osascript can't set an icon/URL; sound only. Escape backslash then quote so
+    # free-text (branch/pipeline names) can't break out of the AppleScript string
+    # — one escaping path for every caller, no second unescaped string builder.
+    local m="${message//\\/\\\\}" ti="${title//\\/\\\\}"
+    m="${m//\"/\\\"}"; ti="${ti//\"/\\\"}"
+    local script="display notification \"$m\" with title \"$ti\""
+    [ "$SOUND" = true ] && script="$script sound name \"$sound_name\""
+    osascript -e "$script" >/dev/null 2>&1
+  fi
+}
+
+# ── Shared live redraw loop ──────────────────────────────────────────────────
+# live_redraw_loop RENDER_FN — redraw RENDER_FN's output in place every
+# RENDER_EVERY seconds until $waiter (a backgrounded job) exits, then one final
+# redraw of the resolved state. Reused by PR mode (waiter = bkt --wait) and
+# branch single-target mode (waiter = poll_pipeline). Caller sets $waiter and
+# reaps it with `wait` afterward.
+live_redraw_loop() {
+  local render_fn="$1" prev_lines=0 first=true block n slept
+  [ "$TTY" = true ] && printf '\033[?25l'            # hide cursor during redraws
+  while kill -0 "$waiter" 2>/dev/null; do
+    block=$("$render_fn")
+    n=$(printf '%s\n' "$block" | wc -l | tr -d ' ')
+    if [ "$TTY" = true ]; then
+      [ "$first" = false ] && printf '\033[%dA\033[J' "$prev_lines"   # redraw in place
+    else
+      [ "$first" = false ] && printf '\n'                              # append snapshots
+    fi
+    printf '%s\n' "$block"
+    prev_lines=$n
+    first=false
+    # Sleep the refresh interval, but wake early when the waiter finishes.
+    slept=0
+    while [ "$slept" -lt "$RENDER_EVERY" ]; do
+      kill -0 "$waiter" 2>/dev/null || break
+      sleep 1; slept=$((slept + 1))
+    done
+  done
+  # Final redraw so the terminal shows the fully-resolved state.
+  block=$("$render_fn")
+  if [ "$TTY" = true ]; then
+    [ "$first" = false ] && printf '\033[%dA\033[J' "$prev_lines"
+  else
+    [ "$first" = false ] && printf '\n'
+  fi
+  printf '%s\n' "$block"
+}
+
+# ── Restore terminal state on exit / interrupt ───────────────────────────────
+waiter=""
+# shellcheck disable=SC2329  # invoked indirectly by the EXIT trap below
+cleanup() {
+  [ "$TTY" = true ] && printf '\033[?25h'          # show cursor
+  [ -n "$waiter" ] && kill "$waiter" 2>/dev/null || true
+}
+trap 'exit 130' INT TERM
+trap cleanup EXIT
+
+# ── PR mode ──────────────────────────────────────────────────────────────────
+# bkt owns the authoritative wait; we render the live step view alongside it.
+run_pr_mode() {
+  local group="aaa-pr-checks-$PR_ID"
+
+  # PR web URL (for a clickable notification).
+  PR_URL=$(bkt pr view "$PR_ID" --json 2>/dev/null \
+    | jq -r --arg id "$PR_ID" \
+        '[.. | objects | .href? // empty] | map(select(endswith("/pull-requests/" + $id))) | first // empty')
+
+  printf 'Watching checks for PR #%s (timeout %s, poll %s)...\n' "$PR_ID" "$TIMEOUT" "$INTERVAL"
+  [ -n "$PR_URL" ] && printf '%s\n' "$PR_URL"
+
+  # The PR head commit is fixed for the run, so resolve the sha once (best-effort;
+  # timing degrades gracefully to a no-timestamp view if it can't be resolved).
+  # shellcheck disable=SC2034  # read as a free variable by render_block in the lib
+  SHA=$(bkt pr checks "$PR_ID" --json 2>/dev/null | jq -r '.commit // empty')
+
+  local wait_args
+  wait_args=(pr checks "$PR_ID" --wait --timeout "$TIMEOUT" --interval "$INTERVAL")
+  [ "$FAIL_FAST" = true ] && wait_args+=(--fail-fast)
+  bkt "${wait_args[@]}" >/dev/null 2>&1 &
+  waiter=$!
+
+  live_redraw_loop render_block
+  wait "$waiter"; local rc=$?
+
+  # ── Summarize outcome from the final statuses ──────────────────────────────
+  local checks_json summary total ok pending nfailed failed_names
+  checks_json=$(bkt pr checks "$PR_ID" --json 2>/dev/null)
+  summary=$(printf '%s' "$checks_json" | jq -r '
+    (.statuses // []) as $s
+    | ($s | length) as $total
+    | ([$s[] | select(.state == "SUCCESSFUL")] | length) as $ok
+    | ([$s[] | select(.state == "INPROGRESS")] | length) as $pending
+    | ([$s[] | select(.state == "FAILED" or .state == "STOPPED")]) as $bad
+    | "\($total)\t\($ok)\t\($pending)\t\($bad | length)\t\([$bad[].name] | join(", "))"')
+  IFS=$'\t' read -r total ok pending nfailed failed_names <<< "${summary:-0	0	0	0	}"
+
+  # From the latest pipeline run (the one that decides the outcome): its total
+  # run time, and the names of any failed steps (more actionable than the coarse
+  # "Pipeline ..." status name).
+  local failed_steps="" pipe_time="" latest_coords ws repo build pv failed_detail pipe_suffix
+  latest_coords=$(latest_pipeline_coords "$checks_json")
+  if [ -n "$latest_coords" ]; then
+    read -r ws repo build <<< "$latest_coords"
+    pv=$(bkt pipeline view "$build" --workspace "$ws" --repo "$repo" --json 2>/dev/null)
+    failed_steps=$(printf '%s' "$pv" | jq -r '
+      .steps[]? | select(.state.name=="COMPLETED" and (.result.name|IN("FAILED","ERROR","STOPPED"))) | .name' \
+      | paste -sd', ' -)
+    pipe_time=$(printf '%s' "$pv" | jq -r "$JQ_TIME"'
+      .pipeline | (.created_on|ep) as $c
+      | if (.completed_on // "") != "" then (((.completed_on|ep) - $c)|hms) else "" end' 2>/dev/null)
+  fi
+  failed_detail="${failed_steps:-$failed_names}"
+  [ -n "$pipe_time" ] && pipe_suffix=" · pipeline ran $pipe_time" || pipe_suffix=""
+
+  # ── Notify + report based on exit code ─────────────────────────────────────
+  local title msg
+  case "$rc" in
+    0)
+      title="✅ PR #$PR_ID — checks passed"
+      msg="${ok}/${total} builds OK${pipe_suffix}"
+      notify "$title" "$msg" "Glass" "$group" "$PR_URL" ;;
+    1)
+      title="❌ PR #$PR_ID — checks FAILED"
+      msg="${nfailed}/${total} failed"
+      [ -n "$failed_detail" ] && msg="$msg: $failed_detail"
+      msg="$msg${pipe_suffix}"
+      notify "$title" "$msg" "Basso" "$group" "$PR_URL" ;;
+    8)
+      title="⏳ PR #$PR_ID — still pending"
+      msg="Timed out after $TIMEOUT; $pending still running"
+      notify "$title" "$msg" "Funk" "$group" "$PR_URL" ;;
+    *)
+      title="⚠️ PR #$PR_ID — watch error"
+      msg="bkt exited $rc"
+      notify "$title" "$msg" "Funk" "$group" "$PR_URL" ;;
+  esac
+
+  printf '\n%s\n%s\n' "$title" "$msg"
+  exit "$rc"
+}
+
+# ── Branch mode: single-target live render ───────────────────────────────────
+# No-arg render fn for live_redraw_loop. Renders the same per-pipeline depth as
+# PR mode (state="" → render_pipeline_detail derives the live glyph from its own
+# pipeline-view fetch — the staleness safety net, no redundant call), plus
+# branch-scoped Sonar inside connect-plus-backend.
+# shellcheck disable=SC2329  # invoked indirectly by live_redraw_loop via "$render_fn"
+render_branch_single() {
+  printf '%s%s%s  %s elapsed  (refresh %ss, Ctrl-C to stop)\n' \
+    "$C_BLU" "$BRANCH_HEADER" "$C_RST" "$(fmt_dur "$SECONDS")" "$RENDER_EVERY"
+  render_pipeline_detail "$WS" "$REPO" "$TARGET_BUILD" "" "$BRANCH"
+  [ "$REPO" = "connect-plus-backend" ] && print_sonar_summary branch "$BRANCH"
+}
+
+# ── Branch mode: watch one pipeline build to completion ──────────────────────
+watch_branch_single() {
+  BRANCH_HEADER="branch ${BRANCH} · pipeline #${TARGET_BUILD}"
+  local url="https://bitbucket.org/${WS}/${REPO}/pipelines/results/${TARGET_BUILD}"
+  local group="aaa-pipeline-${REPO}-${TARGET_BUILD}"
+
+  printf 'Watching pipeline #%s on branch %s (timeout %s, poll %s)...\n' \
+    "$TARGET_BUILD" "$BRANCH" "$TIMEOUT" "$INTERVAL"
+  printf '%s\n' "$url"
+
+  poll_pipeline "$WS" "$REPO" "$TARGET_BUILD" "$TIMEOUT" "$INTERVAL" "2m" &
+  waiter=$!
+  live_redraw_loop render_branch_single
+  wait "$waiter"; local rc=$?
+
+  # Final outcome from the resolved pipeline: result, failed step names, run time.
+  local pv res failed_steps pipe_time pipe_suffix title msg
+  pv=$(bkt pipeline view "$TARGET_BUILD" --workspace "$WS" --repo "$REPO" --json 2>/dev/null)
+  res=$(printf '%s' "$pv" | jq -r '.pipeline.state.result.name // empty' 2>/dev/null)
+  failed_steps=$(printf '%s' "$pv" | jq -r '
+    .steps[]? | select(.state.name=="COMPLETED" and (.result.name|IN("FAILED","ERROR","STOPPED"))) | .name' \
+    | paste -sd', ' -)
+  pipe_time=$(printf '%s' "$pv" | jq -r "$JQ_TIME"'
+    .pipeline | (.created_on|ep) as $c
+    | if (.completed_on // "") != "" then (((.completed_on|ep) - $c)|hms) else "" end' 2>/dev/null)
+  [ -n "$pipe_time" ] && pipe_suffix=" · pipeline ran $pipe_time" || pipe_suffix=""
+
+  case "$rc" in
+    0)
+      title="✅ ${REPO} #${TARGET_BUILD} — pipeline passed (${BRANCH})"
+      msg="build ${TARGET_BUILD} SUCCESSFUL${pipe_suffix}"
+      notify "$title" "$msg" "Glass" "$group" "$url" ;;
+    1)
+      title="❌ ${REPO} #${TARGET_BUILD} — pipeline FAILED (${BRANCH})"
+      msg="build ${TARGET_BUILD} ${res:-failed}"
+      [ -n "$failed_steps" ] && msg="$msg: $failed_steps"
+      msg="$msg${pipe_suffix}"
+      notify "$title" "$msg" "Basso" "$group" "$url" ;;
+    8)
+      title="⏳ ${REPO} #${TARGET_BUILD} — still running (${BRANCH})"
+      msg="Timed out after $TIMEOUT"
+      notify "$title" "$msg" "Funk" "$group" "$url" ;;
+    9)
+      title="⚠️ ${REPO} #${TARGET_BUILD} — watch error (${BRANCH})"
+      msg="gave up after repeated bkt/jq failures polling the pipeline"
+      notify "$title" "$msg" "Funk" "$group" "$url" ;;
+    *)
+      title="⚠️ ${REPO} #${TARGET_BUILD} — watch error (${BRANCH})"
+      msg="poll exited $rc"
+      notify "$title" "$msg" "Funk" "$group" "$url" ;;
+  esac
+
+  printf '\n%s\n%s\n' "$title" "$msg"
+  exit "$rc"
+}
+
+# ── Branch mode: discover + dispatch ─────────────────────────────────────────
+run_branch_mode() {
+  [ -n "$BRANCH" ] || die "not in a git repo and no PR id given. Pass a PR id: aaa-watch-pipeline <id>"
+  { [ -n "$WS" ] && [ -n "$REPO" ]; } \
+    || die "could not resolve Bitbucket workspace/repo from the origin remote."
+
+  local disc rc
+  disc=$(discover_branch_pipelines "$WS" "$REPO" "$BRANCH"); rc=$?
+  case "$rc" in
+    1) die "could not fetch pipelines (check 'bkt auth status' and run inside the Bitbucket repo)." ;;
+    2) die "no pipeline for branch '$BRANCH' in the last 50 pipelines (a match may exist further back in history)." ;;
+    3) die "no pipelines found for $WS/$REPO." ;;
+  esac
+
+  # Split the discovered rows into all-matching and the running subset.
+  local -a all_rows=() running_rows=()
+  local line build state
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    all_rows+=("$line")
+    IFS=$'\t' read -r build state _ _ <<< "$line"
+    case "$state" in PENDING|IN_PROGRESS) running_rows+=("$line") ;; esac
+  done <<< "$disc"
+
+  local running_count="${#running_rows[@]}" target_row=""
+
+  # 2+ running: macro-watch all (--all) or pick one.
+  if [ "$running_count" -ge 2 ]; then
+    if [ "$ALL_MODE" = true ]; then
+      # MACRO_BRANCH/MACRO_QUEUE are read by run_macro_watch/render_macro_table in the lib.
+      # shellcheck disable=SC2034
+      MACRO_BRANCH="$BRANCH"
+      # shellcheck disable=SC2034
+      MACRO_QUEUE=(${running_rows[@]+"${running_rows[@]}"})
+      printf 'Watching %d running pipelines on %s (--all, timeout %s)...\n' \
+        "$running_count" "$BRANCH" "$TIMEOUT"
+      run_macro_watch "$TIMEOUT"
+      exit 0
+    fi
+    run_picker ${running_rows[@]+"${running_rows[@]}"}
+    for line in "${all_rows[@]}"; do
+      IFS=$'\t' read -r build _ _ _ <<< "$line"
+      [ "$build" = "$PICK_BUILD" ] && { target_row="$line"; break; }
+    done
+  elif [ "$running_count" -eq 1 ]; then
+    target_row="${running_rows[0]}"
+  else
+    # Nothing running → watch the most-recent matching pipeline (already finished;
+    # poll_pipeline resolves it immediately with its stored outcome).
+    target_row="${all_rows[0]}"
+  fi
+
+  IFS=$'\t' read -r TARGET_BUILD _ _ _ <<< "$target_row"
+  # A pipeline build id is always digits. If a future discovery-format change
+  # ever collapsed the TSV fields (see the field-order note in the lib), fail
+  # loud here instead of silently watching a garbage build.
+  [[ "$TARGET_BUILD" =~ ^[0-9]+$ ]] \
+    || die "could not resolve a pipeline build number for branch '$BRANCH' (got '$TARGET_BUILD')"
+  watch_branch_single
+}
+
+# ── Resolve workspace/repo + branch up front (branch mode needs them before any
+#    PR lookup) ────────────────────────────────────────────────────────────────
+read -r WS REPO <<< "$(bb_coords)"
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
+
+RENDER_EVERY=$(to_seconds "$INTERVAL")
+[ "$RENDER_EVERY" -lt 10 ] && RENDER_EVERY=10
+[ "$RENDER_EVERY" -gt 30 ] && RENDER_EVERY=30
+
+# ── Mode selection: explicit PR id, else auto-detect an open PR, else branch ─
+if [ -z "$PR_ID" ]; then
+  [ -n "$BRANCH" ] || die "not in a git repo; pass a PR id: aaa-watch-pipeline <id>"
+  pr_json=$(bkt pr list --json 2>/dev/null) \
+    || die "could not list PRs (check 'bkt auth status' and run inside the Bitbucket repo)."
+  PR_ID=$(printf '%s' "$pr_json" \
+    | jq -r --arg b "$BRANCH" \
+        'first((.pull_requests // [])[] | select(.source.branch.name == $b) | .id) // empty')
+  [ -n "$PR_ID" ] && printf 'Auto-detected PR #%s for branch %s\n' "$PR_ID" "$BRANCH"
+fi
+
+if [ -n "$PR_ID" ]; then
+  run_pr_mode
+else
+  printf 'No open PR for branch %s — watching branch pipelines.\n' "$BRANCH"
+  run_branch_mode
+fi
