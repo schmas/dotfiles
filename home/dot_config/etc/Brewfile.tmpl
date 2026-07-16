@@ -115,7 +115,7 @@ brew "procs"          # Modern ps replacement
 # ── Networking ────────────────────────────────────────────────────────────
 brew "curl"
 brew "wget"
-brew "inetutils"      # Network utilities
+brew "inetutils", link: false # Network utilities (unlinked: gping binary conflicts with standalone gping)
 brew "bind"           # DNS tools (dig)
 brew "wishlist"       # SSH endpoint directory (charmbracelet)
 

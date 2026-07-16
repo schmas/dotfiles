@@ -4,7 +4,9 @@
 exit 0
 {{ end }}
 
-# Brewfile hash: {{ include "Brewfile.tmpl" | sha256sum }}
+# Brewfile hash: {{ include "dot_config/etc/Brewfile.tmpl" | sha256sum }}
+# (raw source hash, just to retrigger this run_onchange script on edits —
+# the actual Brewfile content used below comes from `chezmoi cat`, not this)
 
 set -e
 set -u
@@ -23,29 +25,30 @@ if ! command -v brew &> /dev/null; then
   exit 1
 fi
 
-# Use the deployed Brewfile (rendered from Brewfile.tmpl by chezmoi).
-# On a truly fresh install this file won't exist yet — the warning below handles that gracefully,
-# and brew bundle will run on the next chezmoi apply once the file is deployed.
-BREWFILE="$HOME/Brewfile"
-
-if [[ ! -f "$BREWFILE" ]]; then
-  echo "Warning: Brewfile not found at $BREWFILE"
-  echo "Skipping package installation"
-  exit 0
-fi
-
 echo "Installing packages from Brewfile..."
+
+# Rendered fresh via `chezmoi cat` (not read from the deployed file) so this
+# run always uses current source state. The deployed file is a regular
+# managed target, written only after this run_before script finishes, so
+# reading it here would race a stale copy on the same apply that edited
+# Brewfile.tmpl.
+BREWFILE="$(mktemp)"
+chezmoi cat ~/.config/etc/Brewfile > "$BREWFILE"
+
+SUDO_REFRESH_PID=""
+cleanup() {
+  rm -f "$BREWFILE"
+  [[ -n "$SUDO_REFRESH_PID" ]] && kill "$SUDO_REFRESH_PID" 2>/dev/null || true
+}
+trap cleanup EXIT INT TERM
 
 # Ask for sudo password once upfront and keep the session alive
 # so cask installs don't repeatedly prompt
 if sudo --validate 2>/dev/null; then
-  # Refresh sudo timestamp in the background until this script exits. The inner
-  # `|| true` keeps the loop alive under `set -e` if a refresh ever fails, and
-  # the trap's `|| true` stops a kill of an already-dead PID from becoming the
-  # script's exit status (bash propagates the EXIT trap's last command status).
+  # Refresh sudo timestamp in the background until this script exits. The
+  # `|| true` keeps the loop alive under `set -e` if a refresh ever fails.
   while true; do sudo --non-interactive --validate || true; sleep 30; done &
   SUDO_REFRESH_PID=$!
-  trap 'kill "$SUDO_REFRESH_PID" 2>/dev/null || true' EXIT INT TERM
 fi
 
 # Install + trust taps first so brew bundle can resolve all formulae

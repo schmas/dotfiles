@@ -54,7 +54,7 @@ zzz-* Fish late-load (Mise, FZF)
 
 ```
 home/
-├── Brewfile                 # All packages (brews + casks)
+├── dot_config/etc/Brewfile.tmpl  # All packages (brews + casks)
 ├── private_fish/conf.d/     # Fish shell modules
 ├── private_zsh/conf.d/      # Zsh shell modules
 ├── private_bash/conf.d/     # Bash shell modules
@@ -67,13 +67,13 @@ home/
 
 ## Package Management
 
-Packages are managed via `~/Brewfile` (Homebrew):
+Packages are managed via `~/.config/etc/Brewfile` (Homebrew):
 ```bash
 # Add a package
-echo 'brew "package-name"' >> home/Brewfile
+echo 'brew "package-name"' >> home/dot_config/etc/Brewfile.tmpl
 
 # Add a macOS app
-echo 'cask "app-name"' >> home/Brewfile
+echo 'cask "app-name"' >> home/dot_config/etc/Brewfile.tmpl
 
 # Apply changes
 chezmoi apply
