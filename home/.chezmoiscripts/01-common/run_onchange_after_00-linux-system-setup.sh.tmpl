@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Brewfile hash: {{ include "Brewfile.tmpl" | sha256sum }}
+# Brewfile hash: {{ include "dot_config/etc/Brewfile.tmpl" | sha256sum }}
 {{ if eq .chezmoi.os "darwin" }}
 # Skip on macOS
 exit 0
@@ -120,7 +120,7 @@ fi
 # Install packages via Homebrew
 # =============================================================================
 
-BREWFILE="$HOME/Brewfile"
+BREWFILE="$HOME/.config/etc/Brewfile"
 if [[ -f "$BREWFILE" ]]; then
   # Install + trust taps first so brew bundle can resolve all formulae
 {{ template "brew-trust-taps" . }}

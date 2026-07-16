@@ -133,7 +133,7 @@ During `chezmoi init`, you'll select:
 ### What Gets Installed
 
 Automatic scripts handle:
-- **Homebrew packages** - CLI tools and macOS apps via `~/Brewfile`
+- **Homebrew packages** - CLI tools and macOS apps via `~/.config/etc/Brewfile`
 - **macOS defaults** - System preferences, Dock configuration, Touch ID sudo
 - **Linux setup** - Native packages, Homebrew on Linux, WSL integration
 - **1Password CLI** - Setup and account configuration

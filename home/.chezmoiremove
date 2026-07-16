@@ -8,3 +8,6 @@
 # Old podman->docker shim: `docker` is now the real Homebrew client (remote daemon
 # via context). macOS-only — `bin/macos` is already .chezmoiignore'd on Linux.
 bin/macos/docker
+
+# Brewfile moved to .config/etc/Brewfile
+Brewfile

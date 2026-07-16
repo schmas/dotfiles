@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install packages from ~/Brewfile using Homebrew Bundle
+# Install packages from ~/.config/etc/Brewfile using Homebrew Bundle
 
 set -e
 set -u
@@ -16,7 +16,7 @@ if ! command -v brew &> /dev/null; then
   exit 1
 fi
 
-BREWFILE="${HOME}/Brewfile"
+BREWFILE="${HOME}/.config/etc/Brewfile"
 
 if [[ ! -f "$BREWFILE" ]]; then
   echo "Error: Brewfile not found at $BREWFILE"
