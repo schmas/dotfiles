@@ -197,8 +197,15 @@ run_pr_mode() {
 
   # The PR head commit is fixed for the run, so resolve the sha once (best-effort;
   # timing degrades gracefully to a no-timestamp view if it can't be resolved).
-  # shellcheck disable=SC2034  # read as a free variable by render_block in the lib
-  SHA=$(bkt pr checks "$PR_ID" --json 2>/dev/null | jq -r '.commit // empty')
+  # The same snapshot tells us whether any check was still running at the start:
+  # if every check is already terminal, suppress the finish notification below —
+  # no banner for checks that finished before you looked.
+  local initial_checks pending_at_start pr_was_running=false
+  initial_checks=$(bkt pr checks "$PR_ID" --json 2>/dev/null)
+  # shellcheck disable=SC2034  # SHA is read as a free variable by render_block in the lib
+  SHA=$(printf '%s' "$initial_checks" | jq -r '.commit // empty')
+  pending_at_start=$(printf '%s' "$initial_checks" | jq -r '[.statuses[]? | select(.state=="INPROGRESS")] | length' 2>/dev/null)
+  [ "${pending_at_start:-0}" -gt 0 ] && pr_was_running=true
 
   local wait_args
   wait_args=(pr checks "$PR_ID" --wait --timeout "$TIMEOUT" --interval "$INTERVAL")
@@ -245,14 +252,15 @@ run_pr_mode() {
     0)
       title="✅ PR #$PR_ID — checks passed"
       msg="${ok}/${total} builds OK${pipe_suffix}"
-      notify "$title" "$msg" "Glass" "$group" "$PR_URL" ;;
+      [ "$pr_was_running" = true ] && notify "$title" "$msg" "Glass" "$group" "$PR_URL" ;;
     1)
       title="❌ PR #$PR_ID — checks FAILED"
       msg="${nfailed}/${total} failed"
       [ -n "$failed_detail" ] && msg="$msg: $failed_detail"
       msg="$msg${pipe_suffix}"
-      notify "$title" "$msg" "Basso" "$group" "$PR_URL" ;;
+      [ "$pr_was_running" = true ] && notify "$title" "$msg" "Basso" "$group" "$PR_URL" ;;
     8)
+      # Only reachable while a check was still running → always notify.
       title="⏳ PR #$PR_ID — still pending"
       msg="Timed out after $TIMEOUT; $pending still running"
       notify "$title" "$msg" "Funk" "$group" "$PR_URL" ;;
@@ -263,6 +271,9 @@ run_pr_mode() {
   esac
 
   printf '\n%s\n%s\n' "$title" "$msg"
+  # Explain the missing banner when we deliberately stayed silent (already done).
+  { [ "$pr_was_running" = false ] && { [ "$rc" = 0 ] || [ "$rc" = 1 ]; }; } \
+    && printf '%s(checks already finished before watch started — no notification sent)%s\n' "$C_DIM" "$C_RST"
   exit "$rc"
 }
 
@@ -310,14 +321,15 @@ watch_branch_single() {
     0)
       title="✅ ${REPO} #${TARGET_BUILD} — pipeline passed (${BRANCH})"
       msg="build ${TARGET_BUILD} SUCCESSFUL${pipe_suffix}"
-      notify "$title" "$msg" "Glass" "$group" "$url" ;;
+      [ "$TARGET_WAS_RUNNING" = true ] && notify "$title" "$msg" "Glass" "$group" "$url" ;;
     1)
       title="❌ ${REPO} #${TARGET_BUILD} — pipeline FAILED (${BRANCH})"
       msg="build ${TARGET_BUILD} ${res:-failed}"
       [ -n "$failed_steps" ] && msg="$msg: $failed_steps"
       msg="$msg${pipe_suffix}"
-      notify "$title" "$msg" "Basso" "$group" "$url" ;;
+      [ "$TARGET_WAS_RUNNING" = true ] && notify "$title" "$msg" "Basso" "$group" "$url" ;;
     8)
+      # Only reachable while the pipeline was still running → always notify.
       title="⏳ ${REPO} #${TARGET_BUILD} — still running (${BRANCH})"
       msg="Timed out after $TIMEOUT"
       notify "$title" "$msg" "Funk" "$group" "$url" ;;
@@ -332,6 +344,9 @@ watch_branch_single() {
   esac
 
   printf '\n%s\n%s\n' "$title" "$msg"
+  # Explain the missing banner when we deliberately stayed silent (already done).
+  { [ "$TARGET_WAS_RUNNING" = false ] && { [ "$rc" = 0 ] || [ "$rc" = 1 ]; }; } \
+    && printf '%s(already finished before watch started — no notification sent)%s\n' "$C_DIM" "$C_RST"
   exit "$rc"
 }
 
@@ -359,7 +374,7 @@ run_branch_mode() {
     case "$state" in PENDING|IN_PROGRESS) running_rows+=("$line") ;; esac
   done <<< "$disc"
 
-  local running_count="${#running_rows[@]}" target_row=""
+  local running_count="${#running_rows[@]}" target_row="" target_disc_state=""
 
   # 2+ running: macro-watch all (--all) or pick one.
   if [ "$running_count" -ge 2 ]; then
@@ -387,12 +402,20 @@ run_branch_mode() {
     target_row="${all_rows[0]}"
   fi
 
-  IFS=$'\t' read -r TARGET_BUILD _ _ _ <<< "$target_row"
+  IFS=$'\t' read -r TARGET_BUILD target_disc_state _ _ <<< "$target_row"
   # A pipeline build id is always digits. If a future discovery-format change
   # ever collapsed the TSV fields (see the field-order note in the lib), fail
   # loud here instead of silently watching a garbage build.
   [[ "$TARGET_BUILD" =~ ^[0-9]+$ ]] \
     || die "could not resolve a pipeline build number for branch '$BRANCH' (got '$TARGET_BUILD')"
+  # Only notify on a finish we actually witnessed. If the target was already
+  # terminal at discovery (the "nothing running, show the last build" case), its
+  # result is on screen already — a banner for a pipeline that finished before
+  # you looked is just noise, so watch_branch_single suppresses it.
+  case "$target_disc_state" in
+    PENDING|IN_PROGRESS) TARGET_WAS_RUNNING=true ;;
+    *)                   TARGET_WAS_RUNNING=false ;;
+  esac
   watch_branch_single
 }
 
