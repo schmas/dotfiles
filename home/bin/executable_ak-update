@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+# ak-update — refresh AgentKit (binary + global engineer kit) and reapply local
+# customizations.
+#
+# Successor to ck-update. AgentKit split the old monolithic `ck init` into
+# separate binary + kit operations, so this runs:
+#   1. `ak self-update`                       — update the ak binary
+#   2. `ak kit refresh engineer --global`      — refresh the global engineer kit
+#   3. restore the custom statusline
+#   4. fix script permissions
+#
+# The engineer kit is a paid remote kit: steps 1-2 need a valid `ak login`
+# session. Shares the upall TUI/runner engine: standalone it shows a fixed
+# status header + live logs; when invoked by `upall` (UPALL_ACTIVE=1) it runs
+# plain and streams into upall's output.
+#
+# Usage: ak-update [--dry-run|-n]
+#   --dry-run  Preview only — binary uses `--check`, kit refresh is echoed,
+#              and local customizations are described but not written.
+
+set -uo pipefail
+
+DRY_RUN=0
+for arg in "$@"; do
+  case "$arg" in
+    -n|--dry-run) DRY_RUN=1 ;;
+    -h|--help) sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) echo "ak-update: unknown option: $arg (see --help)" >&2; exit 2 ;;
+  esac
+done
+
+LIB="$HOME/bin/lib/upall-lib.sh"
+[ -f "$LIB" ] || LIB="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)/lib/upall-lib.sh"
+# shellcheck source=/dev/null
+. "$LIB" || { echo "ak-update: cannot load $LIB" >&2; exit 3; }
+
+set_title() { printf '\033]0;ak-update: %s\007' "$1"; }
+dry_note()  { printf '  \033[2m(dry-run)\033[0m would run: %s\n' "$*"; }
+
+# ── Step implementations ──────────────────────────────────────────────────────
+# shellcheck disable=SC2329  # step_* are dispatched indirectly via STEP_FNS[] (upall-lib.sh)
+step_binary() {
+  if [ "$DRY_RUN" = 1 ]; then
+    ak self-update --check
+  else
+    ak self-update --yes
+  fi
+}
+
+step_kit() {
+  if [ "$DRY_RUN" = 1 ]; then
+    dry_note "ak kit refresh engineer --global --yes"
+    # kit refresh has no dry-run flag; surface drift/integrity read-only instead.
+    ak doctor --check kit_integrity --no-interactive
+  else
+    ak kit refresh engineer --global --yes
+  fi
+}
+
+step_statusline() {
+  local f="$HOME/.claude/settings.json"
+  if [ "$DRY_RUN" = 1 ]; then
+    dry_note "jq set .statusLine=ccstatusline in $f"
+    return 0
+  fi
+  jq '.statusLine = {"type": "command", "command": "npx -y ccstatusline@latest", "padding": 0, "refreshInterval": 10}' \
+    "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+}
+
+step_perms() {
+  if [ "$DRY_RUN" = 1 ]; then
+    dry_note "chmod +x on script files under $HOME/.claude"
+    return 0
+  fi
+  find "$HOME/.claude" -type f \( \
+    -name '*.sh' -o -name '*.bash' -o -name '*.fish' -o -name '*.zsh' \
+    -o -name '*.ksh' -o -name '*.csh' -o -name '*.pl' -o -name '*.py' -o -name '*.rb' \
+  \) -exec chmod +x {} +
+}
+
+# ── Register + run ────────────────────────────────────────────────────────────
+upall_reset
+upall_register binary     "AgentKit binary"     "command -v ak"                          step_binary
+upall_register kit        "Engineer kit"        "command -v ak"                          step_kit
+upall_register statusline "Restore statusline"  'command -v jq && [ -f "$HOME/.claude/settings.json" ]' step_statusline
+upall_register perms      "Fix permissions"     '[ -d "$HOME/.claude" ]'                 step_perms
+
+TITLE="ak-update"
+[ "$DRY_RUN" = 1 ] && TITLE="ak-update (dry-run)"
+set_title "starting"
+upall_begin "$TITLE"
+upall_run_all
+set_title "done"
+upall_end "$TITLE"
+exit $?

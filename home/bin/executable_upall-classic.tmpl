@@ -18,7 +18,7 @@
 #
 # Env: UPALL_KEEP=N  retain N run-log dirs under ~/.cache/upall (default 10).
 #
-# Order: os → chezmoi → brew → mise → rust → uv → claude → ck → fisher → atuin.
+# Order: os → chezmoi → brew → mise → rust → uv → claude → ak → fisher → atuin.
 # (v1 is preserved as `upall-v1`.)
 
 set -uo pipefail
@@ -44,14 +44,14 @@ step_mise()    { mise up; }
 step_rust()    { local rc=0; rustup self update || rc=1; rustup update || rc=1; cargo install-update -a || rc=1; return "$rc"; }
 step_uv()      { uv tool upgrade --all; }
 step_claude()  { if command -v claude >/dev/null 2>&1; then claude update; else "$HOME/.local/bin/claude" update; fi; }
-step_ck()      { UPALL_ACTIVE=1 "$HOME/bin/ck-update"; }
+step_ak()      { UPALL_ACTIVE=1 "$HOME/bin/ak-update"; }
 step_fisher()  { fish -c "fisher update"; }
 step_atuin()   { local rc=0; atuin history dedup --before "now" --dupkeep 1 || rc=1; atuin sync || rc=1; return "$rc"; }
 
 {{ if eq .using_nix true -}}
-KNOWN="os nix chezmoi brew mise rust uv claude ck fisher atuin"
+KNOWN="os nix chezmoi brew mise rust uv claude ak fisher atuin"
 {{- else -}}
-KNOWN="os chezmoi brew mise rust uv claude ck fisher atuin"
+KNOWN="os chezmoi brew mise rust uv claude ak fisher atuin"
 {{- end }}
 
 # ── Arg parsing ───────────────────────────────────────────────────────────────
@@ -94,7 +94,7 @@ maybe mise    "Mise"         "command -v mise"                                  
 maybe rust    "Rust & Cargo" "command -v rustup"                                    step_rust
 maybe uv      "uv Tools"     "command -v uv"                                        step_uv
 maybe claude  "Claude CLI"   'command -v claude || [ -x "$HOME/.local/bin/claude" ]' step_claude
-maybe ck      "ClaudeKit"    "command -v ck"                                        step_ck
+maybe ak      "AgentKit"     "command -v ak"                                        step_ak
 maybe fisher  "Fisher"       'command -v fish && fish -c "functions -q fisher"'     step_fisher
 maybe atuin   "Atuin"        "command -v atuin"                                     step_atuin
 

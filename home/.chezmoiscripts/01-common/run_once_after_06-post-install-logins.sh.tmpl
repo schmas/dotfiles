@@ -11,10 +11,11 @@ echo ""
 
 {{ template "brew-shellenv" . }}
 
-# Ensure mise shims are available (for ck)
+# Ensure mise shims + ~/.local/bin (ak lives here) are on PATH
 if command -v mise >/dev/null 2>&1; then
   eval "$(mise activate bash)"
 fi
+export PATH="${HOME}/.local/bin:${PATH}"
 
 # --- Atuin ---
 if command -v atuin >/dev/null 2>&1; then
@@ -50,16 +51,37 @@ else
   echo ">> GitHub CLI: not installed, skipping."
 fi
 
-# --- ClaudeKit ---
-if command -v ck >/dev/null 2>&1; then
-  if [ ! -f "${HOME}/.claude/settings.json" ]; then
-    echo ">> ClaudeKit: initializing with engineer kit..."
-    ck init -g --kit engineer
+# --- AgentKit ---
+# Standalone signed binary (not brew/npm/mise). Installs to ~/.local/bin.
+if ! command -v ak >/dev/null 2>&1; then
+  echo ">> AgentKit: installing ak CLI..."
+  curl -fsSL https://agentkit.best/install.sh | sh
+fi
+
+if command -v ak >/dev/null 2>&1; then
+  # The engineer kit is a paid remote kit — needs a valid login session.
+  if ! ak licenses >/dev/null 2>&1; then
+    echo ">> AgentKit: logging in..."
+    ak login
   else
-    echo ">> ClaudeKit: already initialized, skipping."
+    echo ">> AgentKit: already logged in, skipping."
+  fi
+  # First-run wizard writes ~/.agentkit/config.yaml (config only, no kit content).
+  if [ ! -f "${HOME}/.agentkit/config.yaml" ]; then
+    echo ">> AgentKit: running setup (claude-code adapter)..."
+    ak setup --adapter claude-code --no-interactive
+  else
+    echo ">> AgentKit: already configured, skipping setup."
+  fi
+  # Install the global engineer kit if absent.
+  if ! ak kit list-kits 2>/dev/null | grep -qi engineer; then
+    echo ">> AgentKit: installing engineer kit (global)..."
+    ak kit init engineer --target claude-code --global --yes --no-interactive
+  else
+    echo ">> AgentKit: engineer kit present, skipping."
   fi
 else
-  echo ">> ClaudeKit: not installed, skipping."
+  echo ">> AgentKit: install failed / not available, skipping."
 fi
 
 echo ""
