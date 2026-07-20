@@ -11,3 +11,8 @@ bin/macos/docker
 
 # Brewfile moved to .config/etc/Brewfile
 Brewfile
+
+# ClaudeKit → AgentKit migration: ck-update replaced by ak-update;
+# ck-reapply-claude-naming is obsolete (AgentKit ignores .ck.json).
+bin/ck-update
+bin/ck-reapply-claude-naming

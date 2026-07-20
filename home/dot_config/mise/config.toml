@@ -6,7 +6,6 @@
 "npm:@fission-ai/openspec" = "latest"
 "npm:@googleworkspace/cli" = "latest"
 "npm:@mixedbread/mgrep" = "latest"
-"npm:claudekit-cli" = "latest"
 "npm:prettier" = "latest"
 "pipx:graphifyy" = "latest"
 age = "latest"
