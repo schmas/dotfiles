@@ -33,8 +33,12 @@ fi
 
 # --- mgrep ---
 if command -v mgrep >/dev/null 2>&1; then
-  echo ">> mgrep: logging in..."
-  mgrep login
+  if [ ! -f "${HOME}/.mgrep/token.json" ]; then
+    echo ">> mgrep: logging in..."
+    mgrep login
+  else
+    echo ">> mgrep: already logged in, skipping."
+  fi
 else
   echo ">> mgrep: not installed, skipping."
 fi
@@ -74,9 +78,12 @@ if command -v ak >/dev/null 2>&1; then
     echo ">> AgentKit: already configured, skipping setup."
   fi
   # Install the global engineer kit if absent.
-  if ! ak kit list-kits 2>/dev/null | grep -qi engineer; then
+  # `ak kit list-kits` only reports bundled kits (core), never an installed
+  # remote kit, so detect the global install by its skills in the claude-code
+  # dir instead.
+  if ! ls "${HOME}/.claude/skills"/ak-* >/dev/null 2>&1; then
     echo ">> AgentKit: installing engineer kit (global)..."
-    ak kit init engineer --target claude-code --global --yes --no-interactive
+    ak kit init engineer --remote --target claude-code --global --yes --no-interactive
   else
     echo ">> AgentKit: engineer kit present, skipping."
   fi
