@@ -1,0 +1,10 @@
+{
+  "paths": {
+    "plans": ".ck-docs/plans",
+    "docs": ".ck-docs/docs"
+  },
+  "plan": {
+    "reportsDir": "reports",
+    "dateFormat": "YYYY-MM-DD-HHmm"
+  }
+}

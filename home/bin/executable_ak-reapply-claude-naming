@@ -1,0 +1,55 @@
+#!/usr/bin/env node
+/**
+ * Reapply custom AgentKit naming patch after `ak kit refresh` reinstalls hooks.
+ *
+ * `ak-update` runs `ak kit refresh engineer --global`, which overwrites
+ * ~/.claude/hooks/**, wiping local edits. This script re-applies the one
+ * customization AgentKit does not own, and is idempotent (safe to rerun):
+ *
+ *   context-builder.cjs: report filenames lead with the date for chronological
+ *   sorting -> {date}[-{issue}]-{type}-{slug}.md (stock AgentKit puts {type}
+ *   first). The plan.dateFormat customization is NOT handled here: it lives in
+ *   ~/.claude/.ck.json, which chezmoi owns and AgentKit reads natively.
+ */
+
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+
+const HOME = os.homedir();
+let failed = false;
+
+const cbPath = path.join(HOME, '.claude/hooks/lib/context-builder.cjs');
+try {
+  let src = fs.readFileSync(cbPath, 'utf8');
+
+  if (src.includes('const reportPattern =')) {
+    console.log('  context-builder.cjs: already patched');
+  } else {
+    // Insert the reportPattern helper after the function signature.
+    const sig = 'function buildNamingSection({ reportsPath, plansPath, namePattern }) {\n  return [';
+    const sigPatched =
+      'function buildNamingSection({ reportsPath, plansPath, namePattern }) {\n' +
+      "  // Reports lead with the date prefix for chronological sorting: {date}[-{issue}]-{type}-{slug}.\n" +
+      "  const reportPattern = namePattern.replace(/\\{slug\\}$/, '{type}-{slug}');\n" +
+      '  return [';
+
+    // Move {type} from the front of the report name to after the date prefix.
+    const oldReport = '{type}-${namePattern}.md';
+    const newReport = '${reportPattern}.md';
+
+    if (!src.includes(sig) || !src.includes(oldReport)) {
+      throw new Error('expected stock buildNamingSection markers not found');
+    }
+
+    // Use function replacers so `$` / `{` in replacements stay literal.
+    src = src.replace(sig, () => sigPatched).replace(oldReport, () => newReport);
+    fs.writeFileSync(cbPath, src);
+    console.log('  context-builder.cjs: patched (date-first reports)');
+  }
+} catch (err) {
+  console.error('  context-builder.cjs: FAILED -', err.message);
+  failed = true;
+}
+
+process.exit(failed ? 1 : 0);

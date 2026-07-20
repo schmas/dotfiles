@@ -6,8 +6,9 @@
 # separate binary + kit operations, so this runs:
 #   1. `ak self-update`                       — update the ak binary
 #   2. `ak kit refresh engineer --global`      — refresh the global engineer kit
-#   3. restore the custom statusline
-#   4. fix script permissions
+#   3. reapply date-first report naming        — kit refresh overwrites hooks
+#   4. restore the custom statusline
+#   5. fix script permissions
 #
 # The engineer kit is a paid remote kit: steps 1-2 need a valid `ak login`
 # session. Shares the upall TUI/runner engine: standalone it shows a fixed
@@ -57,6 +58,15 @@ step_kit() {
   fi
 }
 
+step_naming() {
+  local script="$HOME/bin/ak-reapply-claude-naming"
+  if [ "$DRY_RUN" = 1 ]; then
+    dry_note "node $script (date-first report naming in context-builder.cjs)"
+    return 0
+  fi
+  node "$script"
+}
+
 step_statusline() {
   local f="$HOME/.claude/settings.json"
   if [ "$DRY_RUN" = 1 ]; then
@@ -82,6 +92,7 @@ step_perms() {
 upall_reset
 upall_register binary     "AgentKit binary"     "command -v ak"                          step_binary
 upall_register kit        "Engineer kit"        "command -v ak"                          step_kit
+upall_register naming     "Date-first reports"  'command -v node && [ -f "$HOME/.claude/hooks/lib/context-builder.cjs" ]' step_naming
 upall_register statusline "Restore statusline"  'command -v jq && [ -f "$HOME/.claude/settings.json" ]' step_statusline
 upall_register perms      "Fix permissions"     '[ -d "$HOME/.claude" ]'                 step_perms
 
