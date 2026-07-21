@@ -126,9 +126,10 @@ chezmoi init --apply https://github.com/schmas/dotfiles.git
 
 ### Initial Setup Prompts
 
-During `chezmoi init`, you'll select:
-1. **Profile** - default (full dev setup), server (minimal), ct, or aaa
-2. **Editor** - nvim (default), zed, code, or none
+During `chezmoi init`, you'll answer prompts owned by `home/.chezmoi.yaml.tmpl`:
+1. **Profile** - default (full dev setup) or server (minimal)
+2. **NIX-CONFIG** - whether this machine also uses the (deprecated) nix-config
+3. **Editor** - nvim (default), zed, code, or none
 
 ### What Gets Installed
 
@@ -163,8 +164,9 @@ Comprehensive documentation organized by topic:
 | [Code Standards](./docs/code-standards.md) | Naming conventions, templates, patterns |
 | [System Architecture](./docs/system-architecture.md) | Technical design, data flow, plugins |
 | [Project Roadmap](./docs/project-roadmap.md) | Current status, planned improvements |
-| [Codebase Summary](./docs/codebase-summary.md) | File structure, statistics, dependencies |
+| [Codebase Summary](./docs/codebase-summary.md) | Navigation map: concern → location |
 | [Shell Reference](SHELL-REFERENCE.md) | All aliases, functions, abbreviations |
+| [Shortcuts Reference](SHORTCUTS-REFERENCE.md) | Terminal keyboard shortcuts by tool |
 
 ## Customization & Maintenance
 

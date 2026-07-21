@@ -49,7 +49,7 @@ chezmoi execute-template < path/to/file.tmpl
 zzz-* Fish late-load (Mise, FZF)
 ```
 
-**Profile system:** Select during `chezmoi init` - `default` (full), `server` (minimal), `ct`, `aaa`
+**Profile system:** `chezmoi init` prompts for `default` (full) or `server` (minimal). `is_p_ct`/`is_p_aaa`/`is_p_csaa` remain as data flags but are not prompted. Owner: `home/.chezmoi.yaml.tmpl`.
 
 ## Key Directories
 
@@ -131,7 +131,11 @@ docs: update SHELL-REFERENCE with new aliases
 
 | Doc | Content |
 |-----|---------|
+| [project-overview-pdr.md](./docs/project-overview-pdr.md) | Intent, goals, non-goals, principles |
+| [system-architecture.md](./docs/system-architecture.md) | Boundaries, load order, decision ledger |
 | [code-standards.md](./docs/code-standards.md) | Naming, templates, aliases, security |
-| [system-architecture.md](./docs/system-architecture.md) | Layers, data flow, plugin systems |
-| [deployment-guide.md](./docs/deployment-guide.md) | Installation, troubleshooting |
-| [SHELL-REFERENCE.md](./SHELL-REFERENCE.md) | All aliases/functions (~230) |
+| [deployment-guide.md](./docs/deployment-guide.md) | Installation, apply pipeline, troubleshooting |
+| [project-roadmap.md](./docs/project-roadmap.md) | Stateful record: open questions |
+| [codebase-summary.md](./docs/codebase-summary.md) | Navigation map: concern → location |
+| [SHELL-REFERENCE.md](./SHELL-REFERENCE.md) | All aliases/functions |
+| [SHORTCUTS-REFERENCE.md](./SHORTCUTS-REFERENCE.md) | Terminal keyboard shortcuts |
