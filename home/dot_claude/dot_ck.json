@@ -1,7 +1,7 @@
 {
   "paths": {
-    "plans": ".ck-docs/plans",
-    "docs": ".ck-docs/docs"
+    "plans": ".agent-docs/plans",
+    "docs": ".agent-docs/docs"
   },
   "plan": {
     "reportsDir": "reports",
