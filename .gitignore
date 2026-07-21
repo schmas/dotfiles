@@ -463,6 +463,8 @@ AGENTS.md
 .claude/session-state
 .handoffs/
 .serena/
+.agent/
+
 
 # Track the upall shared engine: the generic Python `lib/` ignore above would
 # otherwise drop home/bin/lib/, breaking upall/ck-update on fresh clones.
