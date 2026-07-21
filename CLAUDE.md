@@ -130,7 +130,11 @@ docs: update SHELL-REFERENCE with new aliases
 
 | Doc | Content |
 |-----|---------|
+| [project-overview-pdr.md](./docs/project-overview-pdr.md) | Intent, goals, non-goals, principles |
+| [system-architecture.md](./docs/system-architecture.md) | Boundaries, load order, decision ledger |
 | [code-standards.md](./docs/code-standards.md) | Naming, templates, aliases, security |
-| [system-architecture.md](./docs/system-architecture.md) | Layers, data flow, plugin systems |
-| [deployment-guide.md](./docs/deployment-guide.md) | Installation, troubleshooting |
-| [SHELL-REFERENCE.md](./SHELL-REFERENCE.md) | All aliases/functions (~230) |
+| [deployment-guide.md](./docs/deployment-guide.md) | Installation, apply pipeline, troubleshooting |
+| [project-roadmap.md](./docs/project-roadmap.md) | Stateful record: open questions |
+| [codebase-summary.md](./docs/codebase-summary.md) | Navigation map: concern → location |
+| [SHELL-REFERENCE.md](./SHELL-REFERENCE.md) | All aliases/functions |
+| [SHORTCUTS-REFERENCE.md](./SHORTCUTS-REFERENCE.md) | Terminal keyboard shortcuts |
