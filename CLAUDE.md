@@ -31,12 +31,14 @@ chezmoi execute-template < path/to/file.tmpl
 ## Architecture Quick Reference
 
 **Chezmoi file prefixes:**
+
 - `dot_` → dotfile (becomes `.filename`)
 - `private_` → sensitive directory
 - `executable_` → script with 755 permissions
 - `.tmpl` suffix → Go template processed at apply time
 
 **Shell config load order (numeric prefix):**
+
 ```
 00-*  Setup (plugin managers, Homebrew)
 05-*  Shared configs (centralized ~/.config/env/*.env + ~/.config/path/*.path)
@@ -69,6 +71,7 @@ home/
 ## Package Management
 
 Packages are managed via `~/.config/etc/Brewfile` (Homebrew):
+
 ```bash
 # Add a package
 echo 'brew "package-name"' >> home/dot_config/etc/Brewfile.tmpl
@@ -81,6 +84,7 @@ chezmoi apply
 ```
 
 Scripts automatically install packages during `chezmoi apply`:
+
 - **macOS:** `run_before_02-install-packages-from-brewfile.sh.tmpl`
 - **Linux:** `run_once_after_00-linux-system-setup.sh.tmpl`
 
@@ -99,13 +103,13 @@ Scripts automatically install packages during `chezmoi apply`:
 
 ## Utility Scripts (bin/)
 
-| Script | Purpose |
-|--------|---------|
-| `upall` | Master update TUI (Go binary, auto-fetched to `~/.local/bin`); `upall-classic` = v2 bash fallback |
-| `osupdate` | OS-specific updates (apt/dnf/pacman/mas) |
-| `gpg-backup` / `gpg-restore-backup` | GPG key backup to 1Password |
-| `setup-atuin` | Configure history system |
-| `brewup` | Homebrew update shortcut |
+| Script                              | Purpose                                                                                           |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `upall`                             | Master update TUI (Go binary, auto-fetched to `~/.local/bin`); `upall-classic` = v2 bash fallback |
+| `osupdate`                          | OS-specific updates (apt/dnf/pacman/mas)                                                          |
+| `gpg-backup` / `gpg-restore-backup` | GPG key backup to 1Password                                                                       |
+| `setup-atuin`                       | Configure history system                                                                          |
+| `brewup`                            | Homebrew update shortcut                                                                          |
 
 ## Plugin Systems
 
@@ -121,6 +125,7 @@ Aliases must be identical across Zsh and Bash (shared template logic). Fish uses
 Use conventional commits: `feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `style:`, `perf:`
 
 Examples:
+
 ```
 feat(fish): add docker compose abbreviations
 fix(git): correct signing key path in template
@@ -129,13 +134,13 @@ docs: update SHELL-REFERENCE with new aliases
 
 ## Documentation
 
-| Doc | Content |
-|-----|---------|
-| [project-overview-pdr.md](./docs/project-overview-pdr.md) | Intent, goals, non-goals, principles |
-| [system-architecture.md](./docs/system-architecture.md) | Boundaries, load order, decision ledger |
-| [code-standards.md](./docs/code-standards.md) | Naming, templates, aliases, security |
-| [deployment-guide.md](./docs/deployment-guide.md) | Installation, apply pipeline, troubleshooting |
-| [project-roadmap.md](./docs/project-roadmap.md) | Stateful record: open questions |
-| [codebase-summary.md](./docs/codebase-summary.md) | Navigation map: concern → location |
-| [SHELL-REFERENCE.md](./SHELL-REFERENCE.md) | All aliases/functions |
-| [SHORTCUTS-REFERENCE.md](./SHORTCUTS-REFERENCE.md) | Terminal keyboard shortcuts |
+| Doc                                                              | Content                                       |
+| ---------------------------------------------------------------- | --------------------------------------------- |
+| [project-overview-pdr.md](./.agent/docs/project-overview-pdr.md) | Intent, goals, non-goals, principles          |
+| [system-architecture.md](./.agent/docs/system-architecture.md)   | Boundaries, load order, decision ledger       |
+| [code-standards.md](./.agent/docs/code-standards.md)             | Naming, templates, aliases, security          |
+| [deployment-guide.md](./.agent/docs/deployment-guide.md)         | Installation, apply pipeline, troubleshooting |
+| [project-roadmap.md](./.agent/docs/project-roadmap.md)           | Stateful record: open questions               |
+| [codebase-summary.md](./.agent/docs/codebase-summary.md)         | Navigation map: concern → location            |
+| [SHELL-REFERENCE.md](./SHELL-REFERENCE.md)                       | All aliases/functions                         |
+| [SHORTCUTS-REFERENCE.md](./SHORTCUTS-REFERENCE.md)               | Terminal keyboard shortcuts                   |
