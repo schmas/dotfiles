@@ -20,6 +20,7 @@ sops = "latest"
 usage = "latest"
 uv = "latest"
 gcloud = "latest"
+"npm:ccstatusline" = "latest"
 
 [settings]
 experimental = true
