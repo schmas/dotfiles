@@ -70,10 +70,10 @@ step_naming() {
 step_statusline() {
   local f="$HOME/.claude/settings.json"
   if [ "$DRY_RUN" = 1 ]; then
-    dry_note "jq set .statusLine=ccstatusline in $f"
+    dry_note "jq set .statusLine=ccstatusline (mise) in $f"
     return 0
   fi
-  jq '.statusLine = {"type": "command", "command": "npx -y ccstatusline@latest", "padding": 0, "refreshInterval": 10}' \
+  jq '.statusLine = {"type": "command", "command": "mise x npm:ccstatusline -- ccstatusline", "padding": 0, "refreshInterval": 60}' \
     "$f" > "$f.tmp" && mv "$f.tmp" "$f"
 }
 
