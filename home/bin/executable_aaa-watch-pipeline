@@ -60,7 +60,9 @@
 # (connectplus_<service>) plus New/Accepted Issues, Security Hotspots, Coverage,
 # and Duplications — PR-scoped in PR mode, branch-scoped in branch mode. (Branch
 # mode's "new code" means the project's configured new-code period, not a PR
-# diff. The macro --all view omits Sonar.)
+# diff. The macro --all view omits Sonar.) If the `sonar` CLI's token has expired
+# the Sonar block says so and tells you to run `sonar auth login`, instead of
+# rendering an empty "no analysis found".
 
 set -uo pipefail
 

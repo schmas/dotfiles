@@ -87,13 +87,42 @@ latest_pipeline_coords() {
 }
 
 # ── Sonar summary ─────────────────────────────────────────────────────────────
+# sonar_get ENDPOINT — call the Sonar API, leaving the JSON body in SONAR_BODY
+# (empty on failure) and the CLI's message in SONAR_ERR. Returns the CLI's exit
+# status.
+#
+# stdout and stderr are merged on purpose. `sonar api get` writes its failure
+# reason to stderr and exits non-zero with an empty body, so success and failure
+# never share the stream — and discarding stderr is exactly what made a
+# logged-out CLI ("❌ Not authenticated") indistinguishable from "this service
+# has no analysis for this PR" (both: exit 1, no stdout). The result was a
+# misleading "no Sonar analysis found" line while the analysis existed.
+#
+# Globals, not stdout, because the caller must read SONAR_ERR: a command
+# substitution would run this in a subshell and drop it.
+SONAR_BODY=""
+SONAR_ERR=""
+sonar_get() {
+  local raw rc
+  raw=$(sonar api get "$1" 2>&1); rc=$?
+  if [ "$rc" -eq 0 ]; then
+    SONAR_BODY="$raw"; SONAR_ERR=""
+  else
+    SONAR_BODY=""; SONAR_ERR=$(printf '%s' "$raw" | head -1)
+  fi
+  return "$rc"
+}
+
 # print_sonar_summary MODE ID  — MODE is "pr" (ID = PR number) or "branch"
 # (ID = branch name). Prints each connect-plus service's SonarCloud quality gate
 # + new-code metrics, scoped by the mutually-exclusive `pullRequest=` / `branch=`
 # query param. Best-effort: skips quietly if `sonar` isn't installed, and skips a
-# service with no analysis for this PR/branch (its API call returns nothing).
+# service with no analysis for this PR/branch (its API call 404s).
 # The branch identifier is URL-encoded (@uri) so branch names containing &/=/#
 # can't smuggle extra query parameters into the Sonar API call.
+#
+# An expired/absent CLI token is reported, not swallowed: it's a fix-it-yourself
+# condition (`sonar auth login`) that otherwise reads as "no analysis yet".
 print_sonar_summary() {
   command -v sonar >/dev/null 2>&1 || return 0
   local mode="$1" id="$2" param header_id caveat="" enc
@@ -111,10 +140,26 @@ print_sonar_summary() {
   printf '\n%sSonar Quality Gate%s (%s)\n' "$C_BLU" "$C_RST" "$header_id"
   [ -n "$caveat" ] && printf '%s\n' "$caveat"
 
-  local svc key resp mresp status conds found=false new acc hs cov dup
+  local svc key resp mresp status conds found=false new acc hs cov dup api_err=""
   for svc in "${SONAR_SERVICES[@]}"; do
     key="connectplus_${svc}"
-    resp=$(sonar api get "/api/qualitygates/project_status?projectKey=${key}&${param}" 2>/dev/null)
+    if ! sonar_get "/api/qualitygates/project_status?projectKey=${key}&${param}"; then
+      case "$SONAR_ERR" in
+        # No token / expired token / logged out. Actionable and global, so say so
+        # once and stop — the remaining services would fail identically.
+        *"Not authenticated"*|*"auth login"*|*"401"*)
+          printf '  %s⚠ sonar CLI is not authenticated — run: sonar auth login%s\n' \
+            "$C_YEL" "$C_RST"
+          return 0 ;;
+        # 404 = this service has no analysis for this PR/branch. Expected: a PR
+        # usually touches one or two services.
+        *404*) continue ;;
+        # Anything else (network, org/permission change): remember the first one
+        # and report it after the loop instead of rendering silence.
+        *) [ -n "$api_err" ] || api_err="$SONAR_ERR"; continue ;;
+      esac
+    fi
+    resp="$SONAR_BODY"
     [ -n "$resp" ] || continue
     found=true
     status=$(printf '%s' "$resp" | jq -r '.projectStatus.status // "UNKNOWN"')
@@ -132,7 +177,8 @@ print_sonar_summary() {
     # New-code metrics (Bitbucket's Code Quality panel): New Issues, Accepted
     # Issues, Security Hotspots, Coverage, Duplications. Coverage/duplications
     # are absent from the API when no measurable new lines were touched.
-    mresp=$(sonar api get "/api/measures/component?component=${key}&${param}&metricKeys=new_violations,new_accepted_issues,new_security_hotspots,new_coverage,new_duplicated_lines_density" 2>/dev/null)
+    sonar_get "/api/measures/component?component=${key}&${param}&metricKeys=new_violations,new_accepted_issues,new_security_hotspots,new_coverage,new_duplicated_lines_density" || true
+    mresp="$SONAR_BODY"
     read -r new acc hs cov dup <<< "$(printf '%s' "$mresp" | jq -r '
       (.component.measures // []) as $m
       | (($m[] | select(.metric=="new_violations") | .periods[0].value) // "0") as $new
@@ -147,7 +193,9 @@ print_sonar_summary() {
       "${new:-0}" "${acc:-0}" "${hs:-0}" "${cov:-n/a}" "${dup:-n/a}"
   done
   if [ "$found" = false ]; then
-    if [ "$mode" = "branch" ]; then
+    if [ -n "$api_err" ]; then
+      printf '  %s⚠ sonar API error: %s%s\n' "$C_YEL" "$api_err" "$C_RST"
+    elif [ "$mode" = "branch" ]; then
       printf '  %s(no Sonar analysis found for branch %s)%s\n' "$C_DIM" "$id" "$C_RST"
     else
       printf '  %s(no Sonar analysis found for this PR)%s\n' "$C_DIM" "$C_RST"
