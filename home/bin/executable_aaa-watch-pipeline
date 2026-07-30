@@ -15,8 +15,13 @@
 # Notifies on BOTH success and failure — useful for long pipelines (~20 min)
 # you don't want to babysit.
 #
+# Pipeline mode (explicit build): watch ONE pipeline by build number or by its
+# results URL, wherever it lives — no PR and no matching local checkout needed.
+# The build's own target decides the label and the Sonar scope: a branch run is
+# branch-scoped, a PR run is scoped to that PR.
+#
 # Usage:
-#   aaa-watch-pipeline [PR_ID] [options]
+#   aaa-watch-pipeline [PR_ID | PIPELINE_URL] [options]
 #
 # Examples:
 #   aaa-watch-pipeline               # PR for the current branch, else its pipelines
@@ -24,11 +29,25 @@
 #   aaa-watch-pipeline --timeout 1h --fail-fast
 #   aaa-watch-pipeline --all         # branch mode: macro-watch every running pipeline
 #   aaa-watch-pipeline 3636 --interval 1m --no-sound
+#   aaa-watch-pipeline --pipeline 23678               # explicit pipeline build
+#   aaa-watch-pipeline https://bitbucket.org/ws/repo/pipelines/results/23678
+#
+# A bare number is always a PR id: PR ids and build numbers are both digits, so
+# the number alone can't disambiguate. Use --pipeline (or paste the results URL,
+# which is self-identifying) to watch a build.
 #
 # Options:
+#   --pipeline <n|url> Watch one pipeline build directly, by build number or by
+#                      its pipelines/results/<n> URL. A URL carries its own
+#                      workspace/repo, so it works from anywhere; a bare number
+#                      resolves against the current repo's origin remote.
+#                      Mutually exclusive with a PR id.
 #   --all              Branch mode with 2+ running pipelines: skip the picker and
 #                      watch them all at once (compact table, per-pipeline notify).
-#   --timeout <dur>    Max time to wait (default 45m). 0 = no timeout.
+#   --timeout <dur>    Max time to wait (default 2h). 0 = no timeout. The backend
+#                      PR pipeline alone runs ~30-50m, and a queued one longer,
+#                      so the default leaves room rather than reporting a false
+#                      "still pending" mid-run.
 #   --interval <dur>   Poll interval (default 30s; backs off to 2m). Also sets the
 #                      live-view refresh cadence (clamped to 10-30s).
 #   --fail-fast        PR mode: stop and notify on the first failed check. Branch
@@ -40,11 +59,11 @@
 #   --no-icon          Use terminal-notifier's default icon.
 #   -h, --help         Show this help.
 #
-# Exit codes (mirrors `bkt pr checks --wait` in both modes):
+# Exit codes (mirrors `bkt pr checks --wait` in every mode):
 #   0  all checks passed / pipeline SUCCESSFUL
 #   1  a check failed / pipeline FAILED/STOPPED/ERROR
 #   8  timed out with checks/pipeline still pending
-#   9  branch mode: gave up after repeated bkt/jq failures polling the pipeline
+#   9  branch/pipeline mode: gave up after repeated bkt/jq failures while polling
 #   2  usage / preflight error
 #   (--all macro mode always exits 0 — outcomes are conveyed per-pipeline via
 #    notifications, not aggregated into one exit code.)
@@ -75,7 +94,14 @@ source "$LIB" || { echo "aaa-watch-pipeline: could not load $LIB" >&2; exit 3; }
 
 # ── Defaults ────────────────────────────────────────────────────────────────
 PR_ID=""
-TIMEOUT="45m"
+PIPELINE_REF=""
+# Sonar scope for the single-pipeline view: "pr" | "branch" | "none" (skip).
+# Branch mode sets branch/$BRANCH; pipeline mode takes it from the build's target.
+SONAR_MODE="branch"
+SONAR_ID=""
+# Header line for the single-pipeline view; empty → watch_single_pipeline's default.
+BRANCH_HEADER=""
+TIMEOUT="2h"
 INTERVAL="30s"
 FAIL_FAST=false
 ALL_MODE=false
@@ -94,6 +120,7 @@ die() { printf 'error: %s\n' "$*" >&2; exit 2; }
 # ── Arg parsing ─────────────────────────────────────────────────────────────
 while [ $# -gt 0 ]; do
   case "$1" in
+    --pipeline)  PIPELINE_REF="${2:-}"; shift 2 ;;
     --all)       ALL_MODE=true; shift ;;
     --timeout)   TIMEOUT="${2:-}"; shift 2 ;;
     --interval)  INTERVAL="${2:-}"; shift 2 ;;
@@ -104,10 +131,22 @@ while [ $# -gt 0 ]; do
     -h|--help)   usage; exit 0 ;;
     -*)          die "unknown option: $1 (see --help)" ;;
     *)
-      [ -z "$PR_ID" ] || die "unexpected argument: $1"
-      PR_ID="$1"; shift ;;
+      # A pipelines/results/<n> URL identifies itself, so accept it positionally.
+      # A bare number stays a PR id (build numbers look identical — see --pipeline).
+      case "$1" in
+        */pipelines/results/*)
+          [ -z "$PIPELINE_REF" ] || die "unexpected argument: $1"
+          PIPELINE_REF="$1" ;;
+        *)
+          [ -z "$PR_ID" ] || die "unexpected argument: $1"
+          PR_ID="$1" ;;
+      esac
+      shift ;;
   esac
 done
+
+{ [ -n "$PR_ID" ] && [ -n "$PIPELINE_REF" ]; } \
+  && die "pass a PR id or a pipeline (--pipeline/URL), not both."
 
 # ── Preflight ───────────────────────────────────────────────────────────────
 command -v bkt >/dev/null 2>&1 || die "bkt not found (Bitbucket CLI). Install and run 'bkt auth login'."
@@ -279,22 +318,26 @@ run_pr_mode() {
   exit "$rc"
 }
 
-# ── Branch mode: single-target live render ───────────────────────────────────
+# ── Single-pipeline live render (branch + pipeline mode) ─────────────────────
 # No-arg render fn for live_redraw_loop. Renders the same per-pipeline depth as
 # PR mode (state="" → render_pipeline_detail derives the live glyph from its own
-# pipeline-view fetch — the staleness safety net, no redundant call), plus
-# branch-scoped Sonar inside connect-plus-backend.
+# pipeline-view fetch — the staleness safety net, no redundant call), plus Sonar
+# inside connect-plus-backend at whatever scope the caller resolved.
 # shellcheck disable=SC2329  # invoked indirectly by live_redraw_loop via "$render_fn"
-render_branch_single() {
+render_single_pipeline() {
   printf '%s%s%s  %s elapsed  (refresh %ss, Ctrl-C to stop)\n' \
     "$C_BLU" "$BRANCH_HEADER" "$C_RST" "$(fmt_dur "$SECONDS")" "$RENDER_EVERY"
   render_pipeline_detail "$WS" "$REPO" "$TARGET_BUILD" "" "$BRANCH"
-  [ "$REPO" = "connect-plus-backend" ] && print_sonar_summary branch "$BRANCH"
+  { [ "$REPO" = "connect-plus-backend" ] && [ "$SONAR_MODE" != none ]; } \
+    && print_sonar_summary "$SONAR_MODE" "$SONAR_ID"
 }
 
-# ── Branch mode: watch one pipeline build to completion ──────────────────────
-watch_branch_single() {
-  BRANCH_HEADER="branch ${BRANCH} · pipeline #${TARGET_BUILD}"
+# ── Watch one pipeline build to completion (branch + pipeline mode) ──────────
+# Reads WS/REPO/TARGET_BUILD/BRANCH/TARGET_WAS_RUNNING; BRANCH_HEADER is the
+# caller's label when set (pipeline mode labels a PR run by its PR), else the
+# branch-flavored default.
+watch_single_pipeline() {
+  : "${BRANCH_HEADER:=branch ${BRANCH} · pipeline #${TARGET_BUILD}}"
   local url="https://bitbucket.org/${WS}/${REPO}/pipelines/results/${TARGET_BUILD}"
   local group="aaa-pipeline-${REPO}-${TARGET_BUILD}"
 
@@ -304,7 +347,7 @@ watch_branch_single() {
 
   poll_pipeline "$WS" "$REPO" "$TARGET_BUILD" "$TIMEOUT" "$INTERVAL" "2m" &
   waiter=$!
-  live_redraw_loop render_branch_single
+  live_redraw_loop render_single_pipeline
   wait "$waiter"; local rc=$?
 
   # Final outcome from the resolved pipeline: result, failed step names, run time.
@@ -413,12 +456,49 @@ run_branch_mode() {
   # Only notify on a finish we actually witnessed. If the target was already
   # terminal at discovery (the "nothing running, show the last build" case), its
   # result is on screen already — a banner for a pipeline that finished before
-  # you looked is just noise, so watch_branch_single suppresses it.
+  # you looked is just noise, so watch_single_pipeline suppresses it.
   case "$target_disc_state" in
     PENDING|IN_PROGRESS) TARGET_WAS_RUNNING=true ;;
     *)                   TARGET_WAS_RUNNING=false ;;
   esac
-  watch_branch_single
+  SONAR_MODE="branch"; SONAR_ID="$BRANCH"
+  watch_single_pipeline
+}
+
+# ── Pipeline mode: watch one explicit build (--pipeline <n|url>) ──────────────
+# The build's own target supplies the label and the Sonar scope, so a PR run is
+# PR-scoped and a branch run branch-scoped — never inferred from the local
+# checkout, which may be on an unrelated branch (or absent entirely).
+run_pipeline_mode() {
+  local coords ws repo build row state label
+  coords=$(pipeline_coords "$PIPELINE_REF")
+  if [ -n "$coords" ]; then
+    read -r ws repo build <<< "$coords"
+  else
+    [[ "$PIPELINE_REF" =~ ^[0-9]+$ ]] \
+      || die "--pipeline expects a build number or a pipelines/results/<n> URL (got '$PIPELINE_REF')"
+    { [ -n "$WS" ] && [ -n "$REPO" ]; } \
+      || die "could not resolve Bitbucket workspace/repo from the origin remote; pass the full pipeline URL instead."
+    ws="$WS"; repo="$REPO"; build="$PIPELINE_REF"
+  fi
+
+  row=$(resolve_pipeline_target "$ws" "$repo" "$build") \
+    || die "could not fetch pipeline #$build in $ws/$repo (check 'bkt auth status')."
+  [ -n "$row" ] || die "no pipeline #$build found in $ws/$repo."
+  IFS=$'\t' read -r state label SONAR_MODE SONAR_ID <<< "$row"
+
+  WS="$ws"; REPO="$repo"; TARGET_BUILD="$build"; BRANCH="$label"
+  if [ "$SONAR_MODE" = pr ]; then
+    BRANCH_HEADER="PR #${SONAR_ID} (${label}) · pipeline #${build}"
+  else
+    BRANCH_HEADER="branch ${label} · pipeline #${build}"
+  fi
+  # Only notify on a finish we actually witnessed (same rule as branch mode).
+  case "$state" in
+    PENDING|IN_PROGRESS) TARGET_WAS_RUNNING=true ;;
+    *)                   TARGET_WAS_RUNNING=false ;;
+  esac
+  watch_single_pipeline
 }
 
 # ── Resolve workspace/repo + branch up front (branch mode needs them before any
@@ -430,9 +510,15 @@ RENDER_EVERY=$(to_seconds "$INTERVAL")
 [ "$RENDER_EVERY" -lt 10 ] && RENDER_EVERY=10
 [ "$RENDER_EVERY" -gt 30 ] && RENDER_EVERY=30
 
-# ── Mode selection: explicit PR id, else auto-detect an open PR, else branch ─
+# ── Mode selection: explicit pipeline, explicit PR id, auto-detected open PR,
+#    else the current branch's pipelines ───────────────────────────────────────
+#    Each run_*_mode exits, so the dispatch below never falls through.
+if [ -n "$PIPELINE_REF" ]; then
+  run_pipeline_mode
+fi
+
 if [ -z "$PR_ID" ]; then
-  [ -n "$BRANCH" ] || die "not in a git repo; pass a PR id: aaa-watch-pipeline <id>"
+  [ -n "$BRANCH" ] || die "not in a git repo; pass a PR id or a pipeline: aaa-watch-pipeline <id|--pipeline n>"
   pr_json=$(bkt pr list --json 2>/dev/null) \
     || die "could not list PRs (check 'bkt auth status' and run inside the Bitbucket repo)."
   PR_ID=$(printf '%s' "$pr_json" \

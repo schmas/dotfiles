@@ -86,6 +86,44 @@ latest_pipeline_coords() {
   done | sort -k3 -n | tail -1
 }
 
+# ── Explicit-pipeline target resolution ──────────────────────────────────────
+# resolve_pipeline_target WS REPO BUILD
+# Emit ONE row "state<TAB>label<TAB>sonar_mode<TAB>sonar_id" describing what a
+# given build was triggered for, or return 1 when it can't be fetched.
+#
+# `bkt pipeline view --json` is not enough here: for a PR-triggered run its
+# target collapses to {"type":"pipeline_pullrequest_target","ref":{"name":""}} —
+# no PR id, no branch — so this reads the raw pipeline endpoint, which carries
+# the full target:
+#   pipeline_ref_target         → label + Sonar scope are the branch
+#   pipeline_pullrequest_target → label is the source branch, Sonar scope is the
+#                                 PR (a PR run is analyzed under pullRequest=,
+#                                 never branch=)
+# sonar_mode is "none" when the target carries neither, so the caller can skip
+# Sonar rather than query a bogus scope.
+#
+# Every field is emitted non-empty (placeholders "-"/"none"/"UNKNOWN"): a
+# tab-IFS `read` collapses an empty field that sits between two others, so no
+# field here is allowed to be blank.
+resolve_pipeline_target() {
+  local ws="$1" repo="$2" build="$3" resp
+  resp=$(bkt api "/2.0/repositories/$ws/$repo/pipelines/$build" 2>/dev/null) || return 1
+  [ -n "$resp" ] || return 1
+  printf '%s' "$resp" | jq -r '
+    def ne(d): if (. // "") == "" then d else . end;
+    if (.build_number // null) == null then empty else
+    .target as $t
+    | (if $t.type == "pipeline_pullrequest_target"
+       then [ ($t.source | ne("pull request")),
+              (if ($t.pullrequest.id // null) == null then "none" else "pr" end),
+              (($t.pullrequest.id // "-") | tostring) ]
+       else [ ($t.ref_name | ne("-")),
+              (if ($t.ref_name // "") == "" then "none" else "branch" end),
+              ($t.ref_name | ne("-")) ]
+       end) as $r
+    | [ (.state.name | ne("UNKNOWN")) ] + $r | @tsv end' 2>/dev/null
+}
+
 # ── Sonar summary ─────────────────────────────────────────────────────────────
 # sonar_get ENDPOINT — call the Sonar API, leaving the JSON body in SONAR_BODY
 # (empty on failure) and the CLI's message in SONAR_ERR. Returns the CLI's exit
