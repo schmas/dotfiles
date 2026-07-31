@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+set -e
+set -u
+set -o pipefail
+
+echo ""
+echo "-----------------------------------------------------------------------"
+echo " Install upall"
+echo "-----------------------------------------------------------------------"
+echo ""
+
+UPALL_BIN="${HOME}/.local/bin/upall"
+
+if [ -x "${UPALL_BIN}" ]; then
+  echo "upall already installed at ${UPALL_BIN}."
+else
+  echo "Installing upall..."
+  mkdir -p "${HOME}/.local/bin"
+  TMP_DIR="$(mktemp -d)"
+  trap 'rm -rf "${TMP_DIR}"' EXIT
+
+  URL="https://github.com/schmas/upall/releases/latest/download/upall_{{ .chezmoi.os }}_{{ .chezmoi.arch }}.tar.gz"
+  curl -fsSL "${URL}" -o "${TMP_DIR}/upall.tar.gz"
+  tar -xzf "${TMP_DIR}/upall.tar.gz" -C "${TMP_DIR}" upall
+  install -m 755 "${TMP_DIR}/upall" "${UPALL_BIN}"
+
+  echo "upall installed successfully."
+fi
