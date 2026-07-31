@@ -26,6 +26,7 @@ sync_paths=(
     'AGENTS.md'
     '.claude'
     '.agents'
+    '.agent'
     'tools'
     'graphify-out'
 )
