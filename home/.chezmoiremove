@@ -16,3 +16,7 @@ Brewfile
 # ck-reapply-claude-naming is obsolete (AgentKit ignores .ck.json).
 bin/ck-update
 bin/ck-reapply-claude-naming
+
+# AgentKit reads ~/.agentkit/config.yaml; .ck.json values are inert and make
+# `ak doctor` report legacy residue. Preferences now live in .agentkit/config.yaml.
+.claude/.ck.json
