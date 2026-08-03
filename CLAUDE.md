@@ -134,13 +134,13 @@ docs: update SHELL-REFERENCE with new aliases
 
 ## Documentation
 
-| Doc                                                              | Content                                       |
-| ---------------------------------------------------------------- | --------------------------------------------- |
-| [project-overview-pdr.md](./.agent/docs/project-overview-pdr.md) | Intent, goals, non-goals, principles          |
-| [system-architecture.md](./.agent/docs/system-architecture.md)   | Boundaries, load order, decision ledger       |
-| [code-standards.md](./.agent/docs/code-standards.md)             | Naming, templates, aliases, security          |
-| [deployment-guide.md](./.agent/docs/deployment-guide.md)         | Installation, apply pipeline, troubleshooting |
-| [project-roadmap.md](./.agent/docs/project-roadmap.md)           | Stateful record: open questions               |
-| [codebase-summary.md](./.agent/docs/codebase-summary.md)         | Navigation map: concern → location            |
-| [SHELL-REFERENCE.md](./SHELL-REFERENCE.md)                       | All aliases/functions                         |
-| [SHORTCUTS-REFERENCE.md](./SHORTCUTS-REFERENCE.md)               | Terminal keyboard shortcuts                   |
+| Doc                                                               | Content                                       |
+| ----------------------------------------------------------------- | --------------------------------------------- |
+| [project-overview-pdr.md](./.agents/docs/project-overview-pdr.md) | Intent, goals, non-goals, principles          |
+| [system-architecture.md](./.agents/docs/system-architecture.md)   | Boundaries, load order, decision ledger       |
+| [code-standards.md](./.agents/docs/code-standards.md)             | Naming, templates, aliases, security          |
+| [deployment-guide.md](./.agents/docs/deployment-guide.md)         | Installation, apply pipeline, troubleshooting |
+| [project-roadmap.md](./.agents/docs/project-roadmap.md)           | Stateful record: open questions               |
+| [codebase-summary.md](./.agents/docs/codebase-summary.md)         | Navigation map: concern → location            |
+| [SHELL-REFERENCE.md](./SHELL-REFERENCE.md)                        | All aliases/functions                         |
+| [SHORTCUTS-REFERENCE.md](./SHORTCUTS-REFERENCE.md)                | Terminal keyboard shortcuts                   |

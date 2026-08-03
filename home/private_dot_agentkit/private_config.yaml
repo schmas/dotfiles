@@ -1,0 +1,14 @@
+kit:
+    default: engineer
+telemetry:
+    enabled: false
+adapters:
+    enabled: claude-code
+# Agent artifacts live under .agents/ (plans, docs, reports) at each repo root.
+# AgentKit reads this file — the legacy ~/.claude/.ck.json is ignored.
+paths:
+    plans: .agents/plans
+    docs: .agents/docs
+plan:
+    reports_dir: reports
+    date_format: YYYY-MM-DD-HHmm
