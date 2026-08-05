@@ -9,6 +9,7 @@
 #   3. reapply date-first report naming        — kit refresh overwrites hooks
 #   4. restore the custom statusline
 #   5. fix script permissions
+#   6. prune old kit snapshots       — each blocked refresh leaves one behind
 #
 # The engineer kit is a paid remote kit: steps 1-2 need a valid `ak login`
 # session. Shares the upall TUI/runner engine: standalone it shows a fixed
@@ -21,11 +22,14 @@
 
 set -uo pipefail
 
+# Newest kit snapshots to retain when pruning (~25M each).
+BACKUP_KEEP_LAST=10
+
 DRY_RUN=0
 for arg in "$@"; do
   case "$arg" in
     -n|--dry-run) DRY_RUN=1 ;;
-    -h|--help) sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,21p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "ak-update: unknown option: $arg (see --help)" >&2; exit 2 ;;
   esac
 done
@@ -95,6 +99,18 @@ step_statusline() {
     "$f" > "$f.tmp" && mv "$f.tmp" "$f"
 }
 
+step_prune() {
+  # Every refresh that the emitter blocks over the local hook patch leaves a
+  # recovery snapshot behind, so snapshots accrue once per run. Keep a fixed
+  # number of the newest rather than a time window, so the disk ceiling holds
+  # no matter how often this runs. Runs last, so today's snapshot survives.
+  if [ "$DRY_RUN" = 1 ]; then
+    ak backups prune --keep-last "$BACKUP_KEEP_LAST" --dry-run --no-interactive
+    return $?
+  fi
+  ak backups prune --keep-last "$BACKUP_KEEP_LAST" --no-interactive
+}
+
 step_perms() {
   if [ "$DRY_RUN" = 1 ]; then
     dry_note "chmod +x on script files under $HOME/.claude"
@@ -113,6 +129,7 @@ upall_register kit        "Engineer kit"        "command -v ak"                 
 upall_register naming     "Date-first reports"  'command -v node && [ -f "$HOME/.claude/hooks/lib/context-builder.cjs" ]' step_naming
 upall_register statusline "Restore statusline"  'command -v jq && [ -f "$HOME/.claude/settings.json" ]' step_statusline
 upall_register perms      "Fix permissions"     '[ -d "$HOME/.claude" ]'                 step_perms
+upall_register prune      "Prune backups"       "command -v ak"                          step_prune
 
 TITLE="ak-update"
 [ "$DRY_RUN" = 1 ] && TITLE="ak-update (dry-run)"
