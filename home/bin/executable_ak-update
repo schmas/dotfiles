@@ -22,8 +22,10 @@
 
 set -uo pipefail
 
-# Newest kit snapshots to retain when pruning (~17M per update run).
-BACKUP_KEEP_LAST=10
+# Newest kit snapshots to retain when pruning. A run leaves 3 snapshots (~17M),
+# so 15 keeps roughly the last 5 runs. The pre-AgentKit takeover snapshots are
+# pinned by AgentKit and are retained on top of this count.
+BACKUP_KEEP_LAST=15
 BACKUPS_DIR="$HOME/.agentkit/backups"
 # Snapshot count taken before the kit step mutates anything. Empty means the kit
 # step never ran, so step_prune has no evidence a snapshot was created.
