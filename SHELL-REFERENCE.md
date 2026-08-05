@@ -435,6 +435,7 @@ Zsh includes all the Bash aliases plus the following:
 | `show-zsh-startup-files-order` | Shows the order of zsh startup files    |
 | `upall-classic.tmpl`           | v2 bash TUI runner (kept as `upall-classic`; superseded by the Go `upall` binary auto-fetched via `.chezmoiexternal.toml`) |
 | `upall-v1.tmpl`                | Previous linear updater (kept as `upall-v1`) |
+| `vidproc`                      | Shrink videos for review and AI chat uploads — takes files and/or folders, caps the long edge at 1280px, 2x speed, drops audio, writes `NAME_small.mp4` (`-h` for flags) |
 | `lib/upall-lib.sh`             | Shared TUI/runner engine (sourced by `upall-classic` + `ck-update`) |
 
 ### Git Scripts
