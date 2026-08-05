@@ -1,105 +1,317 @@
 #!/usr/bin/env bash
+# Shrink videos for human review and AI chat uploads: resize, speed up, compress.
+# Accepts any mix of files and folders. Depends only on ffmpeg + ffprobe.
 
-set -e
-set -u
-set -o pipefail
+set -euo pipefail
 
-# Defaults
-SCALE=0.5
-SPEED=2
-CRF=28
-OUTPUT=""
-OVERWRITE=""
+# ── Defaults ──────────────────────────────────────────────────────────────────
+MAX_DIM=1280      # long-edge cap in pixels; 0 disables resizing
+SPEED=2           # playback speed multiplier; 1 keeps original timing
+CRF=30            # x264 quality, lower = better and bigger
+FPS=15            # frame rate cap applied after the speed-up; 0 keeps source
+PRESET=medium     # x264 speed/size trade-off
+SUFFIX=_small     # appended to the input basename
+OUTDIR=""         # empty = write next to each input
+KEEP_AUDIO=0
+RECURSE=0
+OVERWRITE=0
+DRY_RUN=0
+
+# Extensions treated as video input when scanning folders
+VIDEO_EXTS="mp4 mov mkv webm avi m4v mpg mpeg wmv flv ts m2ts 3gp"
 
 usage() {
     cat <<EOF
-Usage: vidproc INPUT [OPTIONS]
+Usage: vidproc [OPTIONS] INPUT [INPUT...]
 
-Process video: resize, speed up, and compress using FFmpeg.
+Compress videos so they stay readable to you and small enough to upload to an
+AI chat. Each INPUT is a video file or a folder of videos.
 
 Options:
-  -s, --scale FACTOR   Scale factor (default: 0.5 = 50%)
-  -x, --speed MULT     Speed multiplier (default: 2)
-  -q, --crf VALUE      Quality/compression 0-51 (default: 28, lower=better)
-  -o, --output FILE    Output filename (default: INPUT_processed.mp4)
-  -y                   Overwrite output without asking
+  -m, --max-dim PX     Long-edge cap, aspect preserved, never upscales
+                       (default: ${MAX_DIM}; 0 = keep source size)
+  -x, --speed MULT     Speed multiplier (default: ${SPEED})
+  -q, --crf VALUE      Quality 0-51, lower = better (default: ${CRF})
+  -f, --fps RATE       Frame rate cap (default: ${FPS}; 0 = keep source)
+  -a, --audio          Keep audio as 64k mono AAC (default: dropped)
+  -o, --outdir DIR     Write every output into DIR (default: beside input)
+  -S, --suffix STR     Output name suffix (default: ${SUFFIX})
+  -p, --preset NAME    x264 preset (default: ${PRESET})
+  -r, --recursive      Scan folders recursively (default: top level only)
+  -y, --yes            Overwrite existing outputs
+  -n, --dry-run        Print the ffmpeg commands without running them
   -h, --help           Show this help
 
 Examples:
-  vidproc video.mp4                  # 50% size, 2x speed, crf 28
-  vidproc video.mp4 -s 0.25          # 25% size
-  vidproc video.mp4 -x 4 -q 18       # 4x speed, high quality
-  vidproc video.mp4 -o small.mp4    # Custom output name
+  vidproc rec.mov                    # 1280px, 2x, no audio -> rec_small.mp4
+  vidproc ~/Movies ~/Desktop/clip.mp4
+  vidproc -r ~/Movies -o /tmp/small  # recurse, collect output in one folder
+  vidproc -m 960 -q 32 big.mkv       # smaller and blurrier
+  vidproc -a -x 1 talk.mp4           # keep audio, keep original speed
 EOF
     exit 0
 }
 
 die() {
-    echo "Error: $1" >&2
+    printf 'Error: %s\n' "$1" >&2
     exit 1
 }
 
-# Build atempo filter chain for speeds outside 0.5-2.0 range
-build_atempo() {
-    local speed=$1
-    local filter=""
-
-    # Handle speeds > 2.0 by chaining atempo filters
-    while (( $(echo "$speed > 2.0" | bc -l) )); do
-        filter="${filter}atempo=2.0,"
-        speed=$(echo "$speed / 2.0" | bc -l)
-    done
-
-    # Handle speeds < 0.5 by chaining atempo filters
-    while (( $(echo "$speed < 0.5" | bc -l) )); do
-        filter="${filter}atempo=0.5,"
-        speed=$(echo "$speed / 0.5" | bc -l)
-    done
-
-    # Add final atempo for remaining speed
-    filter="${filter}atempo=${speed}"
-    echo "$filter"
+warn() {
+    printf 'Warning: %s\n' "$1" >&2
 }
 
-# Parse arguments
-INPUT=""
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+# Render a byte count as a human readable string
+human_size() {
+    awk -v b="$1" 'BEGIN {
+        split("B KB MB GB TB", unit, " ")
+        i = 1
+        while (b >= 1024 && i < 5) { b /= 1024; i++ }
+        fmt = (i == 1) ? "%d %s" : "%.1f %s"
+        printf fmt, b, unit[i]
+    }'
+}
+
+file_size() {
+    wc -c <"$1" | tr -d ' '
+}
+
+# atempo only accepts 0.5-2.0, so chain filters to reach any multiplier
+build_atempo() {
+    awk -v s="$1" 'BEGIN {
+        chain = ""
+        while (s > 2.0) { chain = chain "atempo=2.0,"; s /= 2.0 }
+        while (s < 0.5) { chain = chain "atempo=0.5,"; s /= 0.5 }
+        printf "%s", chain "atempo=" s
+    }'
+}
+
+lowercase() {
+    printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
+}
+
+is_video_file() {
+    local ext
+    ext=$(lowercase "${1##*.}")
+    [[ "$ext" == "$1" ]] && return 1  # no extension at all
+    case " $VIDEO_EXTS " in
+        *" $ext "*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+has_audio_stream() {
+    [[ -n "$(ffprobe -v error -select_streams a:0 -show_entries stream=index \
+        -of csv=p=0 "$1" 2>/dev/null)" ]]
+}
+
+video_dimensions() {
+    ffprobe -v error -select_streams v:0 -show_entries stream=width,height \
+        -of csv=s=x:p=0 "$1" 2>/dev/null | head -1
+}
+
+# Emit null-delimited video paths for one file-or-folder argument
+collect_input() {
+    local target="$1"
+    if [[ -f "$target" ]]; then
+        printf '%s\0' "$target"
+    elif [[ -d "$target" ]]; then
+        if [[ $RECURSE -eq 1 ]]; then
+            find "$target" -type f -print0
+        else
+            find "$target" -maxdepth 1 -type f -print0
+        fi
+    else
+        warn "not a file or folder, skipped: $target"
+    fi
+}
+
+# ── Argument parsing ──────────────────────────────────────────────────────────
+TARGETS=()
 while [[ $# -gt 0 ]]; do
     case $1 in
         -h|--help) usage ;;
-        -s|--scale) SCALE="$2"; shift 2 ;;
-        -x|--speed) SPEED="$2"; shift 2 ;;
-        -q|--crf) CRF="$2"; shift 2 ;;
-        -o|--output) OUTPUT="$2"; shift 2 ;;
-        -y) OVERWRITE="-y"; shift ;;
-        -*) die "Unknown option: $1" ;;
-        *) INPUT="$1"; shift ;;
+        -m|--max-dim) MAX_DIM="${2:-}"; shift 2 ;;
+        -x|--speed) SPEED="${2:-}"; shift 2 ;;
+        -q|--crf) CRF="${2:-}"; shift 2 ;;
+        -f|--fps) FPS="${2:-}"; shift 2 ;;
+        -a|--audio) KEEP_AUDIO=1; shift ;;
+        -o|--outdir) OUTDIR="${2:-}"; shift 2 ;;
+        -S|--suffix) SUFFIX="${2:-}"; shift 2 ;;
+        -p|--preset) PRESET="${2:-}"; shift 2 ;;
+        -r|--recursive) RECURSE=1; shift ;;
+        -y|--yes) OVERWRITE=1; shift ;;
+        -n|--dry-run) DRY_RUN=1; shift ;;
+        --) shift; while [[ $# -gt 0 ]]; do TARGETS+=("$1"); shift; done ;;
+        -*) die "Unknown option: $1 (use -h for help)" ;;
+        *) TARGETS+=("$1"); shift ;;
     esac
 done
 
-# Validate
-[[ -z "$INPUT" ]] && die "No input file specified. Use -h for help."
-[[ ! -f "$INPUT" ]] && die "Input file not found: $INPUT"
-command -v ffmpeg &>/dev/null || die "FFmpeg not installed"
+# ── Validation ────────────────────────────────────────────────────────────────
+[[ ${#TARGETS[@]} -eq 0 ]] && die "No input given. Use -h for help."
+command -v ffmpeg >/dev/null 2>&1 || die "ffmpeg not installed"
+command -v ffprobe >/dev/null 2>&1 || die "ffprobe not installed"
 
-# Generate output filename if not specified
-if [[ -z "$OUTPUT" ]]; then
-    basename="${INPUT%.*}"
-    OUTPUT="${basename}_processed.mp4"
+[[ "$MAX_DIM" =~ ^[0-9]+$ ]] || die "--max-dim must be a whole number: $MAX_DIM"
+[[ "$CRF" =~ ^[0-9]+$ ]] && [[ "$CRF" -le 51 ]] || die "--crf must be 0-51: $CRF"
+[[ "$SPEED" =~ ^[0-9]*\.?[0-9]+$ ]] || die "--speed must be a number: $SPEED"
+[[ "$FPS" =~ ^[0-9]*\.?[0-9]+$ ]] || die "--fps must be a number: $FPS"
+[[ -z "$SUFFIX" ]] && die "--suffix cannot be empty"
+awk -v s="$SPEED" 'BEGIN { exit (s > 0) ? 0 : 1 }' || die "--speed must be > 0"
+
+if [[ -n "$OUTDIR" ]]; then
+    # -o takes a folder; catch a filename passed by habit before creating it
+    if [[ ! -d "$OUTDIR" ]] && is_video_file "$(basename "$OUTDIR")"; then
+        die "--outdir takes a folder, not a file: $OUTDIR (use -S to change the name suffix)"
+    fi
+    if [[ $DRY_RUN -eq 0 ]]; then
+        mkdir -p "$OUTDIR" || die "cannot create output folder: $OUTDIR"
+    fi
 fi
 
-# Build filter chains
-VIDEO_FILTER="scale=iw*${SCALE}:ih*${SCALE},setpts=PTS/${SPEED}"
-AUDIO_FILTER=$(build_atempo "$SPEED")
+# ── Build the input list ──────────────────────────────────────────────────────
+INPUTS=()
+for target in "${TARGETS[@]}"; do
+    while IFS= read -r -d '' found; do
+        name=$(basename "$found")
+        if ! is_video_file "$name"; then
+            [[ -f "$target" ]] && warn "not a known video extension, skipped: $found"
+            continue
+        fi
+        # Never reprocess our own output
+        if [[ "${name%.*}" == *"$SUFFIX" ]]; then
+            continue
+        fi
+        INPUTS+=("$found")
+    done < <(collect_input "$target")
+done
 
-echo "Processing: $INPUT"
-echo "  Scale: ${SCALE}x, Speed: ${SPEED}x, CRF: $CRF"
-echo "  Output: $OUTPUT"
+[[ ${#INPUTS[@]} -eq 0 ]] && die "No video files found in the given inputs."
 
-ffmpeg $OVERWRITE -i "$INPUT" \
-    -vf "$VIDEO_FILTER" \
-    -af "$AUDIO_FILTER" \
-    -c:v libx264 -crf "$CRF" -preset fast \
-    -c:a aac \
-    "$OUTPUT"
+# ── Shared filter chain ───────────────────────────────────────────────────────
+VF_PARTS=()
+if [[ "$MAX_DIM" -gt 0 ]]; then
+    # iw/ih are post-rotation, so this stays correct for phone footage
+    VF_PARTS+=("scale=w='if(gte(iw,ih),min(iw,${MAX_DIM}),-2)':h='if(gte(iw,ih),-2,min(ih,${MAX_DIM}))'")
+fi
+if ! awk -v s="$SPEED" 'BEGIN { exit (s == 1) ? 0 : 1 }'; then
+    VF_PARTS+=("setpts=PTS/${SPEED}")
+fi
+# fps comes last so decimation applies to the sped-up timeline
+if ! awk -v f="$FPS" 'BEGIN { exit (f == 0) ? 0 : 1 }'; then
+    VF_PARTS+=("fps=${FPS}")
+fi
 
-echo "Done: $OUTPUT"
+VF=""
+for part in ${VF_PARTS[@]+"${VF_PARTS[@]}"}; do
+    VF="${VF:+${VF},}${part}"
+done
+
+AF=$(build_atempo "$SPEED")
+
+# ── Process ───────────────────────────────────────────────────────────────────
+total=${#INPUTS[@]}
+index=0
+ok=0
+skipped=0
+failed=0
+bytes_in=0
+bytes_out=0
+
+label_dim="${MAX_DIM}px"
+[[ "$MAX_DIM" -eq 0 ]] && label_dim="off"
+label_fps="$FPS"
+awk -v f="$FPS" 'BEGIN { exit (f == 0) ? 0 : 1 }' && label_fps="source"
+label_audio="drop"
+[[ $KEEP_AUDIO -eq 1 ]] && label_audio="keep"
+
+printf 'vidproc: %d file(s) | max-dim %s | %sx speed | crf %s | fps %s | audio %s\n' \
+    "$total" "$label_dim" "$SPEED" "$CRF" "$label_fps" "$label_audio"
+
+for input in "${INPUTS[@]}"; do
+    index=$((index + 1))
+    base=$(basename "$input")
+    stem="${base%.*}"
+
+    if [[ -n "$OUTDIR" ]]; then
+        output="${OUTDIR%/}/${stem}${SUFFIX}.mp4"
+    else
+        output="$(dirname "$input")/${stem}${SUFFIX}.mp4"
+    fi
+
+    printf '[%d/%d] %s\n' "$index" "$total" "$input"
+
+    if [[ "$output" == "$input" ]]; then
+        warn "output would overwrite the input, skipped: $input"
+        skipped=$((skipped + 1))
+        continue
+    fi
+
+    if [[ -e "$output" && $OVERWRITE -eq 0 ]]; then
+        warn "exists, skipped (use -y to overwrite): $output"
+        skipped=$((skipped + 1))
+        continue
+    fi
+
+    cmd=(ffmpeg -nostdin -hide_banner -loglevel error -stats -y -i "$input")
+    if [[ -n "$VF" ]]; then
+        cmd+=(-vf "$VF")
+    fi
+    if [[ $KEEP_AUDIO -eq 1 ]] && has_audio_stream "$input"; then
+        cmd+=(-af "$AF" -c:a aac -b:a 64k -ac 1)
+    else
+        cmd+=(-an)
+    fi
+    cmd+=(-c:v libx264 -preset "$PRESET" -crf "$CRF" -pix_fmt yuv420p
+        -movflags +faststart "$output")
+
+    if [[ $DRY_RUN -eq 1 ]]; then
+        printf '  '
+        printf '%q ' "${cmd[@]}"
+        printf '\n'
+        continue
+    fi
+
+    size_in=$(file_size "$input")
+    if ! "${cmd[@]}"; then
+        warn "ffmpeg failed: $input"
+        rm -f "$output"
+        failed=$((failed + 1))
+        continue
+    fi
+
+    size_out=$(file_size "$output")
+    bytes_in=$((bytes_in + size_in))
+    bytes_out=$((bytes_out + size_out))
+    ok=$((ok + 1))
+
+    printf '  %s -> %s (%s, %s)\n' \
+        "$(human_size "$size_in")" \
+        "$(human_size "$size_out")" \
+        "$(awk -v a="$size_in" -v b="$size_out" 'BEGIN { printf "%+.0f%%", (b/a - 1) * 100 }')" \
+        "$(video_dimensions "$output")"
+    printf '  %s\n' "$output"
+done
+
+if [[ $DRY_RUN -eq 1 ]]; then
+    printf 'Dry run: %d file(s) would be processed.\n' "$total"
+    exit 0
+fi
+
+if [[ $ok -gt 0 ]]; then
+    printf 'Done: %d converted, %s -> %s (%s)\n' \
+        "$ok" \
+        "$(human_size "$bytes_in")" \
+        "$(human_size "$bytes_out")" \
+        "$(awk -v a="$bytes_in" -v b="$bytes_out" 'BEGIN { printf "%+.0f%%", (b/a - 1) * 100 }')"
+else
+    printf 'Done: nothing converted.\n'
+fi
+[[ $skipped -gt 0 ]] && printf 'Skipped: %d\n' "$skipped"
+[[ $failed -gt 0 ]] && printf 'Failed: %d\n' "$failed"
+
+[[ $failed -gt 0 ]] && exit 1
+exit 0

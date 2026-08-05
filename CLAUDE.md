@@ -110,6 +110,7 @@ Scripts automatically install packages during `chezmoi apply`:
 | `gpg-backup` / `gpg-restore-backup` | GPG key backup to 1Password                                                                       |
 | `setup-atuin`                       | Configure history system                                                                          |
 | `brewup`                            | Homebrew update shortcut                                                                          |
+| `vidproc`                           | Shrink videos (files or folders) for review and AI chat uploads: resize, speed up, compress       |
 
 ## Plugin Systems
 
