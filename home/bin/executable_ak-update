@@ -9,7 +9,7 @@
 #   3. reapply date-first report naming        — kit refresh overwrites hooks
 #   4. restore the custom statusline
 #   5. fix script permissions
-#   6. prune old kit snapshots       — each blocked refresh leaves one behind
+#   6. prune old kit snapshots       — only if this run created one
 #
 # The engineer kit is a paid remote kit: steps 1-2 need a valid `ak login`
 # session. Shares the upall TUI/runner engine: standalone it shows a fixed
@@ -22,8 +22,12 @@
 
 set -uo pipefail
 
-# Newest kit snapshots to retain when pruning (~25M each).
+# Newest kit snapshots to retain when pruning (~17M per update run).
 BACKUP_KEEP_LAST=10
+BACKUPS_DIR="$HOME/.agentkit/backups"
+# Snapshot count taken before the kit step mutates anything. Empty means the kit
+# step never ran, so step_prune has no evidence a snapshot was created.
+BACKUPS_BEFORE=""
 
 DRY_RUN=0
 for arg in "$@"; do
@@ -42,6 +46,11 @@ LIB="$HOME/bin/lib/upall-lib.sh"
 set_title() { printf '\033]0;ak-update: %s\007' "$1"; }
 dry_note()  { printf '  \033[2m(dry-run)\033[0m would run: %s\n' "$*"; }
 
+count_backups() {
+  [ -d "$BACKUPS_DIR" ] || { echo 0; return 0; }
+  find "$BACKUPS_DIR" -maxdepth 1 -mindepth 1 -type d | wc -l | tr -d '[:space:]'
+}
+
 # ── Step implementations ──────────────────────────────────────────────────────
 # shellcheck disable=SC2329  # step_* are dispatched indirectly via STEP_FNS[] (upall-lib.sh)
 step_binary() {
@@ -53,6 +62,10 @@ step_binary() {
 }
 
 step_kit() {
+  # Recorded before any mutation so step_prune can tell whether this run
+  # actually produced a snapshot.
+  BACKUPS_BEFORE=$(count_backups)
+
   if [ "$DRY_RUN" = 1 ]; then
     dry_note "ak kit refresh engineer --global --yes"
     # kit refresh has no dry-run flag; surface drift/integrity read-only instead.
@@ -100,14 +113,34 @@ step_statusline() {
 }
 
 step_prune() {
-  # Every refresh that the emitter blocks over the local hook patch leaves a
-  # recovery snapshot behind, so snapshots accrue once per run. Keep a fixed
-  # number of the newest rather than a time window, so the disk ceiling holds
-  # no matter how often this runs. Runs last, so today's snapshot survives.
+  # Every refresh the emitter blocks over the local hook patch leaves snapshots
+  # behind, so they accrue once per run. Keep a fixed number of the newest
+  # rather than a time window, so the disk ceiling holds no matter how often
+  # this runs. Runs last, so this run's own snapshots survive.
+  #
+  # Prune only when this run actually created a snapshot: with nothing new
+  # added there is nothing to reclaim, and skipping keeps a read-only update
+  # from deleting history as a side effect.
   if [ "$DRY_RUN" = 1 ]; then
+    # A dry run never creates a snapshot, so the gate below would always skip.
+    # Show the real plan instead — prune --dry-run only reads.
     ak backups prune --keep-last "$BACKUP_KEEP_LAST" --dry-run --no-interactive
     return $?
   fi
+
+  if [ -z "$BACKUPS_BEFORE" ]; then
+    printf '  kit step did not run; nothing to prune\n'
+    return 0
+  fi
+
+  local after; after=$(count_backups)
+  if [ "$after" -le "$BACKUPS_BEFORE" ]; then
+    printf '  no new snapshot this run (%s); nothing to prune\n' "$after"
+    return 0
+  fi
+
+  printf '  %s new snapshot(s) this run; pruning to the newest %s\n' \
+    "$((after - BACKUPS_BEFORE))" "$BACKUP_KEEP_LAST"
   ak backups prune --keep-last "$BACKUP_KEEP_LAST" --no-interactive
 }
 
