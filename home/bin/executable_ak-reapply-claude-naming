@@ -8,10 +8,16 @@
  *
  *   context-builder.cjs: report filenames lead with the date for chronological
  *   sorting -> {date}[-{issue}]-{type}-{slug}.md (stock AgentKit puts {type}
- *   first). The plan.dateFormat customization is NOT handled here: it lives in
- *   ~/.claude/.ck.json, which chezmoi owns and AgentKit reads natively.
+ *   first). The plan date format is NOT handled here: it lives in
+ *   ~/.agentkit/config.yaml (plan.date_format), which chezmoi owns and AgentKit
+ *   reads natively. The legacy ~/.claude/.ck.json is ignored.
+ *
+ * Markers are matched with whitespace-tolerant regexes and the surrounding
+ * indentation is reused, so upstream reformatting (kit 2.7.0 switched the hook
+ * runtime from two-space to tab indentation) does not break the patch.
  */
 
+const { execFileSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -20,31 +26,51 @@ const HOME = os.homedir();
 let failed = false;
 
 const cbPath = path.join(HOME, '.claude/hooks/lib/context-builder.cjs');
-try {
-  let src = fs.readFileSync(cbPath, 'utf8');
 
-  if (src.includes('const reportPattern =')) {
+// Match the function signature plus the indentation of its first statement, so
+// the injected lines adopt whatever indent style the current kit ships.
+const SIG_RE =
+  /(function buildNamingSection\(\{ reportsPath, plansPath, namePattern \}\) \{\r?\n)([ \t]*)(return \[)/;
+
+// The report filename template: move {type} from the front to after the date.
+const REPORT_RE = /\{type\}-\$\{namePattern\}\.md/;
+
+try {
+  const original = fs.readFileSync(cbPath, 'utf8');
+
+  if (original.includes('const reportPattern =')) {
     console.log('  context-builder.cjs: already patched');
   } else {
-    // Insert the reportPattern helper after the function signature.
-    const sig = 'function buildNamingSection({ reportsPath, plansPath, namePattern }) {\n  return [';
-    const sigPatched =
-      'function buildNamingSection({ reportsPath, plansPath, namePattern }) {\n' +
-      "  // Reports lead with the date prefix for chronological sorting: {date}[-{issue}]-{type}-{slug}.\n" +
-      "  const reportPattern = namePattern.replace(/\\{slug\\}$/, '{type}-{slug}');\n" +
-      '  return [';
-
-    // Move {type} from the front of the report name to after the date prefix.
-    const oldReport = '{type}-${namePattern}.md';
-    const newReport = '${reportPattern}.md';
-
-    if (!src.includes(sig) || !src.includes(oldReport)) {
-      throw new Error('expected stock buildNamingSection markers not found');
+    if (!SIG_RE.test(original)) {
+      throw new Error('buildNamingSection signature marker not found');
+    }
+    if (!REPORT_RE.test(original)) {
+      throw new Error('report filename marker "{type}-${namePattern}.md" not found');
     }
 
-    // Use function replacers so `$` / `{` in replacements stay literal.
-    src = src.replace(sig, () => sigPatched).replace(oldReport, () => newReport);
-    fs.writeFileSync(cbPath, src);
+    // Function replacers keep `$` and `{` in the replacement text literal.
+    const patched = original
+      .replace(SIG_RE, (_m, head, indent, ret) =>
+        head +
+        `${indent}// Reports lead with the date prefix for chronological sorting: {date}[-{issue}]-{type}-{slug}.\n` +
+        `${indent}const reportPattern = namePattern.replace(/\\{slug\\}$/, '{type}-{slug}');\n` +
+        `${indent}${ret}`)
+      .replace(REPORT_RE, () => '${reportPattern}.md');
+
+    // Never leave a syntactically broken hook runtime behind: validate the
+    // patched source in a temp file and only then swap it in.
+    // Keep the .cjs extension: `node --check` rejects unknown extensions.
+    const tmpPath = cbPath.replace(/\.cjs$/, '.patch-check.cjs');
+    try {
+      fs.writeFileSync(tmpPath, patched);
+      execFileSync(process.execPath, ['--check', tmpPath], { stdio: 'pipe' });
+    } catch (checkErr) {
+      throw new Error(`patched source failed node --check: ${checkErr.message}`);
+    } finally {
+      fs.rmSync(tmpPath, { force: true });
+    }
+
+    fs.writeFileSync(cbPath, patched);
     console.log('  context-builder.cjs: patched (date-first reports)');
   }
 } catch (err) {

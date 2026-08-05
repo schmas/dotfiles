@@ -53,9 +53,27 @@ step_kit() {
     dry_note "ak kit refresh engineer --global --yes"
     # kit refresh has no dry-run flag; surface drift/integrity read-only instead.
     ak doctor --check kit_integrity --no-interactive
-  else
-    ak kit refresh engineer --global --yes
+    return $?
   fi
+
+  local out rc
+  out=$(ak kit refresh engineer --global --yes 2>&1); rc=$?
+  printf '%s\n' "$out"
+  [ "$rc" -eq 0 ] && return 0
+
+  # step_naming deliberately edits context-builder.cjs, an AgentKit-owned hook
+  # runtime file. On a kit version bump the emitter will not preserve that one
+  # modified file next to updated siblings (it would be a mixed-version hook
+  # runtime) and aborts without writing. Recover with the force reinstall the
+  # error itself prescribes; it snapshots first, and step_naming reapplies the
+  # patch immediately afterwards.
+  if [[ $out == *"mixed-version hook runtime"* ]]; then
+    printf '  recovering: local hook patch blocked the refresh; force-reinstalling kit\n'
+    ak kit init engineer --target claude-code --global --force --yes
+    return $?
+  fi
+
+  return "$rc"
 }
 
 step_naming() {
