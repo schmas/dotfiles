@@ -36,7 +36,7 @@ home/                          # Chezmoi source root
 ├── dot_config/               # Application configs
 │   ├── git/, tmux/, zellij/, atuin/, yazi/, lazygit/
 │   ├── starship.toml, mise/, karabiner/, editors/
-│   └── ghostty/, readline, ssh, gpg-agent configs
+│   └── ghostty/, wezterm/, readline, ssh, gpg-agent configs
 ├── bin/                       # Custom utility scripts
 ├── .chezmoiscripts/           # Installation scripts
 │   ├── 00-run-before/        # Pre-apply setup (1Password)
