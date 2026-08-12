@@ -1,10 +1,7 @@
 #!/usr/bin/env node
 /**
- * Reapply custom AgentKit naming patch after `ak kit refresh` reinstalls hooks.
- *
- * `ak-update` runs `ak kit refresh engineer --global`, which overwrites
- * ~/.claude/hooks/**, wiping local edits. This script re-applies the one
- * customization AgentKit does not own, and is idempotent (safe to rerun):
+ * Apply — or revert — the custom AgentKit naming patch in the Claude Code hook
+ * runtime.
  *
  *   context-builder.cjs: report filenames lead with the date for chronological
  *   sorting -> {date}[-{issue}]-{type}-{slug}.md (stock AgentKit puts {type}
@@ -12,70 +9,158 @@
  *   ~/.agentkit/config.yaml (plan.date_format), which chezmoi owns and AgentKit
  *   reads natively. The legacy ~/.claude/.ck.json is ignored.
  *
- * Markers are matched with whitespace-tolerant regexes and the surrounding
- * indentation is reused, so upstream reformatting (kit 2.7.0 switched the hook
- * runtime from two-space to tab indentation) does not break the patch.
+ * Usage: ak-reapply-claude-naming [--revert]
+ *
+ * context-builder.cjs is AgentKit-owned: the emitter records its sha256 and
+ * refuses to refresh a hook runtime whose owned files were modified locally
+ * ("mixed-version hook runtime"). So `ak-update` reverts the patch before the
+ * kit step and reapplies it (default mode) once the kit is written. Both modes
+ * are idempotent, and revert verifies the restored file against the hash
+ * AgentKit recorded, so a drifted patch is reported instead of silently
+ * leaving a file the refresh will still reject.
+ *
+ * Markers are matched with whitespace-tolerant regexes derived from the
+ * injected lines themselves, and the surrounding indentation is reused, so
+ * upstream reformatting (kit 2.7.0 switched the hook runtime from two-space to
+ * tab indentation) does not break either direction.
  */
 
 const { execFileSync } = require('child_process');
+const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
 const HOME = os.homedir();
-let failed = false;
-
 const cbPath = path.join(HOME, '.claude/hooks/lib/context-builder.cjs');
+// Emitted-file hashes for the global engineer install, keyed by absolute path.
+const OWNED_HASHES = path.join(
+  HOME,
+  '.agentkit/adapters/claude-code/engineer/.agentkit/native-skill-hashes.json',
+);
+
+// The two lines the patch injects, and the report filename template it swaps.
+const PATCH_MARKER = 'const reportPattern =';
+const COMMENT =
+  '// Reports lead with the date prefix for chronological sorting: {date}[-{issue}]-{type}-{slug}.';
+const CONST_LINE =
+  "const reportPattern = namePattern.replace(/\\{slug\\}$/, '{type}-{slug}');";
+const STOCK_TPL = '{type}-${namePattern}.md';
+const PATCHED_TPL = '${reportPattern}.md';
+
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // Match the function signature plus the indentation of its first statement, so
 // the injected lines adopt whatever indent style the current kit ships.
 const SIG_RE =
   /(function buildNamingSection\(\{ reportsPath, plansPath, namePattern \}\) \{\r?\n)([ \t]*)(return \[)/;
+const STOCK_TPL_RE = new RegExp(escapeRe(STOCK_TPL));
+const PATCHED_TPL_RE = new RegExp(escapeRe(PATCHED_TPL));
+// Both injected lines with their indentation and trailing newlines, so removing
+// the match restores the stock file byte for byte.
+const INJECT_RE = new RegExp(
+  `[ \\t]*${escapeRe(COMMENT)}\\r?\\n[ \\t]*${escapeRe(CONST_LINE)}\\r?\\n`,
+);
 
-// The report filename template: move {type} from the front to after the date.
-const REPORT_RE = /\{type\}-\$\{namePattern\}\.md/;
+const args = process.argv.slice(2);
+const unknown = args.filter((a) => a !== '--revert');
+if (unknown.length) {
+  console.error(`usage: ${path.basename(process.argv[1])} [--revert]`);
+  process.exit(2);
+}
+const revert = args.includes('--revert');
 
-try {
-  const original = fs.readFileSync(cbPath, 'utf8');
+const sha256 = (s) => crypto.createHash('sha256').update(s).digest('hex');
 
-  if (original.includes('const reportPattern =')) {
-    console.log('  context-builder.cjs: already patched');
-  } else {
-    if (!SIG_RE.test(original)) {
-      throw new Error('buildNamingSection signature marker not found');
-    }
-    if (!REPORT_RE.test(original)) {
-      throw new Error('report filename marker "{type}-${namePattern}.md" not found');
-    }
-
-    // Function replacers keep `$` and `{` in the replacement text literal.
-    const patched = original
-      .replace(SIG_RE, (_m, head, indent, ret) =>
-        head +
-        `${indent}// Reports lead with the date prefix for chronological sorting: {date}[-{issue}]-{type}-{slug}.\n` +
-        `${indent}const reportPattern = namePattern.replace(/\\{slug\\}$/, '{type}-{slug}');\n` +
-        `${indent}${ret}`)
-      .replace(REPORT_RE, () => '${reportPattern}.md');
-
-    // Never leave a syntactically broken hook runtime behind: validate the
-    // patched source in a temp file and only then swap it in.
-    // Keep the .cjs extension: `node --check` rejects unknown extensions.
-    const tmpPath = cbPath.replace(/\.cjs$/, '.patch-check.cjs');
-    try {
-      fs.writeFileSync(tmpPath, patched);
-      execFileSync(process.execPath, ['--check', tmpPath], { stdio: 'pipe' });
-    } catch (checkErr) {
-      throw new Error(`patched source failed node --check: ${checkErr.message}`);
-    } finally {
-      fs.rmSync(tmpPath, { force: true });
-    }
-
-    fs.writeFileSync(cbPath, patched);
-    console.log('  context-builder.cjs: patched (date-first reports)');
+// The hash AgentKit recorded for the file it last emitted, or null when the
+// record is unavailable (fresh install, renamed kit, non-global layout).
+function ownedHash() {
+  try {
+    return JSON.parse(fs.readFileSync(OWNED_HASHES, 'utf8'))[cbPath] || null;
+  } catch {
+    return null;
   }
-} catch (err) {
-  console.error('  context-builder.cjs: FAILED -', err.message);
-  failed = true;
 }
 
-process.exit(failed ? 1 : 0);
+// Never leave a syntactically broken hook runtime behind: validate the new
+// source in a temp file and only then swap it in.
+// Keep the .cjs extension: `node --check` rejects unknown extensions.
+function writeChecked(source) {
+  const tmpPath = cbPath.replace(/\.cjs$/, '.patch-check.cjs');
+  try {
+    fs.writeFileSync(tmpPath, source);
+    execFileSync(process.execPath, ['--check', tmpPath], { stdio: 'pipe' });
+  } catch (checkErr) {
+    throw new Error(`new source failed node --check: ${checkErr.message}`);
+  } finally {
+    fs.rmSync(tmpPath, { force: true });
+  }
+  fs.writeFileSync(cbPath, source);
+}
+
+function applyPatch(original) {
+  if (original.includes(PATCH_MARKER)) {
+    console.log('  context-builder.cjs: already patched');
+    return;
+  }
+  if (!SIG_RE.test(original)) {
+    throw new Error('buildNamingSection signature marker not found');
+  }
+  if (!STOCK_TPL_RE.test(original)) {
+    throw new Error(`report filename marker "${STOCK_TPL}" not found`);
+  }
+
+  // Function replacers keep `$` and `{` in the replacement text literal.
+  const patched = original
+    .replace(
+      SIG_RE,
+      (_m, head, indent, ret) =>
+        head + `${indent}${COMMENT}\n${indent}${CONST_LINE}\n${indent}${ret}`,
+    )
+    .replace(STOCK_TPL_RE, () => PATCHED_TPL);
+
+  writeChecked(patched);
+  console.log('  context-builder.cjs: patched (date-first reports)');
+}
+
+function revertPatch(current) {
+  if (!current.includes(PATCH_MARKER)) {
+    console.log('  context-builder.cjs: already stock');
+    return;
+  }
+  if (!INJECT_RE.test(current) || !PATCHED_TPL_RE.test(current)) {
+    throw new Error('patch markers not found; leaving the file untouched');
+  }
+
+  const stock = current
+    .replace(INJECT_RE, '')
+    .replace(PATCHED_TPL_RE, () => STOCK_TPL);
+
+  // A revert that does not reproduce the recorded file would still be rejected
+  // by the emitter, so keep the working patch rather than trade it for nothing.
+  const expected = ownedHash();
+  const actual = sha256(stock);
+  if (expected && expected !== actual) {
+    throw new Error(
+      `revert does not match the hash AgentKit recorded ` +
+        `(${expected.slice(0, 12)} != ${actual.slice(0, 12)}); keeping the patch`,
+    );
+  }
+
+  writeChecked(stock);
+  console.log(
+    `  context-builder.cjs: reverted to stock${expected ? ' (hash verified)' : ''}`,
+  );
+}
+
+try {
+  const current = fs.readFileSync(cbPath, 'utf8');
+  if (revert) {
+    revertPatch(current);
+  } else {
+    applyPatch(current);
+  }
+} catch (err) {
+  console.error(`  context-builder.cjs: FAILED - ${err.message}`);
+  process.exit(1);
+}
