@@ -519,11 +519,28 @@ fi
 
 if [ -z "$PR_ID" ]; then
   [ -n "$BRANCH" ] || die "not in a git repo; pass a PR id or a pipeline: aaa-watch-pipeline <id|--pipeline n>"
-  pr_json=$(bkt pr list --json 2>/dev/null) \
-    || die "could not list PRs (check 'bkt auth status' and run inside the Bitbucket repo)."
-  PR_ID=$(printf '%s' "$pr_json" \
-    | jq -r --arg b "$BRANCH" \
-        'first((.pull_requests // [])[] | select(.source.branch.name == $b) | .id) // empty')
+  # On Cloud, ask Bitbucket for THIS branch's PR instead of listing every open PR
+  # and filtering locally. `bkt pr list` fetches a page of full PR objects (20 by
+  # default), and one PR whose source branch was deleted — leaving a dangling
+  # source commit — makes Bitbucket 500 the ENTIRE page, taking auto-detect down
+  # with it. The server-side `q` filter plus a `fields` projection asks for a
+  # single id and never requests the field that fails to serialize.
+  # The branch is @uri-encoded into the query value only (the surrounding
+  # operators stay literal), so names with / or " can't break out of the filter.
+  if [ -n "$WS" ] && [ -n "$REPO" ]; then
+    q=$(jq -rn --arg b "$BRANCH" '@uri "source.branch.name=\"\($b)\""')
+    pr_json=$(bkt api "/2.0/repositories/$WS/$REPO/pullrequests?state=OPEN&pagelen=1&fields=values.id&q=$q" 2>/dev/null) \
+      || die "could not query PRs (check 'bkt auth status' and run inside the Bitbucket repo)."
+    PR_ID=$(printf '%s' "$pr_json" | jq -r '.values[0].id // empty' 2>/dev/null)
+  else
+    # Data Center / unrecognized remote: no raw-endpoint coords, so keep the
+    # client-side scan (bkt resolves project/repo from its own context there).
+    pr_json=$(bkt pr list --json 2>/dev/null) \
+      || die "could not list PRs (check 'bkt auth status' and run inside the Bitbucket repo)."
+    PR_ID=$(printf '%s' "$pr_json" \
+      | jq -r --arg b "$BRANCH" \
+          'first((.pull_requests // [])[] | select(.source.branch.name == $b) | .id) // empty')
+  fi
   [ -n "$PR_ID" ] && printf 'Auto-detected PR #%s for branch %s\n' "$PR_ID" "$BRANCH"
 fi
 
