@@ -5,7 +5,8 @@
 # Successor to ck-update. AgentKit split the old monolithic `ck init` into
 # separate binary + kit operations, so this runs:
 #   1. `ak self-update`                       — update the ak binary
-#   2. `ak kit refresh engineer --global`      — refresh the global engineer kit
+#   2. revert the local hook patch, then
+#      `ak kit refresh engineer --global`      — refresh the global engineer kit
 #   3. reapply date-first report naming        — kit refresh overwrites hooks
 #   4. restore the custom statusline
 #   5. fix script permissions
@@ -22,14 +23,18 @@
 
 set -uo pipefail
 
-# Newest kit snapshots to retain when pruning. A run leaves 3 snapshots (~17M),
-# so 15 keeps roughly the last 5 runs. The pre-AgentKit takeover snapshots are
+# Newest kit snapshots to retain when pruning. A run leaves 2 snapshots (~20M),
+# so 15 keeps roughly the last 7 runs. The pre-AgentKit takeover snapshots are
 # pinned by AgentKit and are retained on top of this count.
 BACKUP_KEEP_LAST=15
 BACKUPS_DIR="$HOME/.agentkit/backups"
 # Snapshot count taken before the kit step mutates anything. Empty means the kit
 # step never ran, so step_prune has no evidence a snapshot was created.
 BACKUPS_BEFORE=""
+
+# Applies (and, with --revert, removes) the date-first report naming patch in
+# the AgentKit-owned hook runtime. Used by both the kit and naming steps.
+NAMING_SCRIPT="$HOME/bin/ak-reapply-claude-naming"
 
 DRY_RUN=0
 for arg in "$@"; do
@@ -69,10 +74,21 @@ step_kit() {
   BACKUPS_BEFORE=$(count_backups)
 
   if [ "$DRY_RUN" = 1 ]; then
+    dry_note "node $NAMING_SCRIPT --revert (drop the local hook patch)"
     dry_note "ak kit refresh engineer --global --yes"
     # kit refresh has no dry-run flag; surface drift/integrity read-only instead.
     ak doctor --check kit_integrity --no-interactive
     return $?
+  fi
+
+  # step_naming leaves context-builder.cjs differing from the sha256 AgentKit
+  # recorded for it, and the emitter refuses to write a hook runtime whose owned
+  # files were modified locally ("mixed-version hook runtime"), so every refresh
+  # after the first would abort. Hand the refresh a stock file; step_naming
+  # reapplies the patch once the new kit is written. Best effort — the force
+  # reinstall below still recovers if the revert cannot restore the file.
+  if command -v node >/dev/null 2>&1 && [ -f "$HOME/.claude/hooks/lib/context-builder.cjs" ]; then
+    node "$NAMING_SCRIPT" --revert || true
   fi
 
   local out rc
@@ -80,12 +96,10 @@ step_kit() {
   printf '%s\n' "$out"
   [ "$rc" -eq 0 ] && return 0
 
-  # step_naming deliberately edits context-builder.cjs, an AgentKit-owned hook
-  # runtime file. On a kit version bump the emitter will not preserve that one
-  # modified file next to updated siblings (it would be a mixed-version hook
-  # runtime) and aborts without writing. Recover with the force reinstall the
-  # error itself prescribes; it snapshots first, and step_naming reapplies the
-  # patch immediately afterwards.
+  # The revert above could not restore the recorded file, so the emitter aborted
+  # without writing. Recover with the force reinstall the error itself
+  # prescribes; it snapshots first, and step_naming reapplies the patch
+  # immediately afterwards.
   if [[ $out == *"mixed-version hook runtime"* ]]; then
     printf '  recovering: local hook patch blocked the refresh; force-reinstalling kit\n'
     ak kit init engineer --target claude-code --global --force --yes
@@ -96,12 +110,11 @@ step_kit() {
 }
 
 step_naming() {
-  local script="$HOME/bin/ak-reapply-claude-naming"
   if [ "$DRY_RUN" = 1 ]; then
-    dry_note "node $script (date-first report naming in context-builder.cjs)"
+    dry_note "node $NAMING_SCRIPT (date-first report naming in context-builder.cjs)"
     return 0
   fi
-  node "$script"
+  node "$NAMING_SCRIPT"
 }
 
 step_statusline() {
@@ -115,10 +128,10 @@ step_statusline() {
 }
 
 step_prune() {
-  # Every refresh the emitter blocks over the local hook patch leaves snapshots
-  # behind, so they accrue once per run. Keep a fixed number of the newest
-  # rather than a time window, so the disk ceiling holds no matter how often
-  # this runs. Runs last, so this run's own snapshots survive.
+  # The kit step snapshots owned content before writing, so snapshots accrue
+  # once per run. Keep a fixed number of the newest rather than a time window,
+  # so the disk ceiling holds no matter how often this runs. Runs last, so this
+  # run's own snapshots survive.
   #
   # Prune only when this run actually created a snapshot: with nothing new
   # added there is nothing to reclaim, and skipping keeps a read-only update
