@@ -51,6 +51,29 @@ to_seconds() {
 # Seconds → "Mm SSs".
 fmt_dur() { printf '%dm%02ds' $(( $1 / 60 )) $(( $1 % 60 )); }
 
+# countdown_sleep TOTAL [WAITER_PID]
+# Sleep TOTAL seconds while showing a live "next refresh in Ns" line, and wake
+# early when WAITER_PID (optional) exits. The line is drawn with \r + erase-to-EOL
+# and erased again before returning, so the cursor ends exactly where it started —
+# column 0 of the line after the caller's block — and the caller's redraw math
+# (\033[<block lines>A) keeps counting only the block's own lines.
+# The countdown lives here rather than in the block header because the header is
+# only redrawn once per interval; a per-second counter has to be written by
+# whoever owns the wait.
+# Non-TTY output stays plain: it just sleeps.
+countdown_sleep() {
+  local pid="${2:-}"
+  local left="$1"
+  while [ "$left" -gt 0 ]; do
+    [ -z "$pid" ] || kill -0 "$pid" 2>/dev/null || break
+    [ "$TTY" = true ] && printf '\r\033[K%s↻ next refresh in %ss%s' "$C_DIM" "$left" "$C_RST"
+    sleep 1
+    left=$((left - 1))
+  done
+  [ "$TTY" = true ] && printf '\r\033[K'
+  return 0
+}
+
 # State name → colored status glyph. Handles both build-status states
 # (SUCCESSFUL/FAILED/INPROGRESS/STOPPED) and pipeline-step states
 # (COMPLETED-resolved-to-result, IN_PROGRESS, PENDING, …).
@@ -241,6 +264,42 @@ print_sonar_summary() {
   fi
 }
 
+# ── Step fetch + early-failure spool ─────────────────────────────────────────
+# fetch_steps WS REPO UUID — one pipeline's steps JSON (empty on failure). The
+# uuid's braces must be percent-encoded or the API path 404s.
+fetch_steps() {
+  local enc
+  enc=$(printf '%s' "$3" | sed 's/{/%7B/g; s/}/%7D/g')
+  bkt api "/2.0/repositories/$1/$2/pipelines/$enc/steps/?pagelen=100" 2>/dev/null
+}
+
+# A failure is worth knowing about the moment it happens — a broken test 10
+# minutes into a 40-minute run is actionable long before the run resolves — but
+# the renderers run inside a command substitution, so they cannot remember what
+# they already announced. They append "build<TAB>label" rows to this spool file
+# instead, and the main script's drain_fail_spool() reads it in the parent shell
+# after each redraw, where the de-dupe state survives. An empty path disables
+# recording (the main script creates the file).
+FAIL_SPOOL=""
+
+# spool_fail BUILD LABEL — record one failed step, or one failed non-pipeline
+# check with BUILD as "-".
+spool_fail() {
+  [ -n "$FAIL_SPOOL" ] || return 0
+  printf '%s\t%s\n' "$1" "$2" >> "$FAIL_SPOOL"
+}
+
+# spool_failed_steps BUILD STEPS_JSON — record every failed step in STEPS_JSON.
+# For callers that hold the steps JSON without iterating it (the macro view).
+spool_failed_steps() {
+  [ -n "$FAIL_SPOOL" ] || return 0
+  printf '%s' "$2" | jq -r --arg b "$1" '
+    .values[]?
+    | select(.state.name == "COMPLETED" and (.state.result.name | IN("FAILED","ERROR","STOPPED")))
+    | [$b, .name] | @tsv' 2>/dev/null >> "$FAIL_SPOOL"
+  return 0
+}
+
 # ── Per-pipeline detail renderer ─────────────────────────────────────────────
 # render_pipeline_detail WS REPO BUILD STATE LABEL
 # One pipeline's live block: the header line (glyph, LABEL, #build, overall
@@ -250,7 +309,7 @@ print_sonar_summary() {
 # header text (a PR check name in PR mode, the branch in branch mode).
 render_pipeline_detail() {
   local ws="$1" repo="$2" build="$3" state="$4" label="$5"
-  local pv uuid enc overall steps_json ok bad run total tail st sname stime
+  local pv uuid overall steps_json ok bad run total tail st sname stime
 
   # Pipeline-level clock: created_on → completed_on (done) or now (running).
   pv=$(bkt pipeline view "$build" --workspace "$ws" --repo "$repo" --json 2>/dev/null)
@@ -266,8 +325,7 @@ render_pipeline_detail() {
     | if (.completed_on // "") != "" then "ran " + (((.completed_on|ep) - $c)|hms)
       else "running " + ((now - $c)|hms) end' 2>/dev/null)
   # Per-step state + duration from the raw steps API (pipeline view lacks timing).
-  enc=$(printf '%s' "$uuid" | sed 's/{/%7B/g; s/}/%7D/g')
-  steps_json=$(bkt api "/2.0/repositories/$ws/$repo/pipelines/$enc/steps/?pagelen=100" 2>/dev/null)
+  steps_json=$(fetch_steps "$ws" "$repo" "$uuid")
   read -r ok bad run total <<< "$(printf '%s' "$steps_json" | jq -r '
     [.values[]?] as $s
     | ([$s[] | select(.state.name=="COMPLETED" and .state.result.name=="SUCCESSFUL")] | length) as $ok
@@ -282,6 +340,9 @@ render_pipeline_detail() {
     "$(cglyph "$state")" "$label" "$build" "$C_YEL" "$overall" "$C_RST" "$tail"
   while IFS=$'\t' read -r st sname stime; do
     [ -n "$sname" ] || continue
+    # The step loop already knows every resolved state, so recording a failure
+    # here costs nothing extra — no second pass over steps_json.
+    case "$st" in FAILED|ERROR|STOPPED) spool_fail "$build" "$sname" ;; esac
     printf '    %s %-44s %s%s%s\n' "$(cglyph "$st")" "${sname:0:44}" "$C_DIM" "$stime" "$C_RST"
   done < <(printf '%s' "$steps_json" | jq -r "$JQ_TIME"'
     .values[]? | .state.name as $sn
@@ -337,6 +398,9 @@ render_block() {
       fi
       render_pipeline_detail "$ws" "$repo" "$build" "$state" "$name"
     else
+      # A failed check that isn't a pipeline (Sonar, an external status) is
+      # announced early too; "-" marks it as having no build number.
+      case "$state" in FAILED|ERROR|STOPPED) spool_fail "-" "$name" ;; esac
       printf '%s %-44s %s%s%s\n' "$(cglyph "$state")" "${name:0:44}" "$C_DIM" "$t" "$C_RST"
     fi
   done <<< "$rows"
@@ -490,7 +554,8 @@ render_macro_table() {
 # documented v1 limitation for a personal tool's realistic pipeline counts.
 # Notifications are keyed per build (aaa-pipeline-$REPO-$build) with a per-build
 # click-URL so a FAILED pipeline's notification is never silently replaced by a
-# later one. Reads WS/REPO/MACRO_BRANCH/RENDER_EVERY globals; needs notify()/die.
+# later one. Reads WS/REPO/MACRO_BRANCH/RENDER_EVERY globals; needs notify(),
+# drain_fail_spool() and die.
 run_macro_watch() {
   local timeout="$1" t_secs
   t_secs=$(to_seconds "$timeout")
@@ -500,7 +565,10 @@ run_macro_watch() {
   [ "$TTY" = true ] && printf '\033[?25l'
   while [ "${#queue[@]}" -gt 0 ]; do
     local -a next=() display=()
-    local row build old_state created pv sn res newrow url group block n
+    local row build old_state created pv sn res newrow url group block n uuid
+    # Each tick re-derives the failure set from scratch; drain_fail_spool() owns
+    # the de-dupe across ticks.
+    [ -n "$FAIL_SPOOL" ] && : > "$FAIL_SPOOL"
     for row in "${queue[@]}"; do
       IFS=$'\t' read -r build old_state created _ <<< "$row"   # old result unused; re-polled below
       pv=$(bkt pipeline view "$build" --workspace "$WS" --repo "$REPO" --json 2>/dev/null)
@@ -519,6 +587,12 @@ run_macro_watch() {
         esac
       else
         next+=("$newrow")
+        # A pipeline that is still IN_PROGRESS can already hold a failed step (a
+        # later or parallel step keeps the run alive), and the compact table shows
+        # no steps — so ask for them. One extra call per still-running build per
+        # tick, reusing the uuid from the pipeline view already fetched above.
+        uuid=$(printf '%s' "$pv" | jq -r '.pipeline.uuid // empty' 2>/dev/null)
+        [ -n "$uuid" ] && spool_failed_steps "$build" "$(fetch_steps "$WS" "$REPO" "$uuid")"
       fi
     done
 
@@ -531,6 +605,7 @@ run_macro_watch() {
     fi
     printf '%s\n' "$block"
     prev_lines=$n; first=false
+    drain_fail_spool
 
     queue=(${next[@]+"${next[@]}"})
     [ "${#queue[@]}" -eq 0 ] && break
@@ -538,6 +613,6 @@ run_macro_watch() {
       printf '%s(timed out after %s; %d still running)%s\n' "$C_YEL" "$timeout" "${#queue[@]}" "$C_RST"
       break
     fi
-    sleep "$RENDER_EVERY"
+    countdown_sleep "$RENDER_EVERY"
   done
 }

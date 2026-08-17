@@ -15,6 +15,17 @@
 # Notifies on BOTH success and failure — useful for long pipelines (~20 min)
 # you don't want to babysit.
 #
+# Failures are announced as they happen, not only at the end: the first refresh
+# that sees a step (or a non-pipeline PR check) FAILED fires its own notification,
+# so a broken test partway through a 40-minute run reaches you while there's still
+# time to act. Each failed step notifies once, and the final outcome notification
+# still follows. The run keeps going — use --fail-fast to stop on the first
+# failure instead. Nothing is announced for a run that had already finished before
+# the watch started (its result is on screen already).
+#
+# The live view counts down to the next refresh, so a quiet 30s gap doesn't look
+# like a hang.
+#
 # Pipeline mode (explicit build): watch ONE pipeline by build number or by its
 # results URL, wherever it lives — no PR and no matching local checkout needed.
 # The build's own target decides the label and the Sonar scope: a branch run is
@@ -101,6 +112,13 @@ SONAR_MODE="branch"
 SONAR_ID=""
 # Header line for the single-pipeline view; empty → watch_single_pipeline's default.
 BRANCH_HEADER=""
+# PR web URL, resolved in PR mode; also the click target for a failed PR check.
+PR_URL=""
+# Early-failure notifications (see drain_fail_spool). Each mode enables them only
+# when it is actually witnessing a run, and names the scope shown in the banner.
+NOTIFY_EARLY_FAILS=false
+FAIL_CONTEXT=""
+SEEN_FAILS=""
 TIMEOUT="2h"
 INTERVAL="30s"
 FAIL_FAST=false
@@ -152,6 +170,11 @@ done
 command -v bkt >/dev/null 2>&1 || die "bkt not found (Bitbucket CLI). Install and run 'bkt auth login'."
 command -v jq  >/dev/null 2>&1 || die "jq not found."
 
+# Spool the renderers append failed steps to (declared in the lib, filled from
+# their subshell, drained here). If mktemp fails, recording stays off and the
+# watch degrades to end-of-run notifications only.
+FAIL_SPOOL=$(mktemp "${TMPDIR:-/tmp}/aaa-watch-pipeline-fails.XXXXXX" 2>/dev/null) || FAIL_SPOOL=""
+
 # ── notify <title> <message> <sound-name> <group-key> <click-url> ────────────
 # Group key + click-URL are explicit so branch/macro mode can key each pipeline's
 # notification independently (a per-build key stops terminal-notifier from
@@ -176,6 +199,44 @@ notify() {
   fi
 }
 
+# ── Early-failure notifications ──────────────────────────────────────────────
+# Announce each failed step/check the moment a refresh sees it, instead of waiting
+# for the run's final outcome: a failed test partway through a 40-minute pipeline
+# is worth acting on immediately. The run itself keeps going (--fail-fast is still
+# the way to stop early).
+#
+# Runs in the parent shell after each redraw, so SEEN_FAILS survives across
+# refreshes — the renderers can't dedupe from inside their command substitution,
+# and a step stays failed on every later refresh.
+drain_fail_spool() {
+  [ "$NOTIFY_EARLY_FAILS" = true ] || return 0
+  { [ -n "$FAIL_SPOOL" ] && [ -s "$FAIL_SPOOL" ]; } || return 0
+  local build label key slug title msg url group
+  while IFS=$'\t' read -r build label; do
+    [ -n "$label" ] || continue
+    key="${build}/${label}"
+    case "$SEEN_FAILS" in *"|${key}|"*) continue ;; esac
+    SEEN_FAILS="${SEEN_FAILS}|${key}|"
+    # terminal-notifier replaces same-group banners, so each failure needs its own
+    # group: two failed steps must not overwrite each other, and none may collide
+    # with the run's final-outcome group (aaa-pr-checks-* / aaa-pipeline-*).
+    slug=$(printf '%s' "$label" | tr -cs '[:alnum:]' '-')
+    if [ "$build" = "-" ]; then
+      title="❌ ${REPO:+$REPO — }check failed"
+      url="$PR_URL"
+      group="aaa-fail-${REPO}-check-${slug}"
+    else
+      title="❌ ${REPO:+$REPO }#${build} — step failed"
+      url="https://bitbucket.org/${WS}/${REPO}/pipelines/results/${build}"
+      group="aaa-fail-${REPO}-${build}-${slug}"
+    fi
+    msg="$label"
+    [ -n "$FAIL_CONTEXT" ] && msg="$msg ($FAIL_CONTEXT)"
+    notify "$title" "$msg" "Basso" "$group" "$url"
+  done < "$FAIL_SPOOL"
+  return 0
+}
+
 # ── Shared live redraw loop ──────────────────────────────────────────────────
 # live_redraw_loop RENDER_FN — redraw RENDER_FN's output in place every
 # RENDER_EVERY seconds until $waiter (a backgrounded job) exits, then one final
@@ -183,9 +244,12 @@ notify() {
 # branch single-target mode (waiter = poll_pipeline). Caller sets $waiter and
 # reaps it with `wait` afterward.
 live_redraw_loop() {
-  local render_fn="$1" prev_lines=0 first=true block n slept
+  local render_fn="$1" prev_lines=0 first=true block n
   [ "$TTY" = true ] && printf '\033[?25l'            # hide cursor during redraws
   while kill -0 "$waiter" 2>/dev/null; do
+    # Each render re-derives the failure set from scratch; drain_fail_spool() owns
+    # the de-dupe across refreshes.
+    [ -n "$FAIL_SPOOL" ] && : > "$FAIL_SPOOL"
     block=$("$render_fn")
     n=$(printf '%s\n' "$block" | wc -l | tr -d ' ')
     if [ "$TTY" = true ]; then
@@ -196,14 +260,15 @@ live_redraw_loop() {
     printf '%s\n' "$block"
     prev_lines=$n
     first=false
-    # Sleep the refresh interval, but wake early when the waiter finishes.
-    slept=0
-    while [ "$slept" -lt "$RENDER_EVERY" ]; do
-      kill -0 "$waiter" 2>/dev/null || break
-      sleep 1; slept=$((slept + 1))
-    done
+    drain_fail_spool
+    # Sleep the refresh interval (counting down), waking early when the waiter
+    # finishes. The countdown line erases itself, so prev_lines still describes
+    # the block alone.
+    countdown_sleep "$RENDER_EVERY" "$waiter"
   done
-  # Final redraw so the terminal shows the fully-resolved state.
+  # Final redraw so the terminal shows the fully-resolved state. Deliberately not
+  # drained: the run has resolved, so the caller's outcome notification covers it —
+  # draining here would double-notify the step that ended the run.
   block=$("$render_fn")
   if [ "$TTY" = true ]; then
     [ "$first" = false ] && printf '\033[%dA\033[J' "$prev_lines"
@@ -219,6 +284,8 @@ waiter=""
 cleanup() {
   [ "$TTY" = true ] && printf '\033[?25h'          # show cursor
   [ -n "$waiter" ] && kill "$waiter" 2>/dev/null || true
+  [ -n "$FAIL_SPOOL" ] && rm -f "$FAIL_SPOOL"
+  return 0
 }
 trap 'exit 130' INT TERM
 trap cleanup EXIT
@@ -247,6 +314,11 @@ run_pr_mode() {
   SHA=$(printf '%s' "$initial_checks" | jq -r '.commit // empty')
   pending_at_start=$(printf '%s' "$initial_checks" | jq -r '[.statuses[]? | select(.state=="INPROGRESS")] | length' 2>/dev/null)
   [ "${pending_at_start:-0}" -gt 0 ] && pr_was_running=true
+
+  # Early per-step notifications follow the same rule as the outcome banner: only
+  # announce failures from a run we actually watched happen.
+  NOTIFY_EARLY_FAILS="$pr_was_running"
+  FAIL_CONTEXT="PR #$PR_ID"
 
   local wait_args
   wait_args=(pr checks "$PR_ID" --wait --timeout "$TIMEOUT" --interval "$INTERVAL")
@@ -341,6 +413,11 @@ watch_single_pipeline() {
   local url="https://bitbucket.org/${WS}/${REPO}/pipelines/results/${TARGET_BUILD}"
   local group="aaa-pipeline-${REPO}-${TARGET_BUILD}"
 
+  # Early per-step notifications follow the same rule as the outcome banner: only
+  # announce failures from a run we actually watched happen.
+  NOTIFY_EARLY_FAILS="$TARGET_WAS_RUNNING"
+  FAIL_CONTEXT="$BRANCH"
+
   printf 'Watching pipeline #%s on branch %s (timeout %s, poll %s)...\n' \
     "$TARGET_BUILD" "$BRANCH" "$TIMEOUT" "$INTERVAL"
   printf '%s\n' "$url"
@@ -429,6 +506,10 @@ run_branch_mode() {
       MACRO_BRANCH="$BRANCH"
       # shellcheck disable=SC2034
       MACRO_QUEUE=(${running_rows[@]+"${running_rows[@]}"})
+      # Every queued build is running by construction, so every failure it hits is
+      # one we're witnessing.
+      NOTIFY_EARLY_FAILS=true
+      FAIL_CONTEXT="$BRANCH"
       printf 'Watching %d running pipelines on %s (--all, timeout %s)...\n' \
         "$running_count" "$BRANCH" "$TIMEOUT"
       run_macro_watch "$TIMEOUT"
