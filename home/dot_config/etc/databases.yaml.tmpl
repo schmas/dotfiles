@@ -7,6 +7,8 @@
 {{- $uat2s := onepasswordItemFields "v3nmfgeghluczj7u6nv5vcx5ki" "AAA" }}
 {{- $datastaging := onepasswordDetailsFields "5wfjvu67eas6yvcl7ux7nzdbim" "AAA" }}
 {{- $datastagings := onepasswordItemFields "5wfjvu67eas6yvcl7ux7nzdbim" "AAA" }}
+{{- $datatesting := onepasswordDetailsFields "ruqmcbnk5ppeovi7qksquzkmby" "AAA" }}
+{{- $datatestings := onepasswordItemFields "ruqmcbnk5ppeovi7qksquzkmby" "AAA" }}
 {{- $hoosieruat2 := onepasswordDetailsFields "ymliolxaipistvct2iur7sbxtm" "AAA" }}
 {{- $hoosieruat2s := onepasswordItemFields "ymliolxaipistvct2iur7sbxtm" "AAA" }}
 {{- $bsguat2 := onepasswordDetailsFields "nuyft7egt2ivl3nqlpxculftjm" "AAA" }}
@@ -77,6 +79,17 @@ datastaging:
   user: {{ (index $datastaging "username").value }}
   password: {{ (index $datastaging "password").value }}
   bastion: {{ (index $datastagings "user").value }}@{{ (index $datastagings "host").value }}
+  sslmode: require
+  type: postgresql
+  writable: false
+
+datatesting:
+  host: {{ (index $datatesting "hostname").value }}
+  port: {{ (index $datatesting "port").value }}
+  dbname: {{ (index $datatesting "database").value }}
+  user: {{ (index $datatesting "username").value }}
+  password: {{ (index $datatesting "password").value }}
+  bastion: {{ (index $datatestings "user").value }}@{{ (index $datatestings "host").value }}
   sslmode: require
   type: postgresql
   writable: false
