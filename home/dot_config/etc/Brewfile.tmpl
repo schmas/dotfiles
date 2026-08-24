@@ -5,7 +5,8 @@
 # ── Taps (cross-platform) ──────────────────────────────────────────────────
 tap "gromgit/brewtils"
 tap "dlvhdr/formulae"
-tap "atlassian/homebrew-acli"
+# tap "atlassian/homebrew-acli"  # superseded by omar16100/atlassian-cli
+tap "omar16100/atlassian-cli"
 tap "neurosnap/tap"
 tap "jandedobbeleer/oh-my-posh"
 {{ if eq .chezmoi.os "darwin" }}
@@ -131,7 +132,8 @@ brew "hyperfine"      # CLI benchmarking
 brew "shfmt"          # Shell formatter
 brew "xz"             # Compression
 brew "urlview"        # URL extractor
-brew "acli"           # Atlassian CLI
+# brew "acli"         # Atlassian CLI (official tap, superseded below)
+brew "omar16100/atlassian-cli/atlassian-cli"  # Atlassian CLI
 brew "skate"          # Personal key-value store (charmbracelet)
 {{ if eq .chezmoi.os "darwin" }}
 # ── macOS-only formulae ───────────────────────────────────────────────────

@@ -1,0 +1,1412 @@
+#compdef atlassian-cli
+# Generated from `atlassian-cli --help`; regenerate after upgrading the CLI.
+
+typeset -gA _atlassian_cli_subs _atlassian_cli_opts _atlassian_cli_alias _atlassian_cli_own_opts
+
+_atlassian_cli_global_opts=(
+    '(-p --profile)-p+[Profile to use from config file]:PROFILE:'
+    '(-p --profile)--profile=[Profile to use from config file]:PROFILE:'
+    '--config=[Path to config file (defaults to ~/.atlassian-cli/config.yaml)]:CONFIG:_files'
+    '(-f --format)-f+[Output format for command results (table, json, yaml, csv, quiet, markdown)]:FORMAT:(table json yaml csv quiet markdown)'
+    '(-f --format)--format=[Output format for command results (table, json, yaml, csv, quiet, markdown)]:FORMAT:(table json yaml csv quiet markdown)'
+    '--envelope[Wrap JSON/YAML list output in {"data"\: \[...\], "count"\: N} envelope]'
+    '(-h --help)-h[Print help]'
+    '(-h --help)--help[Print help]'
+)
+
+_atlassian_cli_subs[.]='jira:Jira commands
+confluence:Confluence commands
+bitbucket:Bitbucket commands
+bb:Bitbucket commands
+jsm:Jira Service Management commands
+opsgenie:Opsgenie commands
+bamboo:Bamboo commands
+auth:Authentication commands'
+_atlassian_cli_opts[.]='(-p --profile)-p+[Profile to use from config file]:PROFILE:
+(-p --profile)--profile=[Profile to use from config file]:PROFILE:
+--config=[Path to config file (defaults to ~/.atlassian-cli/config.yaml)]:CONFIG:_files
+(-f --format)-f+[Output format for command results (table, json, yaml, csv, quiet, markdown)]:FORMAT:(table json yaml csv quiet markdown)
+(-f --format)--format=[Output format for command results (table, json, yaml, csv, quiet, markdown)]:FORMAT:(table json yaml csv quiet markdown)
+--envelope[Wrap JSON/YAML list output in {"data"\: \[...\], "count"\: N} envelope]
+--debug[Enable verbose logging]
+(-h --help)-h[Print help]
+(-h --help)--help[Print help]
+(-V --version)-V[Print version]
+(-V --version)--version[Print version]'
+_atlassian_cli_own_opts[.]=1
+_atlassian_cli_subs[auth]='login:Add or update a profile and store credentials securely
+logout:Remove stored credentials (and optionally the profile)
+list:List configured profiles
+status:Show authentication status for all services
+whoami:Show current user information
+test:Test authentication for a profile'
+_atlassian_cli_opts[auth/list]='--all[Show all profiles, including those without active tokens]'
+_atlassian_cli_opts[auth/login]='--profile=[Profile name to create or update. Prompted for if omitted]:PROFILE:
+--base-url=[Atlassian site base URL (e.g. https\://example.atlassian.net). Prompted for if omitted....]:BASE_URL:
+--config=[Path to config file (defaults to ~/.atlassian-cli/config.yaml)]:CONFIG:_files
+--email=[Account email associated with the API token. Prompted for if omitted. Not required for...]:EMAIL:
+(-f --format)-f+[Output format for command results (table, json, yaml, csv, quiet, markdown)]:FORMAT:(table json yaml csv quiet markdown)
+(-f --format)--format=[Output format for command results (table, json, yaml, csv, quiet, markdown)]:FORMAT:(table json yaml csv quiet markdown)
+--envelope[Wrap JSON/YAML list output in {"data"\: \[...\], "count"\: N} envelope]
+--token=[API token to store securely (falls back to ATLASSIAN_API_TOKEN env or interactive prompt)]:TOKEN:
+--default[Mark this profile as the default one]
+--bitbucket[Login for Bitbucket (uses api.bitbucket.org, no base_url required)]
+--bearer[Use Bearer auth (for repository/workspace/project access tokens). Requires --bitbucket]
+--workspace=[Bitbucket workspace slug (optional, for --bitbucket mode)]:WORKSPACE:
+(-h --help)-h[Print help]
+(-h --help)--help[Print help]'
+_atlassian_cli_own_opts[auth/login]=1
+_atlassian_cli_opts[auth/logout]='--profile=[Profile to remove credentials for]:PROFILE:
+--config=[Path to config file (defaults to ~/.atlassian-cli/config.yaml)]:CONFIG:_files
+--remove-profile[Remove the profile from config entirely (not just the stored token)]
+--bitbucket[Only remove Bitbucket token (keep Jira/Confluence token)]
+(-f --format)-f+[Output format for command results (table, json, yaml, csv, quiet, markdown)]:FORMAT:(table json yaml csv quiet markdown)
+(-f --format)--format=[Output format for command results (table, json, yaml, csv, quiet, markdown)]:FORMAT:(table json yaml csv quiet markdown)
+--envelope[Wrap JSON/YAML list output in {"data"\: \[...\], "count"\: N} envelope]
+(-h --help)-h[Print help]
+(-h --help)--help[Print help]'
+_atlassian_cli_own_opts[auth/logout]=1
+_atlassian_cli_opts[auth/status]='--profile=[Profile to check (defaults to default profile)]:PROFILE:
+--config=[Path to config file (defaults to ~/.atlassian-cli/config.yaml)]:CONFIG:_files
+--configured-only[Only show configured services (hide N/A entries)]
+(-f --format)-f+[Output format for command results (table, json, yaml, csv, quiet, markdown)]:FORMAT:(table json yaml csv quiet markdown)
+(-f --format)--format=[Output format for command results (table, json, yaml, csv, quiet, markdown)]:FORMAT:(table json yaml csv quiet markdown)
+--envelope[Wrap JSON/YAML list output in {"data"\: \[...\], "count"\: N} envelope]
+(-h --help)-h[Print help]
+(-h --help)--help[Print help]'
+_atlassian_cli_own_opts[auth/status]=1
+_atlassian_cli_opts[auth/test]='--profile=[Profile to test (defaults to default profile)]:PROFILE:
+--bitbucket[Test Bitbucket authentication instead of Jira/Confluence]
+--config=[Path to config file (defaults to ~/.atlassian-cli/config.yaml)]:CONFIG:_files
+(-f --format)-f+[Output format for command results (table, json, yaml, csv, quiet, markdown)]:FORMAT:(table json yaml csv quiet markdown)
+(-f --format)--format=[Output format for command results (table, json, yaml, csv, quiet, markdown)]:FORMAT:(table json yaml csv quiet markdown)
+--envelope[Wrap JSON/YAML list output in {"data"\: \[...\], "count"\: N} envelope]
+(-h --help)-h[Print help]
+(-h --help)--help[Print help]'
+_atlassian_cli_own_opts[auth/test]=1
+_atlassian_cli_opts[auth/whoami]='--profile=[Profile to use (defaults to default profile)]:PROFILE:
+--config=[Path to config file (defaults to ~/.atlassian-cli/config.yaml)]:CONFIG:_files
+(-f --format)-f+[Output format for command results (table, json, yaml, csv, quiet, markdown)]:FORMAT:(table json yaml csv quiet markdown)
+(-f --format)--format=[Output format for command results (table, json, yaml, csv, quiet, markdown)]:FORMAT:(table json yaml csv quiet markdown)
+--envelope[Wrap JSON/YAML list output in {"data"\: \[...\], "count"\: N} envelope]
+(-h --help)-h[Print help]
+(-h --help)--help[Print help]'
+_atlassian_cli_own_opts[auth/whoami]=1
+_atlassian_cli_subs[bamboo]='project:Project operations
+plan:Plan operations
+branch:Branch operations
+build:Build operations
+deploy:Deployment operations
+agent:Agent operations
+artifact:Artifact operations
+info:Server information
+queue:Build queue operations'
+_atlassian_cli_subs[bamboo/agent]='list:List agents
+get:Get agent details
+enable:Enable an agent
+disable:Disable an agent
+capabilities:List agent capabilities'
+_atlassian_cli_opts[bamboo/agent/capabilities]=':ID:'
+_atlassian_cli_opts[bamboo/agent/disable]=':ID:'
+_atlassian_cli_opts[bamboo/agent/enable]=':ID:'
+_atlassian_cli_opts[bamboo/agent/get]=':ID:'
+_atlassian_cli_subs[bamboo/artifact]='list:List artifacts for a build
+download:Download an artifact'
+_atlassian_cli_opts[bamboo/artifact/download]='--name=[Artifact name to download]:NAME:
+(-o --output)-o+[Output file path]:OUTPUT:_files
+(-o --output)--output=[Output file path]:OUTPUT:_files
+:BUILD_KEY:'
+_atlassian_cli_opts[bamboo/artifact/list]=':BUILD_KEY:'
+_atlassian_cli_subs[bamboo/branch]='list:List branches for a plan
+get:Get branch details
+create:Create a branch plan
+delete:Delete a branch plan
+enable:Enable a branch plan
+disable:Disable a branch plan'
+_atlassian_cli_opts[bamboo/branch/create]='--name=:NAME:
+--vcs-branch=:VCS_BRANCH:
+:PLAN_KEY:'
+_atlassian_cli_opts[bamboo/branch/delete]=':BRANCH_KEY:'
+_atlassian_cli_opts[bamboo/branch/disable]=':BRANCH_KEY:'
+_atlassian_cli_opts[bamboo/branch/enable]=':BRANCH_KEY:'
+_atlassian_cli_opts[bamboo/branch/get]=':BRANCH_KEY:'
+_atlassian_cli_opts[bamboo/branch/list]='--limit=:LIMIT:
+:PLAN_KEY:'
+_atlassian_cli_subs[bamboo/build]='list:List builds for a plan
+get:Get build details
+latest:Get latest build for a plan
+run:Run a build
+stop:Stop a running build
+logs:Get build logs
+comment:Add comment to a build
+add-label:Add label to a build
+remove-label:Remove label from a build'
+_atlassian_cli_opts[bamboo/build/add-label]='--label=:LABEL:
+:BUILD_KEY:'
+_atlassian_cli_opts[bamboo/build/comment]='--message=:MESSAGE:
+:BUILD_KEY:'
+_atlassian_cli_opts[bamboo/build/get]=':BUILD_KEY:'
+_atlassian_cli_opts[bamboo/build/latest]=':PLAN_KEY:'
+_atlassian_cli_opts[bamboo/build/list]='--limit=:LIMIT:
+:PLAN_KEY:'
+_atlassian_cli_opts[bamboo/build/logs]='--job=:JOB:
+:BUILD_KEY:'
+_atlassian_cli_opts[bamboo/build/remove-label]='--label=:LABEL:
+:BUILD_KEY:'
+_atlassian_cli_opts[bamboo/build/run]='--stage=:STAGE:
+--revision=:REVISION:
+:PLAN_KEY:'
+_atlassian_cli_opts[bamboo/build/stop]=':BUILD_KEY:'
+_atlassian_cli_subs[bamboo/deploy]='projects:List deployment projects
+project:Get deployment project details
+environments:List environments for a deployment project
+environment:Get environment details
+results:List deployment results for an environment
+trigger:Trigger a deployment
+versions:List versions for a deployment project'
+_atlassian_cli_opts[bamboo/deploy/environment]=':ENV_ID:'
+_atlassian_cli_opts[bamboo/deploy/environments]=':PROJECT_ID:'
+_atlassian_cli_opts[bamboo/deploy/project]=':ID:'
+_atlassian_cli_opts[bamboo/deploy/projects]='--limit=:LIMIT:'
+_atlassian_cli_opts[bamboo/deploy/results]='--limit=:LIMIT:
+:ENV_ID:'
+_atlassian_cli_opts[bamboo/deploy/trigger]='--version-id=:VERSION_ID:
+:ENV_ID:'
+_atlassian_cli_opts[bamboo/deploy/versions]='--limit=:LIMIT:
+:PROJECT_ID:'
+_atlassian_cli_subs[bamboo/plan]='list:List plans
+get:Get plan details
+enable:Enable a plan
+disable:Disable a plan
+favorite:Favorite a plan
+unfavorite:Unfavorite a plan'
+_atlassian_cli_opts[bamboo/plan/disable]=':KEY:'
+_atlassian_cli_opts[bamboo/plan/enable]=':KEY:'
+_atlassian_cli_opts[bamboo/plan/favorite]=':KEY:'
+_atlassian_cli_opts[bamboo/plan/get]=':KEY:'
+_atlassian_cli_opts[bamboo/plan/list]='--limit=:LIMIT:'
+_atlassian_cli_opts[bamboo/plan/unfavorite]=':KEY:'
+_atlassian_cli_subs[bamboo/project]='list:List projects
+get:Get project details'
+_atlassian_cli_opts[bamboo/project/get]=':KEY:'
+_atlassian_cli_opts[bamboo/project/list]='--limit=:LIMIT:'
+_atlassian_cli_subs[bitbucket]='repo:Repository operations
+branch:Branch operations
+pr:Pull request operations
+workspace:Workspace operations
+project:Project operations
+pipeline:Pipeline operations
+webhook:Webhook operations
+ssh-key:SSH deploy key operations
+permission:Repository permission operations
+commit:Commit operations
+bulk:Bulk operations
+whoami:Show current authenticated Bitbucket user'
+_atlassian_cli_opts[bitbucket]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:'
+_atlassian_cli_subs[bitbucket/branch]='list:List branches in a repository
+get:Get branch details
+create:Create a new branch
+delete:Delete a branch
+protect:Add branch protection (restriction)
+unprotect:Remove branch protection
+restrictions:List branch restrictions'
+_atlassian_cli_opts[bitbucket/branch]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:'
+_atlassian_cli_opts[bitbucket/branch/create]='--from=[Source commit hash or branch name]:FROM:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+:REPO - Repository slug:
+:BRANCH - New branch name:'
+_atlassian_cli_opts[bitbucket/branch/delete]='--force[Skip confirmation prompt]
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+:REPO - Repository slug:
+:BRANCH - Branch name:'
+_atlassian_cli_opts[bitbucket/branch/get]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+:REPO - Repository slug:
+:BRANCH - Branch name:'
+_atlassian_cli_opts[bitbucket/branch/list]='--limit=:LIMIT:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+:REPO - Repository slug:'
+_atlassian_cli_opts[bitbucket/branch/protect]='--pattern=[Branch name pattern (e.g., "main", "release/*")]:PATTERN:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--kind=[Restriction kind (push, delete, force, restrict_merges)]:KIND:
+--approvals=[Number of required approvals]:APPROVALS:
+:REPO - Repository slug:'
+_atlassian_cli_opts[bitbucket/branch/restrictions]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+:REPO - Repository slug:'
+_atlassian_cli_opts[bitbucket/branch/unprotect]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+:REPO - Repository slug:
+:RESTRICTION_ID - Branch restriction ID:'
+_atlassian_cli_subs[bitbucket/bulk]='archive-repos:Archive stale repositories
+delete-branches:Delete merged branches'
+_atlassian_cli_opts[bitbucket/bulk]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:'
+_atlassian_cli_opts[bitbucket/bulk/archive-repos]='--days=[Days threshold for staleness]:DAYS:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--dry-run[Dry run mode]
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:'
+_atlassian_cli_opts[bitbucket/bulk/delete-branches]='--exclude=[Exclude patterns (comma-separated)]:EXCLUDE:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--dry-run[Dry run mode]
+:REPO - Repository slug:'
+_atlassian_cli_subs[bitbucket/commit]='list:List commits
+get:Get commit details
+diff:View commit diff
+browse:Browse source code'
+_atlassian_cli_opts[bitbucket/commit]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:'
+_atlassian_cli_opts[bitbucket/commit/browse]='--commit=[Commit hash or branch name]:COMMIT:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--path=[File path]:PATH:_files
+:REPO - Repository slug:'
+_atlassian_cli_opts[bitbucket/commit/diff]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+:REPO - Repository slug:
+:HASH - Commit hash:'
+_atlassian_cli_opts[bitbucket/commit/get]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+:REPO - Repository slug:
+:HASH - Commit hash:'
+_atlassian_cli_opts[bitbucket/commit/list]='--branch=[Branch name]:BRANCH:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--limit=:LIMIT:
+:REPO - Repository slug:'
+_atlassian_cli_subs[bitbucket/permission]='list:List repository permissions
+grant:Grant repository permission
+revoke:Revoke repository permission'
+_atlassian_cli_opts[bitbucket/permission]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:'
+_atlassian_cli_opts[bitbucket/permission/grant]='--user-uuid=[User UUID]:USER_UUID:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--permission=[Permission level (read, write, admin)]:PERMISSION:
+:REPO - Repository slug:'
+_atlassian_cli_opts[bitbucket/permission/list]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+:REPO - Repository slug:'
+_atlassian_cli_opts[bitbucket/permission/revoke]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+:REPO - Repository slug:
+:USER_UUID - User UUID:'
+_atlassian_cli_subs[bitbucket/pipeline]='list:List pipelines
+get:Get pipeline details
+latest:Get latest pipeline for current or specified branch
+trigger:Trigger a new pipeline
+stop:Stop a running pipeline
+logs:Get pipeline logs
+watch:Watch a running pipeline until completion
+steps:List steps for a pipeline
+status:Get latest pipeline status (JSON output, smart exit codes)
+rerun:Re-run a pipeline with the same commit
+var:Manage pipeline variables/secrets
+env:Manage deployment environments'
+_atlassian_cli_opts[bitbucket/pipeline]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:'
+_atlassian_cli_subs[bitbucket/pipeline/env]='list:List deployment environments'
+_atlassian_cli_opts[bitbucket/pipeline/env]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:'
+_atlassian_cli_opts[bitbucket/pipeline/env/list]='--limit=[Maximum number of results]:LIMIT:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:'
+_atlassian_cli_opts[bitbucket/pipeline/get]='--pipeline=[Pipeline UUID or build number (alternative to positional)]:PIPELINE_FLAG:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:
+--steps[Show pipeline steps with status]
+::PIPELINE_ID - Pipeline UUID or build number:'
+_atlassian_cli_opts[bitbucket/pipeline/latest]='--branch=[Branch name (auto-detected from current branch if not specified)]:BRANCH:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:
+--steps[Show pipeline steps with status]'
+_atlassian_cli_opts[bitbucket/pipeline/list]='--limit=[Maximum number of results]:LIMIT:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:
+--sort=[Sort field (prefix with - for desc)\: created_on, -created_on]:SORT:
+--recent=[Show N most recent pipelines (shorthand for --sort=-created_on --limit=N)]:RECENT:
+--branch=[Filter by branch name]:BRANCH:
+--since=[Filter pipelines created after this time (inclusive). Examples\: 24h, 7d, 2024-01-01T00\:...]:SINCE:
+--before=[Filter pipelines created before this time (exclusive). Examples\: 7d, 2024-12-01T00\:00\:00Z]:BEFORE:
+--pr=[Filter by pull request number (uses PR'\''s source branch)]:PR:
+--all[Fetch all pages (ignores --limit)]
+--steps[Show step summary for each pipeline (adds N API calls)]'
+_atlassian_cli_opts[bitbucket/pipeline/logs]='--pipeline=[Pipeline UUID or build number (alternative to positional)]:PIPELINE_FLAG:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:
+--step-uuid=[Step UUID (alternative to positional)]:STEP_UUID_FLAG:
+--step=[Filter by step name pattern]:STEP:
+--grep=[Grep pattern to filter log lines]:GREP:
+(-i --ignore-case)-i[Case-insensitive grep and step name matching]
+(-i --ignore-case)--ignore-case[Case-insensitive grep and step name matching]
+--failed-only[Show only failed steps]
+::PIPELINE_ID - Pipeline UUID or build number:
+::STEP_UUID - Step UUID (positional or --step-uuid flag):'
+_atlassian_cli_opts[bitbucket/pipeline/rerun]='--pr=[Re-run from pull request (uses PR'\''s source branch)]:PR:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--failed-only[Only re-run if there are failed steps (requires --pr)]
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:
+--var=[Pipeline variables in KEY=VALUE format (can be repeated)]:VARIABLES:
+--secured[Mark all variables as secured]
+::PIPELINE_ID - Pipeline UUID or build number (optional when using --pr):'
+_atlassian_cli_opts[bitbucket/pipeline/status]='--steps[Show pipeline steps with status]
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:
+--wait[Wait for pipeline to reach terminal state before exiting]
+--interval=[Poll interval in seconds (used with --wait)]:INTERVAL:'
+_atlassian_cli_opts[bitbucket/pipeline/steps]='--pipeline=[Pipeline UUID or build number (alternative to positional)]:PIPELINE_FLAG:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:
+::PIPELINE_ID - Pipeline UUID or build number:'
+_atlassian_cli_opts[bitbucket/pipeline/stop]='--pipeline=[Pipeline UUID or build number (alternative to positional)]:PIPELINE_FLAG:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:
+::PIPELINE_ID - Pipeline UUID or build number:'
+_atlassian_cli_opts[bitbucket/pipeline/trigger]='--ref-name=[Branch or tag name]:REF_NAME:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--ref-type=[Reference type (branch or tag)]:REF_TYPE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:
+--var=[Pipeline variables in KEY=VALUE format (can be repeated)]:VARIABLES:
+--secured[Mark all variables as secured]
+--custom-pipeline=[Custom pipeline name to trigger (selector pattern from bitbucket-pipelines.yml)]:CUSTOM_PIPELINE:'
+_atlassian_cli_subs[bitbucket/pipeline/var]='list:List pipeline variables
+get:Get a pipeline variable by key
+create:Create a pipeline variable
+update:Update a pipeline variable
+delete:Delete a pipeline variable'
+_atlassian_cli_opts[bitbucket/pipeline/var]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:'
+_atlassian_cli_opts[bitbucket/pipeline/var/create]='--key=[Variable key name]:KEY:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:
+--value=[Variable value]:VALUE:
+--secured[Mark variable as secured (write-only, value hidden on read)]
+--workspace-level[Create in workspace-level scope]
+--deployment=[Create in deployment environment (name or UUID)]:DEPLOYMENT:'
+_atlassian_cli_opts[bitbucket/pipeline/var/delete]='--key=[Variable key name]:KEY:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:
+--workspace-level[Delete from workspace-level scope]
+--deployment=[Delete from deployment environment (name or UUID)]:DEPLOYMENT:
+--force[Skip confirmation prompt]'
+_atlassian_cli_opts[bitbucket/pipeline/var/get]='--key=[Variable key name]:KEY:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:
+--workspace-level[Get from workspace-level scope]
+--deployment=[Get from deployment environment (name or UUID)]:DEPLOYMENT:'
+_atlassian_cli_opts[bitbucket/pipeline/var/list]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--workspace-level[List workspace-level variables instead of repository variables]
+--deployment=[List variables for a deployment environment (name or UUID)]:DEPLOYMENT:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:
+--limit=[Maximum number of results]:LIMIT:'
+_atlassian_cli_opts[bitbucket/pipeline/var/update]='--key=[Variable key name]:KEY:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:
+--value=[New variable value]:VALUE:
+--secured[Mark variable as secured]
+--unsecured[Mark variable as unsecured (removes write-only protection)]
+--workspace-level[Update in workspace-level scope]
+--deployment=[Update in deployment environment (name or UUID)]:DEPLOYMENT:'
+_atlassian_cli_opts[bitbucket/pipeline/watch]='--pipeline=[Pipeline UUID or build number (alternative to positional)]:PIPELINE_FLAG:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--interval=[Poll interval in seconds]:INTERVAL:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:
+--steps[Show pipeline steps with status]
+--on-complete=[Shell command to run on pipeline completion. Receives env vars\: PIPELINE_STATUS, PIPELI...]:ON_COMPLETE:
+--timeout=[Timeout in seconds. Exit with code 2 if pipeline does not finish in time]:TIMEOUT:
+--log[Log mode\: one line per poll, no ANSI escape codes. Auto-enabled when stdout is not a TTY]
+::PIPELINE_ID - Pipeline UUID or build number:'
+_atlassian_cli_subs[bitbucket/pr]='list:List pull requests for a repository
+get:Get pull request details
+create:Create a new pull request
+update:Update pull request
+merge:Merge pull request
+decline:Decline/close pull request
+approve:Approve pull request
+unapprove:Remove approval from pull request
+diff:View pull request diff
+comments:List pull request comments
+comment:Add a comment to a pull request, optionally inline or as a threaded reply
+resolve-comment:Resolve a pull request diff comment thread
+reopen-comment:Reopen a resolved pull request comment thread
+reviewers:List pull request reviewers with review status, or add new reviewers'
+_atlassian_cli_opts[bitbucket/pr]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:'
+_atlassian_cli_opts[bitbucket/pr/approve]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+:REPO - Repository slug:
+:PR_ID - Pull request ID:'
+_atlassian_cli_opts[bitbucket/pr/comment]='--text=[Comment text (Markdown)]:TEXT:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--parent=[Parent comment ID for a threaded reply]:PARENT:
+--path=[File path (relative to repo root) to anchor an inline comment to. If omitted, posts a t...]:PATH:_files
+--line=[Line number to anchor the inline comment to. Must be >= 1, because Bitbucket line numbe...]:LINE:
+--side=[Which side of the diff --line refers to\: `new` (default) = destination (added/unchanged...]:SIDE:(new old)
+:REPO:
+:PR_ID:'
+_atlassian_cli_opts[bitbucket/pr/comments]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+:REPO - Repository slug:
+:PR_ID - Pull request ID:'
+_atlassian_cli_opts[bitbucket/pr/create]='--title=[PR title]:TITLE:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--source=[Source branch]:SOURCE:
+--destination=[Destination branch]:DESTINATION:
+--description=[PR description]:DESCRIPTION:
+--reviewers=[Reviewer UUIDs (comma-separated)]:REVIEWERS:
+:REPO - Repository slug:'
+_atlassian_cli_opts[bitbucket/pr/decline]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+:REPO - Repository slug:
+:PR_ID - Pull request ID:'
+_atlassian_cli_opts[bitbucket/pr/diff]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+:REPO - Repository slug:
+:PR_ID - Pull request ID:'
+_atlassian_cli_opts[bitbucket/pr/get]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+:REPO - Repository slug:
+:PR_ID - Pull request ID:'
+_atlassian_cli_opts[bitbucket/pr/list]='--state=:STATE:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--limit=:LIMIT:
+:REPO - Repository slug:'
+_atlassian_cli_opts[bitbucket/pr/merge]='--strategy=[Merge strategy\: merge_commit, squash, or fast_forward]:STRATEGY:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--message=[Merge commit message]:MESSAGE:
+:REPO - Repository slug:
+:PR_ID - Pull request ID:'
+_atlassian_cli_opts[bitbucket/pr/reopen-comment]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+:REPO - Repository slug:
+:PR_ID - Pull request ID:
+:COMMENT_ID - Top-level comment ID:'
+_atlassian_cli_opts[bitbucket/pr/resolve-comment]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+:REPO - Repository slug:
+:PR_ID - Pull request ID:
+:COMMENT_ID - Top-level comment ID:'
+_atlassian_cli_opts[bitbucket/pr/reviewers]='--add=[Reviewer UUIDs to add (comma-separated). If omitted, lists current reviewers instead]:ADD:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--all[When listing, also include non-reviewer participants (commenters)]
+:REPO:
+:PR_ID:'
+_atlassian_cli_opts[bitbucket/pr/unapprove]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+:REPO - Repository slug:
+:PR_ID - Pull request ID:'
+_atlassian_cli_opts[bitbucket/pr/update]='--title=[New title]:TITLE:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--description=[New description]:DESCRIPTION:
+:REPO - Repository slug:
+:PR_ID - Pull request ID:'
+_atlassian_cli_subs[bitbucket/project]='list:List projects in workspace
+get:Get project details
+create:Create a new project
+update:Update project
+delete:Delete project'
+_atlassian_cli_opts[bitbucket/project]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:'
+_atlassian_cli_opts[bitbucket/project/create]='--name=[Project name]:NAME:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--description=[Project description]:DESCRIPTION:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:
+--private[Make project private]
+:KEY - Project key (uppercase):'
+_atlassian_cli_opts[bitbucket/project/delete]='--force[Skip confirmation]
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:
+:KEY - Project key:'
+_atlassian_cli_opts[bitbucket/project/get]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:
+:KEY:'
+_atlassian_cli_opts[bitbucket/project/list]='--limit=:LIMIT:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:'
+_atlassian_cli_opts[bitbucket/project/update]='--name=[New name]:NAME:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--description=[New description]:DESCRIPTION:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:
+:KEY - Project key:'
+_atlassian_cli_subs[bitbucket/repo]='list:List repositories inside a workspace
+get:Show repository metadata
+create:Create a new repository
+update:Update repository metadata
+delete:Delete a repository'
+_atlassian_cli_opts[bitbucket/repo]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:'
+_atlassian_cli_opts[bitbucket/repo/create]='--name=[Repository display name]:NAME:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--description=[Repository description]:DESCRIPTION:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:
+--private[Make repository private]
+--project=[Project key to associate with]:PROJECT:
+:SLUG:'
+_atlassian_cli_opts[bitbucket/repo/delete]='--force[Skip confirmation prompt]
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:
+:SLUG - Repository slug:'
+_atlassian_cli_opts[bitbucket/repo/get]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:
+:SLUG:'
+_atlassian_cli_opts[bitbucket/repo/list]='--limit=:LIMIT:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:'
+_atlassian_cli_opts[bitbucket/repo/update]='--name=[New display name]:NAME:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--description=[New description]:DESCRIPTION:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:
+--language=[Programming language]:LANGUAGE:
+:SLUG - Repository slug:'
+_atlassian_cli_subs[bitbucket/ssh-key]='list:List SSH deploy keys
+add:Add SSH deploy key
+delete:Delete SSH deploy key'
+_atlassian_cli_opts[bitbucket/ssh-key]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:'
+_atlassian_cli_opts[bitbucket/ssh-key/add]='--label=[Key label]:LABEL:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--key=[SSH public key]:KEY:
+:REPO - Repository slug:'
+_atlassian_cli_opts[bitbucket/ssh-key/delete]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+:REPO - Repository slug:
+:UUID - Key UUID:'
+_atlassian_cli_opts[bitbucket/ssh-key/list]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+:REPO - Repository slug:'
+_atlassian_cli_subs[bitbucket/webhook]='list:List webhooks
+create:Create webhook
+delete:Delete webhook'
+_atlassian_cli_opts[bitbucket/webhook]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:'
+_atlassian_cli_opts[bitbucket/webhook/create]='--url=[Webhook URL]:URL:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--description=[Description]:DESCRIPTION:
+--events=[Events (comma-separated)]:EVENTS:
+--active[Active flag]
+:REPO - Repository slug:'
+_atlassian_cli_opts[bitbucket/webhook/delete]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+:REPO - Repository slug:
+:UUID - Webhook UUID:'
+_atlassian_cli_opts[bitbucket/webhook/list]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+:REPO - Repository slug:'
+_atlassian_cli_opts[bitbucket/whoami]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:'
+_atlassian_cli_subs[bitbucket/workspace]='list:List workspaces
+get:Get workspace details'
+_atlassian_cli_opts[bitbucket/workspace]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:'
+_atlassian_cli_opts[bitbucket/workspace/get]='--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:
+:SLUG:'
+_atlassian_cli_opts[bitbucket/workspace/list]='--limit=:LIMIT:
+--workspace=[Workspace slug (defaults to workspace configured in profile base URL host prefix)]:WORKSPACE:
+--repo=[Repository slug (auto-detected from git remote if not specified)]:REPO:'
+_atlassian_cli_subs[confluence]='space:Space operations
+page:Page operations
+folder:Folder operations (v2 Folder API)
+blog:Blog post operations
+attachment:Attachment operations
+search:Search operations
+bulk:Bulk operations
+analytics:Analytics operations'
+_atlassian_cli_subs[confluence/analytics]='page-views:Get page view statistics
+space-stats:Get space analytics'
+_atlassian_cli_opts[confluence/analytics/page-views]='--from=[From date (YYYY-MM-DD)]:FROM:
+:PAGE_ID - Page ID:'
+_atlassian_cli_opts[confluence/analytics/space-stats]=':SPACE_KEY - Space key:'
+_atlassian_cli_subs[confluence/attachment]='list:List attachments for a page
+get:Get attachment details
+upload:Upload an attachment
+download:Download an attachment
+delete:Delete an attachment'
+_atlassian_cli_opts[confluence/attachment/delete]='--force[Force deletion without confirmation]
+:ATTACHMENT_ID - Attachment ID:'
+_atlassian_cli_opts[confluence/attachment/download]='--output=[Output file path]:OUTPUT:_files
+:ATTACHMENT_ID - Attachment ID:'
+_atlassian_cli_opts[confluence/attachment/get]=':ATTACHMENT_ID - Attachment ID:'
+_atlassian_cli_opts[confluence/attachment/list]=':PAGE_ID - Page ID:'
+_atlassian_cli_opts[confluence/attachment/upload]='--file=[File path to upload]:FILE:_files
+--comment=[Optional comment]:COMMENT:
+:PAGE_ID - Page ID:'
+_atlassian_cli_subs[confluence/blog]='list:List blog posts
+get:Get blog post details
+create:Create a blog post
+update:Update a blog post
+publish:Publish a draft blog post for the first time
+delete:Delete a blog post'
+_atlassian_cli_opts[confluence/blog/create]='--space=[Space ID]:SPACE:
+--title=[Blog post title]:TITLE:
+--body=[Body content file (HTML storage format)]:BODY:_files'
+_atlassian_cli_opts[confluence/blog/delete]='--force[Force deletion without confirmation]
+:BLOGPOST_ID - Blog post ID:'
+_atlassian_cli_opts[confluence/blog/get]='--body-only[Output only the blog post body content (HTML or markdown)]
+:BLOGPOST_ID - Blog post ID:'
+_atlassian_cli_opts[confluence/blog/list]='--space=[Filter by space ID]:SPACE:
+--limit=[Maximum number of results]:LIMIT:'
+_atlassian_cli_opts[confluence/blog/publish]='--body=[Body content file (HTML storage format) - required for publishing]:BODY:_files
+--title=[Blog post title (uses existing if not specified)]:TITLE:
+--message=[Version message for audit trail]:MESSAGE:
+:BLOGPOST_ID - Blog post ID:'
+_atlassian_cli_opts[confluence/blog/update]='--title=[New blog post title]:TITLE:
+--body=[New body content file (HTML storage format)]:BODY:_files
+--status=[Target status\: current (published) or draft]:STATUS:(current draft)
+--message=[Version message for audit trail]:MESSAGE:
+:BLOGPOST_ID - Blog post ID:'
+_atlassian_cli_subs[confluence/bulk]='delete:Bulk delete pages
+add-labels:Bulk add labels
+export:Bulk export pages'
+_atlassian_cli_opts[confluence/bulk/add-labels]='--cql=[CQL query to select pages]:CQL:
+--labels=[Labels to add (comma-separated)]:LABELS:
+--dry-run[Dry run mode]
+--concurrency=[Concurrency level]:CONCURRENCY:'
+_atlassian_cli_opts[confluence/bulk/delete]='--cql=[CQL query to select pages]:CQL:
+--dry-run[Dry run mode]
+--concurrency=[Concurrency level]:CONCURRENCY:'
+_atlassian_cli_opts[confluence/bulk/export]='--cql=[CQL query to select pages]:CQL:
+(-p --profile)-p+[Profile to use from config file]:PROFILE:
+(-p --profile)--profile=[Profile to use from config file]:PROFILE:
+--config=[Path to config file (defaults to ~/.atlassian-cli/config.yaml)]:CONFIG:_files
+--output=[Output file path]:OUTPUT:_files
+--format=[Export format\: json or csv]:FORMAT:
+--envelope[Wrap JSON/YAML list output in {"data"\: \[...\], "count"\: N} envelope]
+(-h --help)-h[Print help]
+(-h --help)--help[Print help]'
+_atlassian_cli_own_opts[confluence/bulk/export]=1
+_atlassian_cli_subs[confluence/folder]='get:Get folder details by ID
+create:Create a new folder
+delete:Delete a folder'
+_atlassian_cli_opts[confluence/folder/create]='--space=[Space key (e.g., TEAM)]:SPACE:
+--title=[Folder title]:TITLE:
+--parent=[Parent folder or page ID]:PARENT:'
+_atlassian_cli_opts[confluence/folder/delete]='--force[Force deletion without confirmation]
+:FOLDER_ID - Folder ID:'
+_atlassian_cli_opts[confluence/folder/get]=':FOLDER_ID:'
+_atlassian_cli_subs[confluence/page]='list:List pages
+get:Get page details
+create:Create a new page
+update:Update a page
+publish:Publish a draft page for the first time
+delete:Delete a page
+versions:List page versions
+add-label:Add label to page
+remove-label:Remove label from page
+comments:List page comments
+add-comment:Add a comment to a page, or reply to an existing thread
+get-restrictions:Get page restrictions
+add-restriction:Add page restriction
+remove-restriction:Remove page restriction'
+_atlassian_cli_opts[confluence/page/add-comment]='--parent=[Reply to this comment instead of starting a new thread]:PARENT:
+--kind=[Which collection the comment belongs to. Must match the parent when replying]:KIND:(footer inline)
+:PAGE_ID:
+:COMMENT:'
+_atlassian_cli_opts[confluence/page/add-label]=':PAGE_ID - Page ID:
+:LABEL - Label name:'
+_atlassian_cli_opts[confluence/page/add-restriction]='--operation=[Operation (read, update)]:OPERATION:
+--subject-type=[Subject type (user, group)]:SUBJECT_TYPE:
+--subject-id=[Subject identifier (user ID or group name)]:SUBJECT_ID:
+:PAGE_ID - Page ID:'
+_atlassian_cli_opts[confluence/page/comments]='--full[Show full comment body instead of truncated preview]
+--replies[Also fetch replies to each comment. One request per thread root]
+:PAGE_ID:'
+_atlassian_cli_opts[confluence/page/create]='--space=[Space ID]:SPACE:
+--title=[Page title]:TITLE:
+--body=[Body content file (HTML storage format)]:BODY:_files
+--parent=[Parent page ID]:PARENT:'
+_atlassian_cli_opts[confluence/page/delete]='--force[Force deletion without confirmation]
+:PAGE_ID - Page ID:'
+_atlassian_cli_opts[confluence/page/get]='--body-only[Output only the page body content (HTML or markdown)]
+:PAGE_ID - Page ID:'
+_atlassian_cli_opts[confluence/page/get-restrictions]=':PAGE_ID - Page ID:'
+_atlassian_cli_opts[confluence/page/list]='--space=[Filter by space key]:SPACE:
+--limit=[Maximum number of results]:LIMIT:'
+_atlassian_cli_opts[confluence/page/publish]='--body=[Body content file (HTML storage format) - required for publishing]:BODY:_files
+--title=[Page title (uses existing if not specified)]:TITLE:
+--message=[Version message for audit trail]:MESSAGE:
+:PAGE_ID - Page ID:'
+_atlassian_cli_opts[confluence/page/remove-label]=':PAGE_ID - Page ID:
+:LABEL - Label name:'
+_atlassian_cli_opts[confluence/page/remove-restriction]='--operation=[Operation (read, update)]:OPERATION:
+--subject-type=[Subject type (user, group)]:SUBJECT_TYPE:
+--subject-id=[Subject identifier (user ID or group name)]:SUBJECT_ID:
+:PAGE_ID - Page ID:'
+_atlassian_cli_opts[confluence/page/update]='--title=[New page title]:TITLE:
+--body=[New body content file (HTML storage format)]:BODY:_files
+--status=[Target status\: current (published) or draft]:STATUS:(current draft)
+--message=[Version message for audit trail]:MESSAGE:
+:PAGE_ID - Page ID:'
+_atlassian_cli_opts[confluence/page/versions]=':PAGE_ID - Page ID:'
+_atlassian_cli_subs[confluence/search]='cql:Search using CQL
+text:Text search
+in-space:Search in space
+params:Search using filter parameters'
+_atlassian_cli_opts[confluence/search/cql]='--limit=[Maximum number of results]:LIMIT:
+:QUERY:'
+_atlassian_cli_opts[confluence/search/in-space]='--limit=[Maximum number of results]:LIMIT:
+:SPACE:
+:QUERY:'
+_atlassian_cli_opts[confluence/search/params]='--space=[Filter by space key]:SPACE:
+--type=[Filter by content type (page, blogpost, attachment)]:TYPE:
+--creator=[Filter by creator (use @me for current user)]:CREATOR:
+*--label=[Filter by label (repeatable)]:<LABEL:
+--title=[Search in title]:TITLE:
+--text=[Free text search]:TEXT:
+--show-query[Display generated CQL query]
+--limit=[Maximum number of results]:LIMIT:'
+_atlassian_cli_opts[confluence/search/text]='--limit=[Maximum number of results]:LIMIT:
+:QUERY:'
+_atlassian_cli_subs[confluence/space]='list:List spaces
+get:Get space details
+create:Create a new space
+update:Update space
+delete:Delete space
+permissions:Get space permissions
+add-permission:Add space permission'
+_atlassian_cli_opts[confluence/space/add-permission]='--permission=[Permission type (read, write, admin)]:PERMISSION:
+--subject-type=[Subject type (user, group)]:SUBJECT_TYPE:
+--subject-id=[Subject identifier (user ID or group name)]:SUBJECT_ID:
+:KEY - Space key:'
+_atlassian_cli_opts[confluence/space/create]='--key=[Space key (e.g., TEAM)]:KEY:
+--name=[Space name]:NAME:
+--description=[Space description]:DESCRIPTION:'
+_atlassian_cli_opts[confluence/space/delete]='--force[Force deletion without confirmation]
+:SPACE_ID - Space ID:'
+_atlassian_cli_opts[confluence/space/get]=':KEY:'
+_atlassian_cli_opts[confluence/space/list]='--limit=[Maximum number of results]:LIMIT:
+--space-type=[Filter by space type (global, personal)]:SPACE_TYPE:'
+_atlassian_cli_opts[confluence/space/permissions]=':KEY - Space key:'
+_atlassian_cli_opts[confluence/space/update]='--name=[New space name]:NAME:
+--description=[New space description]:DESCRIPTION:
+:SPACE_ID - Space ID:'
+_atlassian_cli_subs[jira]='issue:Issue operations (search, get, create, update, delete, etc.)
+attachment:Attachment operations (list, get, download, upload, delete)
+project:Manage projects
+components:Manage components
+versions:Manage versions/releases
+roles:Manage project roles
+fields:Manage custom fields
+workflows:Manage workflows
+bulk:Bulk operations
+automation:Manage automation rules
+webhooks:Manage webhooks
+audit:Audit log access
+api:Call any Jira REST endpoint using the configured auth profile'
+_atlassian_cli_opts[jira/api]='(-X --method)-X+[HTTP method. Defaults to GET, or POST when --data is given]:METHOD:(get post put patch delete head)
+(-X --method)--method=[HTTP method. Defaults to GET, or POST when --data is given]:METHOD:(get post put patch delete head)
+(-d --data)-d+[Request body\: inline JSON, @file, or - to read stdin]:DATA:_files
+(-d --data)--data=[Request body\: inline JSON, @file, or - to read stdin]:DATA:_files
+*-H+[Extra request header as "Name\: value" (repeatable)]:HEADERS:
+*--header=[Extra request header as "Name\: value" (repeatable)]:HEADERS:
+*--query=[Query parameter as key=value, percent-encoded for you (repeatable)]:QUERIES:
+(-i --include)-i[Print the status line and response headers before the body]
+(-i --include)--include[Print the status line and response headers before the body]
+--output=[Write the response body to a file instead of stdout]:OUTPUT:_files
+--dry-run[Print the resolved request and exit without sending it]
+--force[Required to send a DELETE, and to overwrite an existing --output file]
+--timeout=[Per-request timeout in seconds, overriding the 30s default]:TIMEOUT:
+:PATH:_files'
+_atlassian_cli_subs[jira/attachment]='list:List attachments on an issue
+get:Show attachment metadata
+download:Download attachment content
+upload:Upload one or more files to an issue
+delete:Delete an attachment'
+_atlassian_cli_opts[jira/attachment/delete]='--force[Confirm deletion]
+:ATTACHMENT_ID:'
+_atlassian_cli_opts[jira/attachment/download]='--issue=[Download every attachment on this issue (bulk mode)]:ISSUE:
+(-o --output)-o+[Output file path; use `-` to stream to stdout. Defaults to the server-supplied filename...]:OUTPUT:_files
+(-o --output)--output=[Output file path; use `-` to stream to stdout. Defaults to the server-supplied filename...]:OUTPUT:_files
+--dir=[Destination directory for bulk mode (created if missing)]:DIR:_files
+--force[Overwrite existing files]
+::ATTACHMENT_ID:'
+_atlassian_cli_opts[jira/attachment/get]=':ATTACHMENT_ID:'
+_atlassian_cli_opts[jira/attachment/list]=':KEY:'
+_atlassian_cli_opts[jira/attachment/upload]='*--file=[File to upload (repeatable)]:FILE:_files
+:KEY:'
+_atlassian_cli_subs[jira/audit]='list:List audit records
+export:Export audit records'
+_atlassian_cli_opts[jira/audit/export]='--from=[Start date (YYYY-MM-DD)]:FROM:
+(-p --profile)-p+[Profile to use from config file]:PROFILE:
+(-p --profile)--profile=[Profile to use from config file]:PROFILE:
+--config=[Path to config file (defaults to ~/.atlassian-cli/config.yaml)]:CONFIG:_files
+--to=[End date (YYYY-MM-DD)]:TO:
+--filter=[Filter by event type]:FILTER:
+--envelope[Wrap JSON/YAML list output in {"data"\: \[...\], "count"\: N} envelope]
+--output=[Output file path]:OUTPUT:_files
+--format=[Export format\: json or csv]:FORMAT:
+(-h --help)-h[Print help]
+(-h --help)--help[Print help]'
+_atlassian_cli_own_opts[jira/audit/export]=1
+_atlassian_cli_opts[jira/audit/list]='--from=[Start date (YYYY-MM-DD)]:FROM:
+--to=[End date (YYYY-MM-DD)]:TO:
+--filter=[Filter by event type]:FILTER:
+--limit=[Maximum number of records]:LIMIT:'
+_atlassian_cli_subs[jira/automation]='list:List all automation rules
+get:Get automation rule details
+create:Create a new automation rule
+update:Update an automation rule
+enable:Enable an automation rule
+disable:Disable an automation rule
+delete:Delete an automation rule
+export:Export an automation rule'
+_atlassian_cli_opts[jira/automation/create]='--name=[Rule name]:NAME:
+--description=[Rule description]:DESCRIPTION:
+--definition=[Path to rule definition JSON file]:DEFINITION:'
+_atlassian_cli_opts[jira/automation/delete]='--force[Force deletion without confirmation]
+:RULE_ID - Rule ID:'
+_atlassian_cli_opts[jira/automation/disable]=':RULE_ID - Rule ID:'
+_atlassian_cli_opts[jira/automation/enable]=':RULE_ID - Rule ID:'
+_atlassian_cli_opts[jira/automation/export]='--output=[Output file path]:OUTPUT:_files
+:RULE_ID - Rule ID:'
+_atlassian_cli_opts[jira/automation/get]=':RULE_ID - Rule ID:'
+_atlassian_cli_opts[jira/automation/update]='--name=[New rule name]:NAME:
+--description=[New rule description]:DESCRIPTION:
+:RULE_ID - Rule ID:'
+_atlassian_cli_subs[jira/bulk]='transition:Bulk transition issues
+assign:Bulk assign issues
+label:Bulk label operations
+export:Export issues to file
+import:Import issues from file'
+_atlassian_cli_opts[jira/bulk/assign]='--jql=[JQL query to select issues]:JQL:
+--assignee=[Assignee account ID]:ASSIGNEE:
+--dry-run[Dry run mode]
+--concurrency=[Concurrency level]:CONCURRENCY:'
+_atlassian_cli_opts[jira/bulk/export]='--jql=[JQL query to select issues]:JQL:
+(-p --profile)-p+[Profile to use from config file]:PROFILE:
+(-p --profile)--profile=[Profile to use from config file]:PROFILE:
+--config=[Path to config file (defaults to ~/.atlassian-cli/config.yaml)]:CONFIG:_files
+--output=[Output file path]:OUTPUT:_files
+--format=[Export format\: json or csv]:FORMAT:
+--envelope[Wrap JSON/YAML list output in {"data"\: \[...\], "count"\: N} envelope]
+--fields=[Fields to include (comma-separated)]:FIELDS:
+(-h --help)-h[Print help]
+(-h --help)--help[Print help]'
+_atlassian_cli_own_opts[jira/bulk/export]=1
+_atlassian_cli_opts[jira/bulk/import]='--file=[Input file path (JSON)]:FILE:_files
+--project=[Target project key]:PROJECT:
+--dry-run[Dry run mode]
+--concurrency=[Concurrency level]:CONCURRENCY:'
+_atlassian_cli_opts[jira/bulk/label]='--jql=[JQL query to select issues]:JQL:
+--action=[Action\: add, remove, or set]:ACTION:
+--labels=[Labels to apply]:LABELS:
+--dry-run[Dry run mode]
+--concurrency=[Concurrency level]:CONCURRENCY:'
+_atlassian_cli_opts[jira/bulk/transition]='--jql=[JQL query to select issues]:JQL:
+--transition=[Transition name or ID]:TRANSITION:
+--dry-run[Dry run mode]
+--concurrency=[Concurrency level]:CONCURRENCY:'
+_atlassian_cli_subs[jira/components]='list:List components in a project
+get:Get component details
+create:Create a component
+update:Update a component
+delete:Delete a component'
+_atlassian_cli_opts[jira/components/create]='--project=[Project key]:PROJECT:
+--name=[Component name]:NAME:
+--description=[Description]:DESCRIPTION:
+--lead=[Lead account ID]:LEAD:'
+_atlassian_cli_opts[jira/components/delete]=':ID - Component ID:'
+_atlassian_cli_opts[jira/components/get]=':ID - Component ID:'
+_atlassian_cli_opts[jira/components/list]=':PROJECT - Project key:'
+_atlassian_cli_opts[jira/components/update]='--name=[New name]:NAME:
+--description=[New description]:DESCRIPTION:
+:ID - Component ID:'
+_atlassian_cli_subs[jira/fields]='list:List all fields
+get:Get field details
+create:Create custom field
+delete:Delete custom field'
+_atlassian_cli_opts[jira/fields/create]='--name=[Field name]:NAME:
+--description=[Description]:DESCRIPTION:
+--field-type=[Field type]:FIELD_TYPE:'
+_atlassian_cli_opts[jira/fields/delete]=':ID - Field ID:'
+_atlassian_cli_opts[jira/fields/get]=':ID - Field ID:'
+_atlassian_cli_subs[jira/issue]='search:Search issues using JQL or filter parameters
+get:Fetch a single issue
+transitions:List the transitions currently available on an issue
+create:Create a new issue
+update:Update an existing issue
+delete:Delete an issue
+transition:Transition an issue to a new status
+assign:Assign issue to user
+unassign:Unassign issue
+watchers:Manage issue watchers
+links:Manage issue links
+comments:Manage issue comments'
+_atlassian_cli_opts[jira/issue/assign]='--assignee=[User account ID or email]:ASSIGNEE:
+:KEY - Issue key:'
+_atlassian_cli_subs[jira/issue/comments]='list:List comments on an issue
+add:Add a comment to an issue
+update:Update a comment
+delete:Delete a comment'
+_atlassian_cli_opts[jira/issue/comments/add]='--body=[Comment body]:BODY:_files
+:KEY:'
+_atlassian_cli_opts[jira/issue/comments/delete]=':KEY - Issue key (e.g. DEV-123):
+:COMMENT_ID - Comment ID:'
+_atlassian_cli_opts[jira/issue/comments/list]='--full[Show full comment body instead of truncated preview]
+:KEY:'
+_atlassian_cli_opts[jira/issue/comments/update]='--body=[New comment body]:BODY:_files
+:KEY - Issue key (e.g. DEV-123):
+:COMMENT_ID - Comment ID:'
+_atlassian_cli_opts[jira/issue/create]='--project=[Project key (e.g., PROJ)]:PROJECT:
+--issue-type=[Issue type (e.g., Task, Bug, Story)]:ISSUE_TYPE:
+--summary=[Issue summary]:SUMMARY:
+--description=[Issue description. Markdown is converted to ADF (headings, lists, bold, italic, inline...]:DESCRIPTION:
+--assignee=[Assignee account ID or email]:ASSIGNEE:
+--priority=[Priority name (e.g., High, Medium, Low)]:PRIORITY:
+*--field=[Jira custom field (repeatable). Discover IDs via `jira fields list`]:KEY=JSON_VALUE:
+--sprint=[Add the new issue to a sprint by numeric sprint id (Agile API)]:SPRINT:'
+_atlassian_cli_opts[jira/issue/delete]='--force[Skip confirmation prompt]
+:KEY - Issue key:'
+_atlassian_cli_opts[jira/issue/get]=':KEY - Issue key (e.g. DEV-123):'
+_atlassian_cli_subs[jira/issue/links]='list:List links for an issue
+create:Create a link between two issues
+delete:Delete an issue link'
+_atlassian_cli_opts[jira/issue/links/create]='--link-type=[Link type (e.g. blocks, relates-to)]:LINK_TYPE:
+:FROM - Source issue key:
+:TO - Target issue key:'
+_atlassian_cli_opts[jira/issue/links/delete]=':LINK_ID - Link ID:'
+_atlassian_cli_opts[jira/issue/links/list]=':KEY:'
+_atlassian_cli_opts[jira/issue/search]='--jql=[Raw JQL query (conflicts with filter flags)]:JQL:
+--assignee=[Filter by assignee (use @me for current user)]:ASSIGNEE:
+*--status=[Filter by status (repeatable)]:<STATUS:
+--priority=[Filter by priority]:PRIORITY:
+*--label=[Filter by label (repeatable)]:<LABEL:
+--type=[Filter by issue type]:TYPE:
+--project=[Filter by project]:PROJECT:
+--text=[Free text search in summary]:TEXT:
+--show-query[Display generated JQL query]
+--limit=[Maximum number of issues to return]:LIMIT:'
+_atlassian_cli_opts[jira/issue/transition]='--transition=[Transition name or ID]:TRANSITION:
+:KEY - Issue key:'
+_atlassian_cli_opts[jira/issue/transitions]=':KEY:'
+_atlassian_cli_opts[jira/issue/unassign]=':KEY - Issue key:'
+_atlassian_cli_opts[jira/issue/update]='--summary=[New summary]:SUMMARY:
+--description=[New description. Markdown is converted to ADF (headings, lists, bold, italic, inline co...]:DESCRIPTION:
+--priority=[New priority]:PRIORITY:
+*--field=[Jira custom field (repeatable). Discover IDs via `jira fields list`]:KEY=JSON_VALUE:
+--sprint=[Assign the issue to a sprint by numeric sprint id (Agile API). Prefer this over --field...]:SPRINT:
+:KEY:'
+_atlassian_cli_subs[jira/issue/watchers]='list:List watchers for an issue
+add:Add watcher to an issue
+remove:Remove watcher from an issue'
+_atlassian_cli_opts[jira/issue/watchers/add]=':KEY:
+:USER - User account ID or email:'
+_atlassian_cli_opts[jira/issue/watchers/list]=':KEY:'
+_atlassian_cli_opts[jira/issue/watchers/remove]=':KEY:
+:USER - User account ID or email:'
+_atlassian_cli_subs[jira/project]='list:List all projects
+get:Get project details
+create:Create a new project
+update:Update project
+delete:Delete project'
+_atlassian_cli_opts[jira/project/create]='--key=[Project key (e.g. PROJ)]:KEY:
+--name=[Project name]:NAME:
+--project-type=[Project type\: software, service_desk, business]:PROJECT_TYPE:
+--lead=[Lead account ID]:LEAD:
+--description=[Description]:DESCRIPTION:'
+_atlassian_cli_opts[jira/project/delete]='--force[Skip confirmation]
+:KEY - Project key:'
+_atlassian_cli_opts[jira/project/get]=':KEY - Project key:'
+_atlassian_cli_opts[jira/project/update]='--name=[New name]:NAME:
+--description=[New description]:DESCRIPTION:
+--lead=[New lead account ID]:LEAD:
+:KEY - Project key:'
+_atlassian_cli_subs[jira/roles]='list:List project roles
+get:Get role details
+actors:List actors for a role
+add-actor:Add actor to role
+remove-actor:Remove actor from role'
+_atlassian_cli_opts[jira/roles/actors]=':PROJECT - Project key:
+:ROLE_ID - Role ID:'
+_atlassian_cli_opts[jira/roles/add-actor]='--user=[User account ID]:USER:
+:PROJECT - Project key:
+:ROLE_ID - Role ID:'
+_atlassian_cli_opts[jira/roles/get]=':PROJECT - Project key:
+:ROLE_ID - Role ID:'
+_atlassian_cli_opts[jira/roles/list]=':PROJECT - Project key:'
+_atlassian_cli_opts[jira/roles/remove-actor]='--user=[User account ID]:USER:
+:PROJECT - Project key:
+:ROLE_ID - Role ID:'
+_atlassian_cli_subs[jira/versions]='list:List versions in a project
+get:Get version details
+create:Create a version
+update:Update a version
+delete:Delete a version
+merge:Merge versions'
+_atlassian_cli_opts[jira/versions/create]='--project=[Project key]:PROJECT:
+--name=[Version name]:NAME:
+--description=[Description]:DESCRIPTION:
+--start-date=[Start date (YYYY-MM-DD)]:START_DATE:
+--release-date=[Release date (YYYY-MM-DD)]:RELEASE_DATE:
+--released[Mark as released]
+--archived[Mark as archived]'
+_atlassian_cli_opts[jira/versions/delete]=':ID - Version ID:'
+_atlassian_cli_opts[jira/versions/get]=':ID - Version ID:'
+_atlassian_cli_opts[jira/versions/list]=':PROJECT - Project key:'
+_atlassian_cli_opts[jira/versions/merge]=':FROM - Source version ID:
+:TO - Target version ID:'
+_atlassian_cli_opts[jira/versions/update]='--name=[New name]:NAME:
+--description=[New description]:DESCRIPTION:
+--released=[Released status]:RELEASED:(true false)
+--archived=[Archived status]:ARCHIVED:(true false)
+:ID - Version ID:'
+_atlassian_cli_subs[jira/webhooks]='list:List all webhooks
+get:Get webhook details
+create:Create a new webhook
+update:Update a webhook
+enable:Enable a webhook
+disable:Disable a webhook
+delete:Delete a webhook
+test:Test a webhook'
+_atlassian_cli_opts[jira/webhooks/create]='--name=[Webhook name]:NAME:
+--url=[Webhook URL]:URL:
+--events=[Events to listen for (comma-separated)]:EVENTS:
+--enabled[Enable webhook immediately]
+--jql-filter=[JQL filter for events]:JQL_FILTER:'
+_atlassian_cli_opts[jira/webhooks/delete]='--force[Force deletion without confirmation]
+:WEBHOOK_ID - Webhook ID:'
+_atlassian_cli_opts[jira/webhooks/disable]=':WEBHOOK_ID - Webhook ID:'
+_atlassian_cli_opts[jira/webhooks/enable]=':WEBHOOK_ID - Webhook ID:'
+_atlassian_cli_opts[jira/webhooks/get]=':WEBHOOK_ID - Webhook ID:'
+_atlassian_cli_opts[jira/webhooks/test]=':WEBHOOK_ID - Webhook ID:'
+_atlassian_cli_opts[jira/webhooks/update]='--name=[New webhook name]:NAME:
+--url=[New webhook URL]:URL:
+--events=[New events list (comma-separated)]:EVENTS:
+--enabled=[Enable or disable]:ENABLED:(true false)
+:WEBHOOK_ID - Webhook ID:'
+_atlassian_cli_subs[jira/workflows]='list:List all workflows
+get:Get workflow details
+export:Export workflow to JSON'
+_atlassian_cli_opts[jira/workflows/export]='--output=[Output file path]:OUTPUT:_files
+:NAME - Workflow name:'
+_atlassian_cli_opts[jira/workflows/get]=':NAME - Workflow name:'
+_atlassian_cli_subs[jsm]='service-desk:Service desk operations
+request:Customer request operations
+queue:Queue operations
+approval:Approval operations
+sla:SLA operations
+customer:Customer operations
+organization:Organization operations
+request-type:Request type operations
+kb:Knowledge base operations
+feedback:Feedback operations'
+_atlassian_cli_subs[jsm/approval]='list:List approvals for a request
+get:Get approval details
+approve:Approve a request
+decline:Decline a request'
+_atlassian_cli_opts[jsm/approval/approve]='--approval-id=:APPROVAL_ID:
+:KEY:'
+_atlassian_cli_opts[jsm/approval/decline]='--approval-id=:APPROVAL_ID:
+:KEY:'
+_atlassian_cli_opts[jsm/approval/get]='--approval-id=:APPROVAL_ID:
+:KEY:'
+_atlassian_cli_opts[jsm/approval/list]=':KEY:'
+_atlassian_cli_subs[jsm/customer]='create:Create a customer
+revoke-portal-access:Revoke portal-only access for a user'
+_atlassian_cli_opts[jsm/customer/create]='--email=:EMAIL:
+--display-name=:DISPLAY_NAME:'
+_atlassian_cli_opts[jsm/customer/revoke-portal-access]='--account-id=:ACCOUNT_ID:'
+_atlassian_cli_subs[jsm/feedback]='get:Get feedback for a request
+submit:Submit CSAT feedback for a request
+delete:Delete feedback for a request'
+_atlassian_cli_opts[jsm/feedback/delete]=':KEY:'
+_atlassian_cli_opts[jsm/feedback/get]=':KEY:'
+_atlassian_cli_opts[jsm/feedback/submit]='--rating=:RATING:
+--comment=:COMMENT:
+:KEY:'
+_atlassian_cli_subs[jsm/kb]='search:Search knowledge base articles'
+_atlassian_cli_opts[jsm/kb/search]='--query=:QUERY:
+--servicedesk-id=:SERVICEDESK_ID:
+--limit=:LIMIT:'
+_atlassian_cli_subs[jsm/organization]='list:List all organizations
+get:Get organization details
+create:Create an organization
+delete:Delete an organization
+users:List users in an organization
+add-user:Add users to an organization
+remove-user:Remove users from an organization'
+_atlassian_cli_opts[jsm/organization/add-user]='--account-id=:ACCOUNT_ID:
+:ORG_ID:'
+_atlassian_cli_opts[jsm/organization/create]='--name=:NAME:'
+_atlassian_cli_opts[jsm/organization/delete]=':ORG_ID:'
+_atlassian_cli_opts[jsm/organization/get]=':ORG_ID:'
+_atlassian_cli_opts[jsm/organization/list]='--limit=:LIMIT:'
+_atlassian_cli_opts[jsm/organization/remove-user]='--account-id=:ACCOUNT_ID:
+:ORG_ID:'
+_atlassian_cli_opts[jsm/organization/users]='--limit=:LIMIT:
+:ORG_ID:'
+_atlassian_cli_subs[jsm/queue]='list:List queues for a service desk
+get:Get queue details
+issues:List issues in a queue'
+_atlassian_cli_opts[jsm/queue/get]=':SERVICEDESK_ID:
+:QUEUE_ID:'
+_atlassian_cli_opts[jsm/queue/issues]='--limit=:LIMIT:
+:SERVICEDESK_ID:
+:QUEUE_ID:'
+_atlassian_cli_opts[jsm/queue/list]=':SERVICEDESK_ID:'
+_atlassian_cli_subs[jsm/request]='list:List requests, optionally filtered by service desk
+get:Get request details (issue key or ID)
+create:Create a new request
+transitions:List available transitions for a request
+transition:Transition a request to a new status
+status:Get request status history
+comments:List comments on a request
+add-comment:Add comment to a request
+participants:List participants of a request
+add-participant:Add participant to a request
+remove-participant:Remove participant from a request
+subscribe:Subscribe to request notifications
+unsubscribe:Unsubscribe from request notifications'
+_atlassian_cli_opts[jsm/request/add-comment]='--body=:BODY:_files
+--public
+:KEY:'
+_atlassian_cli_opts[jsm/request/add-participant]='--account-id=:ACCOUNT_ID:
+:KEY:'
+_atlassian_cli_opts[jsm/request/comments]='--limit=:LIMIT:
+:KEY:'
+_atlassian_cli_opts[jsm/request/create]='--servicedesk-id=:SERVICEDESK_ID:
+--request-type-id=:REQUEST_TYPE_ID:
+--summary=:SUMMARY:
+--description=:DESCRIPTION:'
+_atlassian_cli_opts[jsm/request/get]=':KEY:'
+_atlassian_cli_opts[jsm/request/list]='--servicedesk-id=:SERVICEDESK_ID:
+--limit=:LIMIT:'
+_atlassian_cli_opts[jsm/request/participants]=':KEY:'
+_atlassian_cli_opts[jsm/request/remove-participant]='--account-id=:ACCOUNT_ID:
+:KEY:'
+_atlassian_cli_opts[jsm/request/status]=':KEY:'
+_atlassian_cli_opts[jsm/request/subscribe]=':KEY:'
+_atlassian_cli_opts[jsm/request/transition]='--transition=:TRANSITION:
+:KEY:'
+_atlassian_cli_opts[jsm/request/transitions]=':KEY:'
+_atlassian_cli_opts[jsm/request/unsubscribe]=':KEY:'
+_atlassian_cli_subs[jsm/request-type]='list:List all request types
+get:Get request type details
+fields:List fields for a request type
+groups:List request type groups for a service desk'
+_atlassian_cli_opts[jsm/request-type/fields]=':SERVICEDESK_ID:
+:TYPE_ID:'
+_atlassian_cli_opts[jsm/request-type/get]=':SERVICEDESK_ID:
+:TYPE_ID:'
+_atlassian_cli_opts[jsm/request-type/groups]=':SERVICEDESK_ID:'
+_atlassian_cli_opts[jsm/request-type/list]='--servicedesk-id=:SERVICEDESK_ID:
+--limit=:LIMIT:'
+_atlassian_cli_subs[jsm/service-desk]='list:List service desks available to the account
+get:Get a single service desk by ID
+customers:List customers of a service desk
+add-customer:Add customer to service desk
+remove-customer:Remove customer from service desk
+organizations:List organizations of a service desk
+add-organization:Add organization to service desk
+remove-organization:Remove organization from service desk'
+_atlassian_cli_opts[jsm/service-desk/add-customer]='--account-id=:ACCOUNT_ID:
+:ID:'
+_atlassian_cli_opts[jsm/service-desk/add-organization]='--org-id=:ORG_ID:
+:ID:'
+_atlassian_cli_opts[jsm/service-desk/customers]='--limit=:LIMIT:
+:ID:'
+_atlassian_cli_opts[jsm/service-desk/get]=':ID:'
+_atlassian_cli_opts[jsm/service-desk/list]='--limit=:LIMIT:'
+_atlassian_cli_opts[jsm/service-desk/organizations]='--limit=:LIMIT:
+:ID:'
+_atlassian_cli_opts[jsm/service-desk/remove-customer]='--account-id=:ACCOUNT_ID:
+:ID:'
+_atlassian_cli_opts[jsm/service-desk/remove-organization]='--org-id=:ORG_ID:
+:ID:'
+_atlassian_cli_subs[jsm/sla]='list:List SLAs for a request
+get:Get specific SLA details'
+_atlassian_cli_opts[jsm/sla/get]='--sla-id=:SLA_ID:
+:KEY:'
+_atlassian_cli_opts[jsm/sla/list]=':KEY:'
+_atlassian_cli_subs[opsgenie]='alert:Alert operations
+incident:Incident operations
+schedule:Schedule operations
+team:Team operations
+escalation:Escalation policy operations
+service:Service operations
+heartbeat:Heartbeat operations'
+_atlassian_cli_subs[opsgenie/alert]='list:List alerts
+get:Get alert details
+create:Create a new alert
+close:Close an alert
+ack:Acknowledge an alert
+unack:Unacknowledge an alert
+snooze:Snooze an alert
+escalate:Escalate an alert
+assign:Assign an alert to a user
+add-note:Add a note to an alert
+delete:Delete an alert
+recipients:List alert recipients
+logs:List alert logs
+notes:List alert notes'
+_atlassian_cli_opts[opsgenie/alert/ack]='--note=:NOTE:
+:ID:'
+_atlassian_cli_opts[opsgenie/alert/add-note]='--note=:NOTE:
+:ID:'
+_atlassian_cli_opts[opsgenie/alert/assign]='--owner-id=:OWNER_ID:
+--note=:NOTE:
+:ID:'
+_atlassian_cli_opts[opsgenie/alert/close]='--note=:NOTE:
+:ID:'
+_atlassian_cli_opts[opsgenie/alert/create]='--message=:MESSAGE:
+--alias=:ALIAS:
+--description=:DESCRIPTION:
+--priority=:PRIORITY:
+--source=:SOURCE:
+--tags=:TAGS:'
+_atlassian_cli_opts[opsgenie/alert/delete]=':ID:'
+_atlassian_cli_opts[opsgenie/alert/escalate]='--escalation-id=:ESCALATION_ID:
+--note=:NOTE:
+:ID:'
+_atlassian_cli_opts[opsgenie/alert/get]=':ID:'
+_atlassian_cli_opts[opsgenie/alert/list]='--query=:QUERY:
+--limit=:LIMIT:
+--status=:STATUS:'
+_atlassian_cli_opts[opsgenie/alert/logs]='--limit=:LIMIT:
+:ID:'
+_atlassian_cli_opts[opsgenie/alert/notes]='--limit=:LIMIT:
+:ID:'
+_atlassian_cli_opts[opsgenie/alert/recipients]=':ID:'
+_atlassian_cli_opts[opsgenie/alert/snooze]='--end-time=:END_TIME:
+--note=:NOTE:
+:ID:'
+_atlassian_cli_opts[opsgenie/alert/unack]='--note=:NOTE:
+:ID:'
+_atlassian_cli_subs[opsgenie/escalation]='list:List escalation policies
+get:Get escalation policy details
+create:Create a new escalation policy
+delete:Delete an escalation policy'
+_atlassian_cli_opts[opsgenie/escalation/create]='--name=:NAME:
+--description=:DESCRIPTION:
+--team-id=:TEAM_ID:'
+_atlassian_cli_opts[opsgenie/escalation/delete]=':ID:'
+_atlassian_cli_opts[opsgenie/escalation/get]=':ID:'
+_atlassian_cli_opts[opsgenie/escalation/list]='--limit=:LIMIT:'
+_atlassian_cli_subs[opsgenie/heartbeat]='list:List heartbeats
+get:Get heartbeat details
+create:Create a new heartbeat
+delete:Delete a heartbeat
+enable:Enable a heartbeat
+disable:Disable a heartbeat
+ping:Send a ping to a heartbeat'
+_atlassian_cli_opts[opsgenie/heartbeat/create]='--name=:NAME:
+--description=:DESCRIPTION:
+--interval=:INTERVAL:
+--interval-unit=:INTERVAL_UNIT:
+--team-id=:TEAM_ID:'
+_atlassian_cli_opts[opsgenie/heartbeat/delete]=':NAME:'
+_atlassian_cli_opts[opsgenie/heartbeat/disable]=':NAME:'
+_atlassian_cli_opts[opsgenie/heartbeat/enable]=':NAME:'
+_atlassian_cli_opts[opsgenie/heartbeat/get]=':NAME:'
+_atlassian_cli_opts[opsgenie/heartbeat/ping]=':NAME:'
+_atlassian_cli_subs[opsgenie/incident]='list:List incidents
+get:Get incident details
+create:Create a new incident
+close:Close an incident
+resolve:Resolve an incident
+reopen:Reopen an incident
+add-responder:Add responder to incident
+add-note:Add note to incident
+delete:Delete an incident
+timeline:List incident timeline'
+_atlassian_cli_opts[opsgenie/incident/add-note]='--note=:NOTE:
+:ID:'
+_atlassian_cli_opts[opsgenie/incident/add-responder]='--responder-id=:RESPONDER_ID:
+--responder-type=:RESPONDER_TYPE:
+--note=:NOTE:
+:ID:'
+_atlassian_cli_opts[opsgenie/incident/close]='--note=:NOTE:
+:ID:'
+_atlassian_cli_opts[opsgenie/incident/create]='--message=:MESSAGE:
+--description=:DESCRIPTION:
+--priority=:PRIORITY:
+--tags=:TAGS:
+--service-ids=:SERVICE_IDS:'
+_atlassian_cli_opts[opsgenie/incident/delete]=':ID:'
+_atlassian_cli_opts[opsgenie/incident/get]=':ID:'
+_atlassian_cli_opts[opsgenie/incident/list]='--query=:QUERY:
+--limit=:LIMIT:'
+_atlassian_cli_opts[opsgenie/incident/reopen]='--note=:NOTE:
+:ID:'
+_atlassian_cli_opts[opsgenie/incident/resolve]='--note=:NOTE:
+:ID:'
+_atlassian_cli_opts[opsgenie/incident/timeline]='--limit=:LIMIT:
+:ID:'
+_atlassian_cli_subs[opsgenie/schedule]='list:List schedules
+get:Get schedule details
+create:Create a new schedule
+delete:Delete a schedule
+enable:Enable a schedule
+disable:Disable a schedule
+on-call:Get who is on-call
+timeline:Get schedule timeline
+export:Export schedule to iCal'
+_atlassian_cli_opts[opsgenie/schedule/create]='--name=:NAME:
+--description=:DESCRIPTION:
+--timezone=:TIMEZONE:
+--team-id=:TEAM_ID:'
+_atlassian_cli_opts[opsgenie/schedule/delete]=':ID:'
+_atlassian_cli_opts[opsgenie/schedule/disable]=':ID:'
+_atlassian_cli_opts[opsgenie/schedule/enable]=':ID:'
+_atlassian_cli_opts[opsgenie/schedule/export]=':ID:'
+_atlassian_cli_opts[opsgenie/schedule/get]=':ID:'
+_atlassian_cli_opts[opsgenie/schedule/list]='--limit=:LIMIT:'
+_atlassian_cli_opts[opsgenie/schedule/on-call]='--date=:DATE:
+:ID:'
+_atlassian_cli_opts[opsgenie/schedule/timeline]='--interval=:INTERVAL:
+--interval-unit=:INTERVAL_UNIT:
+--date=:DATE:
+:ID:'
+_atlassian_cli_subs[opsgenie/service]='list:List services
+get:Get service details
+create:Create a new service
+delete:Delete a service'
+_atlassian_cli_opts[opsgenie/service/create]='--name=:NAME:
+--team-id=:TEAM_ID:
+--description=:DESCRIPTION:'
+_atlassian_cli_opts[opsgenie/service/delete]=':ID:'
+_atlassian_cli_opts[opsgenie/service/get]=':ID:'
+_atlassian_cli_opts[opsgenie/service/list]='--limit=:LIMIT:'
+_atlassian_cli_subs[opsgenie/team]='list:List teams
+get:Get team details
+create:Create a new team
+delete:Delete a team
+members:List team members
+add-member:Add member to team
+remove-member:Remove member from team
+on-call:Get team'\''s on-call participants'
+_atlassian_cli_opts[opsgenie/team/add-member]='--user-id=:USER_ID:
+--role=:ROLE:
+:ID:'
+_atlassian_cli_opts[opsgenie/team/create]='--name=:NAME:
+--description=:DESCRIPTION:'
+_atlassian_cli_opts[opsgenie/team/delete]=':ID:'
+_atlassian_cli_opts[opsgenie/team/get]=':ID:'
+_atlassian_cli_opts[opsgenie/team/list]='--limit=:LIMIT:'
+_atlassian_cli_opts[opsgenie/team/members]=':ID:'
+_atlassian_cli_opts[opsgenie/team/on-call]='--date=:DATE:
+:ID:'
+_atlassian_cli_opts[opsgenie/team/remove-member]='--user-id=:USER_ID:
+:ID:'
+
+_atlassian_cli_alias[bb]='bitbucket'
+
+_atlassian_cli_node() {
+    local node=$1 ret=1
+    local -a specs
+    [[ -z ${_atlassian_cli_own_opts[$node]} ]] && specs+=( $_atlassian_cli_global_opts )
+    [[ -n ${_atlassian_cli_opts[$node]} ]] && specs+=( ${(f)_atlassian_cli_opts[$node]} )
+
+    if [[ -z ${_atlassian_cli_subs[$node]} ]]; then
+        _arguments -s -S $specs && ret=0
+        return $ret
+    fi
+
+    local context curcontext=$curcontext state line
+    typeset -A opt_args
+    _arguments -s -C $specs '1: :->command' '*:: :->argument' && ret=0
+
+    case $state in
+        command)
+            local -a subs
+            subs=( ${(f)_atlassian_cli_subs[$node]} )
+            _describe -t commands 'command' subs && ret=0
+            ;;
+        argument)
+            local child
+            if [[ $node == . ]]; then child=$words[1]; else child="$node/$words[1]"; fi
+            child=${_atlassian_cli_alias[$child]:-$child}
+            if (( ${+_atlassian_cli_subs[$child]} + ${+_atlassian_cli_opts[$child]} )); then
+                curcontext="${curcontext%:*:*}:atlassian-cli-${child//\//-}:"
+                _atlassian_cli_node "$child" && ret=0
+            fi
+            ;;
+    esac
+    return $ret
+}
+
+_atlassian-cli() {
+    _atlassian_cli_node .
+}
+
+_atlassian-cli "$@"
