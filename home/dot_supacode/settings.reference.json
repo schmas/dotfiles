@@ -10,7 +10,7 @@
     "copyUntrackedOnWorktreeCreate": true,
     "crashReportsEnabled": true,
     "defaultEditorID": "auto",
-    "defaultWorktreeBaseDirectoryPath": "/Users/schmas/.worktrees/",
+    "defaultWorktreeBaseDirectoryPath": "/Users/schmas/workspaces/",
     "deleteBranchOnDeleteWorktree": true,
     "fetchOriginBeforeWorktreeCreation": true,
     "githubIntegrationEnabled": true,

@@ -4,7 +4,7 @@
 # Run at the start of the day to converge plans, reports, handoffs, and the
 # other agent directories between each repo's primary checkout and its worktrees.
 #
-# Worktrees are centralized under ~/.worktrees/<repo>/<branch> (the base shared
+# Worktrees are centralized under ~/workspaces/<repo>/<branch> (the base shared
 # by worktrunk and Supacode). This script discovers each repo that has worktrees
 # there, then asks git itself for the authoritative worktree list. That way a
 # leftover folder (a directory that lingers after its worktree was removed) is
@@ -29,11 +29,11 @@
 #   wt-sync-all -v                   also list every file moved, per direction
 #
 # Env:
-#   WT_BASE   worktree base dir (default: ~/.worktrees)
+#   WT_BASE   worktree base dir (default: ~/workspaces)
 #   NO_COLOR  disable ANSI colors (also auto-disabled when stdout is not a tty)
 set -euo pipefail
 
-base="${WT_BASE:-$HOME/.worktrees}"
+base="${WT_BASE:-$HOME/workspaces}"
 verbose=0
 
 usage() {
@@ -43,7 +43,7 @@ Usage: wt-sync-all [-v] [<repo>...]
   repo's primary checkout and all its real worktrees, newest file wins, and
   print a summary of files moved in each direction.
 
-  (no repo)  sync every repo with worktrees under the base (default ~/.worktrees).
+  (no repo)  sync every repo with worktrees under the base (default ~/workspaces).
   <repo>     sync only the named repo namespace(s), e.g. wt-sync-all connect-plus-backend.
   -v|--verbose  list each file moved, grouped by worktree and direction.
 

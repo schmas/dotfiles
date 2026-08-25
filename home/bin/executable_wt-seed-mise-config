@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # Seed the shared aaa workspace mise config into a worktree's per-repo base.
 #
-# Worktrees live at ~/.worktrees/<repo>/<branch>, outside the original repo's
+# Worktrees live at ~/workspaces/<repo>/<branch>, outside the original repo's
 # directory tree. The aaa repos (~/projects/work/aaa/<repo>) rely on a shared
 # parent config at ~/projects/work/aaa/.mise.toml for tool versions
 # (java/maven/node) and env (SKIP_DB_START). mise walks up from the cwd, so a
-# worktree under ~/.worktrees/<repo>/<branch> never sees that parent — tools and
+# worktree under ~/workspaces/<repo>/<branch> never sees that parent — tools and
 # env are lost and builds fail.
 #
-# Fix: copy the shared config to ~/.worktrees/<repo>/.mise.toml, one level above
+# Fix: copy the shared config to ~/workspaces/<repo>/.mise.toml, one level above
 # the branch worktree. mise then picks it up for every branch of that repo.
-# Scoped to the per-repo base (NOT the shared ~/.worktrees root) so only aaa
+# Scoped to the per-repo base (NOT the shared ~/workspaces root) so only aaa
 # worktrees get it; unrelated repos' worktrees stay untouched.
 #
 # Reused by both worktree managers (worktrunk post-start, Supacode setup), same
@@ -37,7 +37,7 @@ case "$primary/" in
 esac
 [[ -f "$src" ]] || exit 0
 
-# Per-repo worktree base = parent of the branch worktree (~/.worktrees/<repo>/).
+# Per-repo worktree base = parent of the branch worktree (~/workspaces/<repo>/).
 dst="$(dirname "$worktree")/.mise.toml"
 
 # Idempotent: nothing to do when the copy already matches the source.

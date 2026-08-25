@@ -1,6 +1,6 @@
 # Centralize all worktrees under one repo-namespaced base, matching the
-# per-repo base configured for Supacode (~/.worktrees/<repo>/...).
-worktree-path = "~/.worktrees/{{ repo }}/{{ branch | sanitize }}"
+# per-repo base configured for Supacode (~/workspaces/<repo>/...).
+worktree-path = "~/workspaces/{{ repo }}/{{ branch | sanitize }}"
 
 [commit.generation]
 command = "MAX_THINKING_TOKENS=0 claude -p --model=haiku --tools='' --disable-slash-commands --setting-sources='' --system-prompt=''"
@@ -27,6 +27,6 @@ sync-agent-down = "wt-sync-agent-files {{ primary_worktree_path }} {{ worktree_p
 [post-start]
 copy = "wt step copy-ignored"
 # Worktrees live outside the original repo tree, so the shared aaa parent
-# .mise.toml is no longer an ancestor. Seed it into ~/.worktrees/<repo>/ so mise
+# .mise.toml is no longer an ancestor. Seed it into ~/workspaces/<repo>/ so mise
 # resolves tools/env in aaa worktrees (no-op for non-aaa repos).
 seed-mise = "wt-seed-mise-config {{ primary_worktree_path }} {{ worktree_path }}"
