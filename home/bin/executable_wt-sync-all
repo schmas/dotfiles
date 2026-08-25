@@ -23,6 +23,11 @@
 # (primary -> worktree), counted from rsync's itemized output, then prints a
 # per-repo and a grand-total summary at the end.
 #
+# Each repo's own .worktreeinclude, if present, extends wt-sync-agent-files'
+# fixed list with that repo's own gitignored paths for this run -- the same
+# file Orca and worktrunk's `wt step copy-ignored` read to seed new worktrees,
+# kept converged here too.
+#
 # Usage:
 #   wt-sync-all                      sync every repo under the worktree base
 #   wt-sync-all <repo> [<repo>...]   sync only the named repo namespace(s)
@@ -117,6 +122,33 @@ cell() { # <arrow> <count> <color>
     [[ "$2" =~ ^[0-9]+$ ]] || color="$RED"
     printf '%s%s %3s%s' "$color" "$1" "$2" "$RESET"
 }
+# Literal, non-comment, non-blank lines from a repo's .worktreeinclude (if
+# any), one per line, trailing slash stripped to match sync_paths' style.
+#
+# wt-sync-agent-files expands each entry via an unquoted glob (needed for its
+# own '.ck*' pattern), so a '.', '*', '..', or space here would resync -- or
+# in the '..' case, write outside -- the whole worktree instead of one path.
+# worktrunk's `wt step copy-ignored` and Orca both accept a richer format
+# (worktrunk is full gitignore syntax, globs included), so a file written for
+# them can legally contain exactly that. Reject rather than risk it: only a
+# plain relative path with no traversal or glob metacharacters passes through.
+worktreeinclude_paths() {
+    local file="$1/.worktreeinclude" line
+    [[ -f "$file" ]] || return 0
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        line="${line#"${line%%[![:space:]]*}"}"
+        line="${line%"${line##*[![:space:]]}"}"
+        [[ -z "$line" || "$line" == '#'* || "$line" == '!'* ]] && continue
+        line="${line%/}"
+        if [[ "$line" == '.' || "$line" == '..' || "$line" == /* || "$line" == *..* \
+            || "$line" == *' '* || "$line" == *$'\t'* || "$line" == *'*'* \
+            || "$line" == *'?'* || "$line" == *'['* ]]; then
+            echo "wt-sync-all: skipping unsafe .worktreeinclude entry in $1: $line" >&2
+            continue
+        fi
+        printf '%s\n' "$line"
+    done < "$file"
+}
 
 # --- header -----------------------------------------------------------------
 printf '%s%s%s %s· base %s%s\n' "$BOLD" "wt-sync-all" "$RESET" "$DIM" "$(tilde "$base")" "$RESET"
@@ -146,6 +178,16 @@ while IFS= read -r primary; do
     pbranch="$(git -C "$primary" branch --show-current 2>/dev/null || true)"
     [[ ${#reponame} -gt $namew ]] && namew=${#reponame}
 
+    # Extend wt-sync-agent-files' fixed list with this repo's .worktreeinclude
+    # for this run only; reset per repo so one repo's list never leaks into
+    # the next.
+    extra_paths="$(worktreeinclude_paths "$primary")"
+    if [[ -n "$extra_paths" ]]; then
+        export WT_SYNC_EXTRA_PATHS="$extra_paths"
+    else
+        unset WT_SYNC_EXTRA_PATHS
+    fi
+
     # Column width for worktree names (capped).
     width=0
     for wt in "${worktrees[@]}"; do n="${wt##*/}"; if [[ ${#n} -gt $width ]]; then width=${#n}; fi; done
@@ -154,6 +196,11 @@ while IFS= read -r primary; do
     printf '\n%s%s%s %s%s primary%s%s\n' \
         "$CYAN$BOLD" "$reponame" "$RESET" \
         "$DIM" "$ARROW" "${pbranch:+ ($pbranch)}" "$RESET"
+    if [[ -n "$extra_paths" ]]; then
+        extra_count=$(grep -c . <<< "$extra_paths")
+        extra_word='path'; [[ $extra_count == 1 ]] || extra_word='paths'
+        printf '  %s+ %d %s from .worktreeinclude%s\n' "$DIM" "$extra_count" "$extra_word" "$RESET"
+    fi
 
     up=(); down=(); upf=(); downf=(); state='ok'
 

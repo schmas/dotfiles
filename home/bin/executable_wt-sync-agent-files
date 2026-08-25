@@ -31,15 +31,40 @@ sync_paths=(
     'graphify-out'
 )
 
+# Extra patterns from .worktreeinclude, opt-in via WT_SYNC_EXTRA_PATHS
+# (newline-separated). wt-sync-all sets this so its on-demand, both-direction
+# sync also converges paths declared in .worktreeinclude; left unset for the
+# worktrunk hooks in home/dot_config/worktrunk/config.toml, which keep
+# today's fixed list untouched (they already get .worktreeinclude natively,
+# via `wt step copy-ignored` on post-start).
+#
+# Keep this appended *after* sync_paths is built, not merged into it above:
+# an extra path nested under an already-listed directory (e.g.
+# '.claude/settings.local.json' under '.claude') must run second so the
+# whole-directory sync already covers it and this becomes a harmless no-op
+# instead of a duplicate, separately-counted transfer.
+if [[ -n "${WT_SYNC_EXTRA_PATHS:-}" ]]; then
+    while IFS= read -r extra; do
+        [[ -n "$extra" ]] || continue
+        [[ " ${sync_paths[*]} " == *" $extra "* ]] && continue
+        sync_paths+=("$extra")
+    done <<< "$WT_SYNC_EXTRA_PATHS"
+fi
+
 for pattern in "${sync_paths[@]}"; do
     for src_path in "$src"/$pattern; do
         [[ -e "$src_path" ]] || continue
-        name="${src_path##*/}"
+        # Path relative to $src, e.g. '.claude/settings.local.json' -- keep
+        # any subdirectory the pattern names (all built-in patterns are a
+        # single component, so this is just their basename; .worktreeinclude
+        # entries can nest deeper and need the full relative path preserved).
+        rel="${src_path#"$src"/}"
         if [[ -d "$src_path" ]]; then
-            mkdir -p "$dst/$name"
-            rsync -rtuvi "$src_path/" "$dst/$name/"
+            mkdir -p "$dst/$rel"
+            rsync -rtuvi "$src_path/" "$dst/$rel/"
         else
-            rsync -tuvi "$src_path" "$dst/$name"
+            mkdir -p "$dst/$(dirname "$rel")"
+            rsync -tuvi "$src_path" "$dst/$rel"
         fi
     done
 done
