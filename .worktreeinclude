@@ -1,0 +1,19 @@
+# Gitignored paths carried into every new worktree. Consumed by:
+#   - Orca — this is its native, repo-root config file
+#   - worktrunk's `wt step copy-ignored`, wired into [post-start] in
+#     home/dot_config/worktrunk/config.toml
+# Both read this as literal paths (Orca silently drops globs/negation) —
+# keep entries literal, one per line.
+#
+# A subset of the AI-agent state home/bin/wt-sync-agent-files keeps converged
+# between existing worktrees (see wt-sync-all): only the entries that are
+# actually gitignored here, since Orca skips anything else. CLAUDE.md and
+# AGENTS.md aren't listed for the same reason -- they're tracked in git, so
+# every worktree already has them.
+
+.omc
+.agents/
+.agent/
+.handoffs/
+.serena/
+.claude/settings.local.json
