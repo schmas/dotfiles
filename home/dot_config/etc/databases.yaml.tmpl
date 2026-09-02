@@ -123,3 +123,30 @@ cplus_local:
   sslmode: disable
   type: postgresql
   writable: true
+
+# ---------------------------------------------------------------------------
+# Reserved keys below — NOT database aliases. Read by aaa-db-dump.
+# aaa-db-query.py excludes them from the alias namespace (RESERVED).
+# ---------------------------------------------------------------------------
+
+# Where fetched archives land. This is the connect-plus-backend Docker mount
+# (compose: ./tmp/db:/tmp_data), so a fetched archive is already visible to the
+# local container and `push --to local` needs no copy.
+dump_dir: /Users/schmas/projects/work/aaa/connect-plus-backend/tmp/db
+
+# The only legal restore destinations. A source alias above is never a
+# destination. Entries are docker-exec only: no host:/port: fields.
+restore_targets:
+  win-dev:
+    ssh: win-dev
+    host_path: /home/schmas/projects/work/aaa/connect-plus-backend/tmp/db
+    container: connect-plus-backend_postgres
+    container_path: /tmp_data
+    db: connect_plus
+    user: postgres
+  local:
+    host_path: /Users/schmas/projects/work/aaa/connect-plus-backend/tmp/db
+    container: connect-plus-backend_postgres
+    container_path: /tmp_data
+    db: connect_plus
+    user: postgres

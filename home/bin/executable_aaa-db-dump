@@ -1,0 +1,1391 @@
+#!/usr/bin/env python3
+"""aaa-db-dump — move a remote AAA Postgres database into a Docker Postgres.
+
+Five stages, each gated on an independent re-check that its input really exists:
+
+    dump (on bastion) -> fetch (to Mac) -> push (to target) -> restore -> clean
+
+    aaa-db-dump run uat2 --to win-dev --yes
+    aaa-db-dump run uat2 --to local --yes
+    aaa-db-dump status uat2 --to win-dev
+    aaa-db-dump list
+
+Dump sources and restore destinations are separate namespaces. --to resolves
+only against restore_targets in databases.yaml, so a team-environment source
+alias can never be a destination.
+
+Every subprocess in this file is launched by run(). That single chokepoint is
+what makes --dry-run a trustworthy preview of a real run.
+"""
+
+import argparse
+import json
+import os
+import re
+import shlex
+import subprocess
+import sys
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+
+try:
+    import yaml
+except ImportError:  # pragma: no cover - bootstrap path
+    _venv = Path.home() / ".local/share/schmas-aaa-db/.venv/bin/python3"
+    if _venv.exists() and os.environ.get("_AAA_DB_DUMP_REEXEC") != "1":
+        os.environ["_AAA_DB_DUMP_REEXEC"] = "1"
+        os.execv(str(_venv), [str(_venv), __file__, *sys.argv[1:]])
+    sys.exit("PyYAML not available; run setup-aaa-db-wrapper.sh or pip install pyyaml")
+
+CONFIG_PATH = Path.home() / ".config" / "etc" / "databases.yaml"
+STATE_DIR = Path.home() / ".local" / "state" / "aaa-db"
+
+# Top-level keys in databases.yaml that are settings, not database aliases.
+# aaa-db-query.py carries the same set; both tools must skip them.
+RESERVED = {"dump_dir", "restore_targets"}
+
+STAGES = ["dump", "fetch", "push", "restore", "clean"]
+SUBCOMMANDS = STAGES + ["run", "status", "list", "completion"]
+
+# Measured on 2026-09-02 against nationaluat2: 20m23s, 9.7 GB, 434 files.
+DUMP_JOBS = 4
+DUMP_COMPRESS = "gzip:6"
+RESTORE_JOBS = 4
+
+# Values that must never reach a terminal, a log, or an argv.
+_SECRETS = set()
+
+
+def redact(text):
+    """Mask every known password before any text is printed."""
+    for secret in _SECRETS:
+        if secret:
+            text = text.replace(secret, "***REDACTED***")
+    return text
+
+
+def die(msg, code=2):
+    print(f"aaa-db-dump: {msg}", file=sys.stderr)
+    sys.exit(code)
+
+
+def now():
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+class Result:
+    """What run() returns. `stopped` means a sentinel ended a follow early."""
+
+    __slots__ = ("rc", "out", "err", "stopped")
+
+    def __init__(self, rc=0, out="", err="", stopped=False):
+        self.rc = rc
+        self.out = out
+        self.err = err
+        self.stopped = stopped
+
+    @property
+    def ok(self):
+        return self.rc == 0
+
+    def text(self):
+        return (self.out or "").strip()
+
+
+def run(cmd, *, dry, capture=False, stdin_text=None, tee=None, stop_on=None,
+        collect=None, timeout=None):
+    """The only subprocess launch in this script.
+
+    dry        print the fully interpolated command and return a success stub
+    capture    buffer stdout/stderr instead of letting them through
+    stdin_text feed on stdin (how the dump script's password reaches the bastion
+               without ever appearing in a world-readable argv)
+    tee        append streamed output to this local file
+    stop_on    stop streaming when a line contains one of these strings
+    collect    keep streamed lines matching this compiled regex
+    """
+    streaming = tee is not None or stop_on is not None or collect is not None
+    if streaming and stdin_text is not None:
+        # Popen below is not wired for stdin, and stdin_text is what keeps the
+        # password out of argv. Fail loudly rather than send an empty script.
+        raise ValueError("stdin_text cannot be combined with a streaming read")
+
+    printable = redact(shlex.join(cmd))
+    if dry:
+        print(f"  $ {printable}")
+        if stdin_text is not None:
+            for line in redact(stdin_text).splitlines():
+                print(f"  | {line}")
+        return Result(0, "", "")
+
+    print(f"  $ {printable}", file=sys.stderr)
+    if not streaming:
+        proc = subprocess.run(
+            cmd, input=stdin_text, text=True, timeout=timeout,
+            stdout=subprocess.PIPE if capture else None,
+            stderr=subprocess.PIPE if capture else None,
+        )
+        # Captured streams are printed by several die() sites, so they get the
+        # same masking as anything else that reaches a terminal.
+        return Result(proc.returncode,
+                      redact(proc.stdout or ""), redact(proc.stderr or ""))
+
+    kept, tail, stopped = [], [], False
+    handle = open(tee, "a", encoding="utf-8") if tee else None
+    proc = subprocess.Popen(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        text=True, bufsize=1,
+    )
+    try:
+        for line in proc.stdout:
+            line = redact(line.rstrip("\n"))
+            print(line)
+            if handle:
+                handle.write(line + "\n")
+            tail.append(line)
+            del tail[:-50]
+            if collect is not None and collect.search(line):
+                kept.append(line)
+            if stop_on and any(s in line for s in stop_on):
+                stopped = True
+                proc.terminate()
+                break
+    finally:
+        if handle:
+            handle.close()
+        try:
+            proc.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait()  # reap it, or returncode stays None
+    out = "\n".join(kept if kept else tail)
+    # A child we had to kill has no exit status of its own. Calling that
+    # success would let a hung restore be recorded as complete.
+    rc = 0 if stopped else proc.returncode
+    return Result(1 if rc is None else rc, out, "", stopped)
+
+
+def remote(host, command):
+    """argv running a shell command on `host`, or locally when host is falsy."""
+    if host:
+        return ["ssh", host, command]
+    return ["bash", "-c", command]
+
+
+# --------------------------------------------------------------------------
+# Config
+# --------------------------------------------------------------------------
+
+def load_config():
+    if not CONFIG_PATH.exists():
+        die(f"config not found: {CONFIG_PATH}\n"
+            "  copy databases.yaml.example there and fill it in")
+    return yaml.safe_load(CONFIG_PATH.read_text()) or {}
+
+
+# A Postgres identifier we are willing to splice into SQL and into a path.
+IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_$]{0,62}$")
+
+
+def check_identifier(name, what):
+    """Refuse anything that is not a plain identifier.
+
+    shlex.quote protects the shell, not SQL: psql -c accepts several
+    statements, so an unchecked --db could drop a database it was never
+    pointed at. It also lands in a state-file path.
+    """
+    if not IDENTIFIER_RE.match(str(name or "")):
+        die(f"{what} {name!r} is not a plain database identifier "
+            "(letters, digits, _ and $, not starting with a digit)")
+    return str(name)
+
+
+def source_aliases(cfg):
+    return {k: v for k, v in cfg.items()
+            if k not in RESERVED and isinstance(v, dict)}
+
+
+def get_source(alias, cfg, *, need_bastion=False):
+    """Resolve a dump source. MSSQL and bastion-less aliases are refused here."""
+    aliases = source_aliases(cfg)
+    src = aliases.get(alias)
+    if src is None:
+        die(f"unknown source alias {alias!r}; known: {', '.join(sorted(aliases))}")
+    src = dict(src)
+    src.setdefault("type", "postgresql")
+    src.setdefault("port", 5432)
+    src.setdefault("sslmode", "require")
+    if src["type"] != "postgresql":
+        die(f"{alias!r} is {src['type']}; MSSQL sources are not supported — "
+            "this pipeline is pg_dump/pg_restore only")
+    missing = [k for k in ("host", "dbname", "user", "password")
+               if not src.get(k)]
+    if missing:
+        die(f"source alias {alias!r} is missing {', '.join(missing)}")
+    if src.get("password"):
+        _SECRETS.add(str(src["password"]))
+    if need_bastion and not src.get("bastion"):
+        die(f"{alias!r} has no 'bastion:' key, so there is no host to dump on.\n"
+            "  (the restore target named 'local' is a different thing with the "
+            "same name — see --to)")
+    return src
+
+
+def get_target(name, cfg):
+    """Resolve a restore destination.
+
+    Looks only in restore_targets. That is the whole guarantee: a source alias
+    passed to --to is rejected automatically, whatever it is named.
+    """
+    targets = cfg.get("restore_targets") or {}
+    if not isinstance(targets, dict) or not targets:
+        die("databases.yaml has no 'restore_targets:' block; "
+            "there is nowhere to restore to")
+    if name not in targets:
+        die(f"unknown restore target {name!r}; legal targets: "
+            f"{', '.join(sorted(targets))}\n"
+            "  (source aliases are dump sources only, never destinations)")
+    target = dict(targets[name])
+    for key in ("host", "port"):
+        if key in target:
+            die(f"restore target {name!r} carries {key!r}; restore targets are "
+                "docker-exec only and have no host/port fields")
+    for key in ("host_path", "container", "container_path", "db", "user"):
+        if not target.get(key):
+            die(f"restore target {name!r} is missing required key {key!r}")
+    target["name"] = name
+    return target
+
+
+def get_dump_dir(cfg):
+    value = cfg.get("dump_dir")
+    if not value:
+        die("databases.yaml has no 'dump_dir:' key")
+    return Path(str(value)).expanduser()
+
+
+def archive_name(dbname, date=None):
+    """<dbname>-<YYYY_MM_DD>, the one naming rule every stage shares."""
+    # UTC, to match now(): a local date would name a different directory
+    # than the run that created it during the early-morning offset.
+    stamp = date or datetime.now(timezone.utc).strftime("%Y_%m_%d")
+    return f"{dbname}-{stamp}"
+
+
+def bastion_out(dbname):
+    """Where pg_dump writes on the bastion. $HOME is the bastion's, not ours,
+    so it is left for the remote shell to expand."""
+    return f"$HOME/dumps/{dbname}"
+
+
+def bastion_out_rel(dbname):
+    """The same directory as an rsync source.
+
+    rsync resolves a remote path relative to the remote user's home, so this
+    form needs no shell expansion — openrsync gives no guarantee that a $HOME
+    inside a remote path is ever expanded.
+    """
+    return f"dumps/{dbname}"
+
+
+# --------------------------------------------------------------------------
+# State
+# --------------------------------------------------------------------------
+
+def state_path(alias):
+    return STATE_DIR / f"{alias}.state.json"
+
+
+def load_state(alias):
+    path = state_path(alias)
+    if not path.exists():
+        return {"alias": alias, "stages": {}}
+    try:
+        return json.loads(path.read_text())
+    except (json.JSONDecodeError, OSError):
+        return {"alias": alias, "stages": {}}
+
+
+def save_state(state, *, dry):
+    """Write only the stages this process touched.
+
+    A dump holds its state object across a 20-minute follow. Writing the whole
+    snapshot at the end would erase whatever another shell recorded meanwhile.
+    """
+    if dry:
+        return
+    touched = set(state.pop("_touched", ()))
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    path = state_path(state["alias"])
+    on_disk = load_state(state["alias"]) if path.exists() else {"stages": {}}
+
+    merged = dict(on_disk)
+    merged.update({k: v for k, v in state.items() if k != "stages"})
+    stages = dict(on_disk.get("stages", {}))
+    for name in touched:
+        if name in state.get("stages", {}):
+            stages[name] = state["stages"][name]
+        else:
+            stages.pop(name, None)
+    merged["stages"] = stages
+
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(merged, indent=2, sort_keys=True))
+    tmp.replace(path)
+    state["_touched"] = touched
+
+
+def record(state, stage, **fields):
+    entry = state.setdefault("stages", {}).setdefault(stage, {})
+    entry.update(fields)
+    entry["at"] = now()
+    state.setdefault("_touched", set()).add(stage)
+    return entry
+
+
+def clear_stages(state, *names):
+    """Forget stages whose input a new dump has just replaced."""
+    for name in names:
+        state.get("stages", {}).pop(name, None)
+        state.setdefault("_touched", set()).add(name)
+
+
+def stage_status(state, stage):
+    return state.get("stages", {}).get(stage, {}).get("status")
+
+
+def resolved_archive(state, dbname, *, dry):
+    """Reuse the archive name the dump recorded; fall back to today's date.
+
+    A dump made yesterday and fetched today must still agree on one directory
+    name, so the state file is the carrier rather than the clock.
+    """
+    name = state.get("archive")
+    if name:
+        return name
+    name = archive_name(dbname)
+    if not dry and state.get("stages"):
+        print(f"  # no archive recorded in state; assuming {name}")
+    return name
+
+
+def log_path(alias, stage):
+    return STATE_DIR / f"{alias}-{stage}.log"
+
+
+# --------------------------------------------------------------------------
+# Shared helpers
+# --------------------------------------------------------------------------
+
+ERROR_RE = re.compile(r"pg_restore: error")
+
+# Printed by the restore command itself so the real exit status survives the
+# pipe to tee, which would otherwise report tee's status instead.
+EXIT_SENTINEL = "AAA_DB_DUMP_PG_RESTORE_EXIT="
+
+
+FOLLOW_MAX_RECONNECTS = 60  # ~5 minutes of outage before handing back
+
+
+def follow(host, log, sentinels, *, dry):
+    """Reconnecting tail. A dropped VPN kills this viewer, never the work."""
+    print(f"  following {log} — ctrl-c detaches the viewer, the work keeps going")
+    cmd = remote(host, f"tail -n 60 -F {log}")
+    for attempt in range(FOLLOW_MAX_RECONNECTS):
+        result = run(cmd, dry=dry, stop_on=sentinels)
+        if dry or result.stopped:
+            return result
+        print(f"  [reconnecting in 5s, {attempt + 1}/{FOLLOW_MAX_RECONNECTS}]")
+        time.sleep(5)
+    # Bounded on purpose: an unbounded loop would hang `run` forever with the
+    # VPN down. The work itself is detached and unaffected.
+    print("  giving up on the viewer — the remote work is unaffected.")
+    print(f"  re-attach with: aaa-db-dump status {log.rsplit('-', 1)[0]}")
+    return Result(1, "", "", False)
+
+
+def zmx_hint(alias):
+    """A copy-pasteable detachable session for the long stages.
+
+    -d is mandatory: a bare `zmx run` dies with its calling process and takes
+    the session down with it.
+    """
+    argv = " ".join(shlex.quote(a) for a in sys.argv[1:])
+    return f"zmx run aaa-db-dump-{alias} -d aaa-db-dump {argv}"
+
+
+def container_psql(dest, sql, *, db="postgres", tuples=True):
+    """docker exec ... psql, as a shell string.
+
+    Every database access in this script is built here or in the pg_restore
+    line below, so nothing can reach a database outside the container the
+    config named — there is no -h code path.
+    """
+    flags = "-t -A " if tuples else ""
+    return (f"docker exec {shlex.quote(dest['container'])} "
+            f"psql -U {shlex.quote(dest['user'])} -d {shlex.quote(db)} "
+            f"-v ON_ERROR_STOP=1 {flags}-c {shlex.quote(sql)}")
+
+
+def parse_count(text, what):
+    """A remote `wc -l` should be a number; a login-shell banner is not."""
+    try:
+        return int((text or "").strip().splitlines()[-1])
+    except (ValueError, IndexError):
+        die(f"could not read {what} from the remote output: {text!r}")
+
+
+def local_file_count(path):
+    return sum(len(files) for _, _, files in os.walk(path))
+
+
+def archive_meta(local_archive, *, dry):
+    """Source server major and required extensions, read from the archive TOC."""
+    result = run(["pg_restore", "--list", str(local_archive)],
+                 dry=dry, capture=True)
+    version, extensions = None, []
+    # Anchor on the TOC's own desc column rather than substring-matching the
+    # line: a "COMMENT - EXTENSION x" entry would otherwise contribute its
+    # owner as a required extension.
+    toc = re.compile(r"^\d+;\s+\d+\s+\d+\s+EXTENSION\s+\S+\s+(\S+)")
+    for line in result.out.splitlines():
+        match = re.search(r"Dumped from database version:\s*(\d+)", line)
+        if match:
+            version = int(match.group(1))
+        entry = toc.match(line.strip())
+        if entry:
+            extensions.append(entry.group(1))
+    return version, sorted(set(extensions))
+
+
+def verify_archive(local_archive, *, dry):
+    """Full decompress with the output discarded — the check that catches a
+    truncated or corrupted transfer in about a minute."""
+    return run(["pg_restore", "--file=/dev/null", str(local_archive)],
+               dry=dry, capture=True)
+
+
+# --------------------------------------------------------------------------
+# Stage: dump
+# --------------------------------------------------------------------------
+
+def cmd_dump(args, cfg):
+    src = get_source(args.alias, cfg, need_bastion=True)
+    bastion, dbname = src["bastion"], src["dbname"]
+    out = bastion_out(dbname)
+    script = f"$HOME/dump-{args.alias}.sh"
+    remote_log = f"$HOME/dump-{args.alias}.log"
+    state = load_state(args.alias)
+
+    print(f"dump {args.alias} ({dbname}) on {bastion}")
+    if args.command == "dump":
+        print("  this takes ~20 min. To follow it and still walk away:")
+        print(f"    {zmx_hint(args.alias)}")
+    print("  gate: no pg_dump is already writing that output directory")
+    # The [p] keeps the pattern from matching the shell that carries it.
+    pattern = f"[p]g_dump.*--file=.*dumps/{dbname}"
+    probe = run(remote(bastion, f"pgrep -f -- {shlex.quote(pattern)} || true"),
+                dry=args.dry_run, capture=True)
+    if not args.dry_run and probe.text():
+        if not args.force_dump:
+            die(f"a pg_dump is already writing {out} on {bastion} "
+                f"(pid {probe.text().split()}).\n"
+                "  pass --force-dump only once you have confirmed none is "
+                "running")
+        print("  --force-dump: continuing despite a matching process")
+
+    body = "\n".join([
+        "#!/usr/bin/env bash",
+        "set -euo pipefail",
+        f"export PGPASSWORD={shlex.quote(str(src['password']))}",
+        f"export PGSSLMODE={shlex.quote(str(src['sslmode']))}",
+        f'OUT="{out}"',
+        'mkdir -p "$(dirname "$OUT")"',
+        'rm -rf "$OUT"',  # pg_dump refuses an existing directory
+        'echo "DUMP_START $(date -u +%FT%TZ)"',
+        "pg_dump \\",
+        f"  -h {shlex.quote(str(src['host']))} -p {src['port']} "
+        f"-U {shlex.quote(str(src['user']))} -d {shlex.quote(dbname)} \\",
+        f"  --format=directory --jobs={DUMP_JOBS} --compress={DUMP_COMPRESS} \\",
+        "  --no-owner --no-privileges --lock-wait-timeout=30s --verbose \\",
+        '  --file="$OUT"',
+        'echo "DUMP_FILES $(find "$OUT" -type f | wc -l | tr -d \' \')"',
+        'echo "DUMP_DONE $(date -u +%FT%TZ)"',
+    ])
+    # stdin, never argv: the bastion is shared and argv is world-readable in ps.
+    # umask first, so the file is never briefly world-readable while the
+    # password is being written into it.
+    written = run(
+        remote(bastion, f"umask 077 && cat > {script} && chmod 700 {script}"),
+        dry=args.dry_run, stdin_text=body + "\n", capture=True)
+    if not args.dry_run and not written.ok:
+        die("could not write the dump script to the bastion (no dump "
+            f"started): {written.err.strip()[:300]}", code=1)
+
+    check = run(remote(bastion, f"test -s {script} && bash -n {script}"),
+                dry=args.dry_run, capture=True)
+    if not args.dry_run and not check.ok:
+        die("the generated dump script failed bash -n on the bastion "
+            f"(no dump started):\n{check.err.strip()}")
+
+    launch = (
+        "command -v setsid >/dev/null 2>&1 && SETSID=setsid || SETSID=; "
+        f"rm -f {remote_log}; "
+        f"$SETSID nohup {script} > {remote_log} 2>&1 < /dev/null & "
+        "echo LAUNCHED $!"
+    )
+    launched = run(remote(bastion, launch), dry=args.dry_run, capture=True)
+    if not args.dry_run and not launched.ok:
+        die(f"could not launch the dump: {launched.err.strip()}")
+
+    state["dbname"] = dbname
+    state["archive"] = archive_name(dbname)
+    state["bastion"] = bastion
+    # A new dump invalidates everything downstream. Without this, `run` would
+    # skip fetch/push/restore as "already done" and leave the destination
+    # holding the previous dump's data.
+    clear_stages(state, "fetch", "push", "restore", "clean")
+    record(state, "dump", status="running", out=out, log=remote_log,
+           script=script, archive=state["archive"], started_at=now())
+    save_state(state, dry=args.dry_run)
+    print(f"  dump running detached; log: {bastion}:{remote_log}")
+    print(f"  re-attach any time with: aaa-db-dump status {args.alias}")
+
+    if args.follow:
+        follow(bastion, remote_log, ["DUMP_DONE", "DUMP_FAILED", "error:"],
+               dry=args.dry_run)
+        if not args.dry_run:
+            done = run(remote(bastion, f"grep -c DUMP_DONE {remote_log} || true"),
+                       dry=False, capture=True)
+            if done.text() not in ("", "0"):
+                record(state, "dump", status="complete", finished_at=now())
+                save_state(state, dry=False)
+    return 0
+
+
+# --------------------------------------------------------------------------
+# Stage: fetch
+# --------------------------------------------------------------------------
+
+def cmd_fetch(args, cfg):
+    src = get_source(args.alias, cfg, need_bastion=True)
+    bastion, dbname = src["bastion"], src["dbname"]
+    out = bastion_out(dbname)
+    remote_log = f"$HOME/dump-{args.alias}.log"
+    state = load_state(args.alias)
+    archive = resolved_archive(state, dbname, dry=args.dry_run)
+    dest = get_dump_dir(cfg) / archive
+
+    print(f"fetch {args.alias} -> {dest}")
+    print("  gate: the bastion log contains DUMP_DONE")
+    gate = run(remote(bastion, f"grep -c DUMP_DONE {remote_log} || true"),
+               dry=args.dry_run, capture=True)
+    if not args.dry_run and gate.text() in ("", "0"):
+        die(f"{remote_log} on {bastion} has no DUMP_DONE line — the dump is "
+            "still running or it failed. Nothing was fetched.")
+
+    run(["mkdir", "-p", str(dest)], dry=args.dry_run)
+    # -a and -P are the intersection of GNU rsync and macOS openrsync.
+    # Re-running resumes; never start over.
+    # --delete removes members left by an earlier dump of the same day.
+    # Without it a re-dump leaves orphans, local_count stays above the
+    # bastion's, and the count check below can never pass again.
+    rsync = run(["rsync", "-a", "-P", "--delete",
+                 f"{bastion}:{bastion_out_rel(dbname)}/", f"{dest}/"],
+                dry=args.dry_run)
+    if not args.dry_run and not rsync.ok:
+        die(f"rsync exited {rsync.rc}. Re-run `aaa-db-dump fetch {args.alias}` "
+            "— it resumes where it stopped.", code=1)
+
+    print("  check: local file count equals the bastion's")
+    counted = run(remote(bastion, f'find {out} -type f | wc -l'),
+                  dry=args.dry_run, capture=True)
+    local_count = 0 if args.dry_run else local_file_count(dest)
+    if not args.dry_run:
+        expected = parse_count(counted.text(), "the bastion file count")
+        print(f"  bastion {expected} files, local {local_count} files")
+        if expected and expected != local_count:
+            die(f"file count mismatch ({expected} vs {local_count}); "
+                f"re-run fetch to resume", code=1)
+
+    print("  verify: full decompress of every member file, output discarded")
+    verified = verify_archive(dest, dry=args.dry_run)
+    if not args.dry_run and not verified.ok:
+        record(state, "fetch", status="failed", verified=False)
+        save_state(state, dry=False)
+        die("the local archive failed pg_restore --file=/dev/null; it is "
+            f"incomplete or corrupt:\n{verified.err.strip()[:800]}", code=1)
+
+    state["dbname"] = dbname
+    state["archive"] = archive
+    record(state, "fetch", status="complete", verified=True,
+           path=str(dest), file_count=local_count)
+    save_state(state, dry=args.dry_run)
+    print(f"  archive verified at {dest}")
+    return 0
+
+
+# --------------------------------------------------------------------------
+# Stage: push
+# --------------------------------------------------------------------------
+
+def cmd_push(args, cfg):
+    src = get_source(args.alias, cfg)
+    dest = get_target(args.to, cfg)
+    state = load_state(args.alias)
+    archive = resolved_archive(state, src["dbname"], dry=args.dry_run)
+    dump_dir = get_dump_dir(cfg)
+    local = dump_dir / archive
+
+    print(f"push {args.alias} -> {dest['name']}")
+    print("  gate: the local archive is verified")
+    if not args.dry_run and not state.get("stages", {}).get("fetch", {}).get("verified"):
+        print("  no verified flag in state; re-verifying now")
+        if not verify_archive(local, dry=False).ok:
+            die(f"{local} did not pass pg_restore --file=/dev/null; "
+                "nothing was pushed", code=1)
+        record(state, "fetch", verified=True)
+        save_state(state, dry=False)
+
+    # Path-based skip, not name-based: a target with no ssh hop whose host_path
+    # is already dump_dir needs no copy. An ssh target always copies, even if
+    # its path string happens to match ours — it is a different machine.
+    same_place = (not dest.get("ssh")
+                  and Path(dest["host_path"]).expanduser() == dump_dir)
+    if same_place:
+        print(f"  skipped: dump_dir is {dest['name']}'s container mount "
+              f"({dump_dir}) — the archive is already in place")
+        record(state, "push", status="skipped",
+               reason="dump_dir is the container mount",
+               destination=dest["name"])
+        save_state(state, dry=args.dry_run)
+        return 0
+
+    remote_dir = f"{dest['host_path']}/{archive}"
+    ssh = dest.get("ssh")
+    run(remote(ssh, f"mkdir -p {shlex.quote(remote_dir)}"), dry=args.dry_run)
+    # A destination with no ssh key is a path on this machine, so rsync gets a
+    # plain local path. Using dest["ssh"] unconditionally raised KeyError.
+    destination = f"{ssh}:{remote_dir}/" if ssh else f"{remote_dir}/"
+    pushed = run(["rsync", "-a", "-P", "--delete", f"{local}/", destination],
+                 dry=args.dry_run)
+    if not args.dry_run and not pushed.ok:
+        die(f"rsync exited {pushed.rc}. Re-run push — it resumes.", code=1)
+
+    record(state, "push", status="complete", destination=dest["name"],
+           path=remote_dir)
+    save_state(state, dry=args.dry_run)
+    print(f"  archive on {dest['name']} at {remote_dir}")
+    return 0
+
+
+# --------------------------------------------------------------------------
+# Stage: restore
+# --------------------------------------------------------------------------
+
+def cmd_restore(args, cfg):
+    src = get_source(args.alias, cfg)
+    dest = get_target(args.to, cfg)
+    # --db is applied AFTER destination resolution: it renames the database
+    # inside the resolved destination and can never change the host,
+    # container, or ssh hop.
+    db = check_identifier(args.db or dest["db"], "database")
+    ssh = dest.get("ssh")
+    hop = ssh or "localhost (no ssh hop)"
+    state = load_state(args.alias)
+    archive = resolved_archive(state, src["dbname"], dry=args.dry_run)
+    local = get_dump_dir(cfg) / archive
+    in_container = f"{dest['container_path']}/{archive}"
+
+    print(f"restore {args.alias} -> {dest['name']}")
+    print(f"  database   {db}")
+    print(f"  container  {dest['container']}")
+    print(f"  ssh hop    {hop}")
+    print(f"  archive    {in_container}")
+
+    print("  pre-flight: container is running")
+    inspect = f"docker inspect -f '{{{{.State.Running}}}}' {shlex.quote(dest['container'])}"
+    running = run(remote(ssh, inspect), dry=args.dry_run, capture=True)
+    if not args.dry_run and running.text() != "true":
+        die(f"container {dest['container']} is not running on {hop}; "
+            "nothing was touched")
+
+    print("  pre-flight: the container sees the expected number of files")
+    # `find -type f` so this counts the same thing local_file_count() does;
+    # `ls | wc -l` would count only top-level entries.
+    inner = f"find {shlex.quote(in_container)} -type f | wc -l"
+    listed = run(
+        remote(ssh, f"docker exec {shlex.quote(dest['container'])} "
+                    f"sh -c {shlex.quote(inner)}"),
+        dry=args.dry_run, capture=True)
+    expected = state.get("stages", {}).get("fetch", {}).get("file_count")
+    if not args.dry_run:
+        seen = parse_count(listed.text(), "the container file count")
+        print(f"  container sees {seen} files, expected {expected or 'unknown'}")
+        if seen == 0:
+            die(f"the container sees nothing at {in_container}. The mount is not "
+                "where the config says. Nothing was dropped.")
+        # An interrupted push leaves a partial archive that would otherwise be
+        # restored over a dropped database.
+        if expected and seen != expected:
+            die(f"the container sees {seen} files but the verified archive has "
+                f"{expected}. The copy is incomplete — re-run push. "
+                "Nothing was dropped.")
+
+    print("  pre-flight: container Postgres major >= source major")
+    src_major, extensions = archive_meta(local, dry=args.dry_run)
+    if not args.dry_run and src_major is None:
+        # Both remaining pre-flight gates read the archive TOC. If it cannot be
+        # read, they would silently pass rather than check anything.
+        die(f"could not read the archive TOC at {local}, so the version and "
+            "extension checks cannot run. Re-run fetch. Nothing was dropped.")
+    version = run(remote(ssh, container_psql(dest, "SHOW server_version")),
+                  dry=args.dry_run, capture=True)
+    if not args.dry_run:
+        try:
+            dest_major = int(version.text().split(".")[0])
+        except ValueError:
+            die(f"could not read the container's server_version: {version.text()!r}")
+        print(f"  source major {src_major}, container major {dest_major}")
+        if src_major and dest_major < src_major:
+            die(f"container Postgres {dest_major} is older than the source's "
+                f"{src_major}; the restore would fail part-way")
+
+    print("  pre-flight: every extension the archive needs is available")
+    available = run(
+        remote(ssh, container_psql(
+            dest, "SELECT name FROM pg_available_extensions")),
+        dry=args.dry_run, capture=True)
+    if not args.dry_run and extensions:
+        have = set(available.text().split())
+        missing = [e for e in extensions if e not in have]
+        print(f"  archive needs: {', '.join(extensions)}")
+        if missing:
+            die(f"the container has no {', '.join(missing)} extension; "
+                "nothing was dropped")
+
+    size_sql = f"SELECT pg_size_pretty(pg_database_size('{db}'))"
+    size = run(remote(ssh, container_psql(dest, size_sql)),
+               dry=args.dry_run, capture=True)
+    if args.dry_run:
+        current = "not read (--dry-run)"
+    else:
+        current = size.text() if size.ok else "absent"
+    pre_drop = STATE_DIR / f"{args.alias}-{db}-pre-drop-tables.txt"
+
+    if not args.yes:
+        print("")
+        print("  this stage is destructive. It will DROP and recreate:")
+        print(f"    database   {db}")
+        print(f"    size now   {current}")
+        print(f"    container  {dest['container']}")
+        print(f"    ssh hop    {hop}")
+        print(f"  the current table list is written to {pre_drop} first, so")
+        print("  anything only present there stays knowable afterwards.")
+        print("  re-run with --yes to proceed. Nothing was touched.")
+        return 2
+
+    print(f"  recording the current table list to {pre_drop}")
+    tables_sql = ("SELECT schemaname||'.'||tablename FROM pg_tables "
+                  "WHERE schemaname NOT IN ('pg_catalog','information_schema') "
+                  "ORDER BY 1")
+    before = run(remote(ssh, container_psql(dest, tables_sql, db=db)),
+                 dry=args.dry_run, capture=True)
+    if not args.dry_run:
+        STATE_DIR.mkdir(parents=True, exist_ok=True)
+        if before.ok:
+            pre_drop.write_text(before.out)
+        elif current == "absent":
+            pre_drop.write_text(f"# {db} did not exist before this restore\n")
+        else:
+            # Writing an empty file here would quietly remove the only record
+            # of what the drop is about to destroy.
+            die(f"could not read {db}'s table list, so what the drop would "
+                f"destroy cannot be recorded: {before.err.strip()[:300]}\n"
+                "  nothing was dropped.", code=1)
+
+    # A single open session makes DROP DATABASE fail, so evict first — and
+    # never fall back to --clean, which is what lost two primary keys before.
+    terminate = ("SELECT pg_terminate_backend(pid) FROM pg_stat_activity "
+                 f"WHERE datname = '{db}' AND pid <> pg_backend_pid()")
+    for attempt in range(1, 4):
+        print(f"  evict clients, then DROP DATABASE (attempt {attempt}/3)")
+        run(remote(ssh, container_psql(dest, terminate)),
+            dry=args.dry_run, capture=True)
+        dropped = run(
+            remote(ssh, container_psql(dest, f'DROP DATABASE IF EXISTS "{db}"')),
+            dry=args.dry_run, capture=True)
+        if args.dry_run or dropped.ok:
+            break
+        print(f"    {dropped.err.strip()[:200]}")
+        time.sleep(3)
+    else:
+        die(f"could not DROP DATABASE {db} after 3 attempts — a client keeps "
+            "reconnecting. Find it in pg_stat_activity and retry; do not fall "
+            "back to --clean.", code=1)
+
+    created = run(
+        remote(ssh, container_psql(
+            dest, f'CREATE DATABASE "{db}" OWNER "{dest["user"]}"')),
+        dry=args.dry_run, capture=True)
+    if not args.dry_run and not created.ok:
+        die(f"CREATE DATABASE {db} failed: {created.err.strip()[:300]}", code=1)
+
+    restore_log = log_path(args.alias, "restore")
+    if not args.dry_run:
+        STATE_DIR.mkdir(parents=True, exist_ok=True)
+        restore_log.unlink(missing_ok=True)
+    remote_log = f"$HOME/aaa-db-dump-{args.alias}-restore.log"
+    # No --clean and no --if-exists: the database was just recreated, so there
+    # is nothing to clean and nothing of the previous one can survive.
+    #
+    # The `{ ...; echo EXIT=$?; } | tee` shape is deliberate. A plain
+    # `cmd | tee log` reports tee's status, so a pg_restore killed by a dropped
+    # VPN would come back as exit 0 with no error lines, and `clean` would then
+    # delete the only remaining copy of the dump.
+    pg_restore = (
+        "{ docker exec " + shlex.quote(dest["container"]) +
+        f" pg_restore -U {shlex.quote(dest['user'])} -d {shlex.quote(db)} "
+        f"--no-owner --no-privileges --jobs={RESTORE_JOBS} --verbose "
+        f"{shlex.quote(in_container)} 2>&1; "
+        f'echo "{EXIT_SENTINEL}$?"; }} | tee {remote_log}'
+    )
+    result = run(remote(ssh, pg_restore), dry=args.dry_run,
+                 tee=None if args.dry_run else restore_log, collect=ERROR_RE)
+
+    errors, error_lines, pg_exit = 0, [], None
+    if not args.dry_run and restore_log.exists():
+        for line in restore_log.read_text(errors="replace").splitlines():
+            if ERROR_RE.search(line):
+                errors += 1
+                if len(error_lines) < 20:
+                    error_lines.append(line)
+            marker = re.search(rf"{EXIT_SENTINEL}(\d+)", line)
+            if marker:
+                pg_exit = int(marker.group(1))
+    if args.dry_run:
+        pg_exit = 0
+    if pg_exit is None:
+        # The stream ended before pg_restore reported anything — a dropped
+        # connection, a killed container, a terminated child.
+        print("  the restore stream ended without an exit status; "
+              "treating it as failed")
+        pg_exit = result.rc or 1
+
+    after_size = run(remote(ssh, container_psql(dest, size_sql)),
+                     dry=args.dry_run, capture=True)
+    count_sql = ("SELECT count(*) FROM pg_tables WHERE schemaname "
+                 "NOT IN ('pg_catalog','information_schema')")
+    after_tables = run(remote(ssh, container_psql(dest, count_sql, db=db)),
+                       dry=args.dry_run, capture=True)
+
+    # exit code and error count are different facts; never collapse them,
+    # and never treat either alone as proof of success.
+    print("")
+    print(f"  pg_restore_exit={pg_exit}")
+    print(f"  pg_restore_errors={errors}")
+    if error_lines:
+        print("  distinct errors:")
+        for line in sorted(set(error_lines)):
+            print(f"    {line}")
+    if not args.dry_run:
+        print(f"  {db} is now {after_size.text() or '?'} across "
+              f"{after_tables.text() or '?'} tables")
+    clean_restore = errors == 0 and pg_exit == 0
+    if clean_restore:
+        print("  RESTORE_DONE")
+    elif errors:
+        print(f"  RESTORE_ERRORS {errors}")
+    else:
+        print(f"  RESTORE_FAILED exit={pg_exit} with no error lines — the "
+              "restore did not finish")
+
+    record(state, "restore",
+           status="complete" if clean_restore else "errors",
+           destination=dest["name"], db=db,
+           archive=archive,  # so clean can tell which dump this belongs to
+           pg_restore_exit=pg_exit,
+           pg_restore_errors=errors, errors=sorted(set(error_lines)),
+           size=after_size.text(), tables=after_tables.text())
+    save_state(state, dry=args.dry_run)
+    return 0 if clean_restore else 1
+
+
+# --------------------------------------------------------------------------
+# Stage: clean
+# --------------------------------------------------------------------------
+
+def cmd_clean(args, cfg):
+    src = get_source(args.alias, cfg, need_bastion=True)
+    bastion, dbname = src["bastion"], src["dbname"]
+    state = load_state(args.alias)
+    restored = state.get("stages", {}).get("restore", {})
+    errors = restored.get("pg_restore_errors")
+
+    print(f"clean {args.alias} on {bastion}")
+    exit_code = restored.get("pg_restore_exit")
+    recorded = errors if errors is not None else "unrecorded"
+    archive = state.get("archive")
+    restored_archive = restored.get("archive")
+    dump_running = stage_status(state, "dump") == "running"
+
+    # Three separate questions, because a pass on one says nothing about the
+    # others. The archive check is what stops a day-old success record from
+    # authorising the deletion of a dump taken this morning.
+    reasons = []
+    if errors != 0:
+        reasons.append(f"pg_restore_errors={recorded}")
+    if exit_code != 0:
+        reasons.append(f"pg_restore_exit={exit_code if exit_code is not None else 'unrecorded'}")
+    if restored_archive != archive:
+        reasons.append(f"the recorded restore was of {restored_archive!r}, "
+                       f"not the current {archive!r}")
+    if dump_running:
+        reasons.append("a dump is still marked running")
+
+    print("  gate: the recorded restore of THIS archive finished cleanly")
+    print(f"    pg_restore_errors={recorded}, pg_restore_exit="
+          f"{exit_code if exit_code is not None else 'unrecorded'}, "
+          f"restored archive={restored_archive!r}, current={archive!r}")
+    print(f"    -> {'pass' if not reasons else 'REFUSE'}")
+
+    if args.dry_run and reasons:
+        # A dry run destroys nothing, so it shows the rest of the plan rather
+        # than stopping. A real run refuses here.
+        print("    --dry-run: a real run would stop here; "
+              "showing the remaining commands anyway")
+    if not args.dry_run and reasons:
+        if not args.force_clean:
+            for line in restored.get("errors", [])[:20]:
+                print(f"    {line}")
+            die("refusing to delete the only remaining copy of a 20-minute "
+                f"dump: {'; '.join(reasons)}.\n"
+                "  inspect the restore first, or pass --force-clean once you "
+                "have confirmed it is safe.")
+        print(f"  --force-clean: overriding {'; '.join(reasons)}")
+        for line in restored.get("errors", [])[:20]:
+            print(f"    overriding: {line}")
+
+    # $HOME stays unquoted so the remote shell expands it; everything after it
+    # is quoted, because this is the one destructive command in the script.
+    paths = [
+        f"$HOME/dumps/{shlex.quote(dbname)}",
+        f"$HOME/{shlex.quote(f'dump-{args.alias}.sh')}",
+        f"$HOME/{shlex.quote(f'dump-{args.alias}.log')}",
+        f"$HOME/{shlex.quote(f'follow-{args.alias}.sh')}",
+    ]
+    print("  deleting from the bastion:")
+    for path in paths:
+        print(f"    {path}")
+    print(f"  dump-{args.alias}.sh holds the database password in plain text on "
+          "a shared host — removing it is the point, the disk space is a bonus.")
+
+    removed = run(remote(bastion, "rm -rf " + " ".join(paths)),
+                  dry=args.dry_run, capture=True)
+    if not args.dry_run and not removed.ok:
+        die(f"cleanup failed: {removed.err.strip()[:300]}", code=1)
+    run(remote(bastion, "df -h $HOME | tail -1"), dry=args.dry_run)
+
+    record(state, "clean", status="complete")
+    save_state(state, dry=args.dry_run)
+    return 0
+
+
+# --------------------------------------------------------------------------
+# run — the five stages, gated, resumable
+# --------------------------------------------------------------------------
+
+def stage_output_intact(stage, state):
+    """Re-check a completed stage's output instead of trusting the state file."""
+    if stage == "fetch":
+        path = state.get("stages", {}).get("fetch", {}).get("path")
+        return bool(path) and Path(path).is_dir()
+    return True
+
+
+def cmd_run(args, cfg):
+    # Resolve the destination up front, so an unknown one costs nothing —
+    # never after a 20-minute dump.
+    dest = get_target(args.to, cfg)
+    get_source(args.alias, cfg, need_bastion=True)
+    stages = [("dump", cmd_dump), ("fetch", cmd_fetch), ("push", cmd_push),
+              ("restore", cmd_restore), ("clean", cmd_clean)]
+
+    print(f"run {args.alias} -> {dest['name']} "
+          f"(database {args.db or dest['db']})")
+    print("  all five stages take ~50 min. To follow them and still walk away:")
+    print(f"    {zmx_hint(args.alias)}")
+
+    # A dump replaces the input of every later stage. cmd_dump clears them in
+    # the state file, but --dry-run writes nothing, so track it here as well —
+    # otherwise a dry run would claim stages are "already done" that a real run
+    # would re-execute.
+    invalidated = set()
+
+    for index, (name, handler) in enumerate(stages):
+        state = load_state(args.alias)
+        done = stage_status(state, name)
+        if (done in ("complete", "skipped") and args.redo != name
+                and name not in invalidated):
+            if stage_output_intact(name, state):
+                print(f"\n[{name}] already done (use --redo {name} to force)")
+                if args.stop_after == name:
+                    return 0
+                continue
+            print(f"\n[{name}] marked {done} but its output is gone; re-running")
+        print(f"\n[{name}]")
+        rc = handler(args, cfg)
+        if name == "dump" and not rc:
+            invalidated.update(("fetch", "push", "restore", "clean"))
+        if rc:
+            print(f"\ngate failed at [{name}] (exit {rc}).")
+            remaining = [later for later, _ in stages[index + 1:]]
+            if remaining:
+                print("  these did not run, and nothing they touch was changed:")
+                for later in remaining:
+                    print(f"    {later}")
+            else:
+                print("  this was the last stage.")
+            return rc
+        if args.stop_after == name:
+            print(f"\nstopping after [{name}] as requested")
+            return 0
+    return 0
+
+
+# --------------------------------------------------------------------------
+# status — answers from a cold shell, by re-checking rather than remembering
+# --------------------------------------------------------------------------
+
+def cmd_status(args, cfg):
+    src = get_source(args.alias, cfg)
+    state = load_state(args.alias)
+    dbname = src["dbname"]
+    archive = resolved_archive(state, dbname, dry=True)
+    local = get_dump_dir(cfg) / archive
+
+    print(f"{args.alias}  ({dbname})")
+    print(f"  archive        {archive}")
+    print(f"  state file     {state_path(args.alias)}")
+
+    dest = get_target(args.to, cfg) if args.to else None
+    if dest:
+        db = args.db or dest["db"]
+        print(f"  destination    {dest['name']}")
+        print(f"    container    {dest['container']}")
+        print(f"    ssh hop      {dest.get('ssh') or 'localhost (no ssh hop)'}")
+        print(f"    database     {db}")
+
+    print("")
+    print("  live checks")
+    bastion = src.get("bastion")
+    if bastion:
+        probe = (f"test -d $HOME/dumps/{dbname} && "
+                 f"find $HOME/dumps/{dbname} -type f | wc -l || echo absent")
+        found = run(remote(bastion, probe), dry=args.dry_run, capture=True)
+        print(f"    bastion archive   {found.text() or 'unreachable'}")
+    else:
+        print("    bastion archive   n/a (alias has no bastion)")
+
+    if local.is_dir():
+        print(f"    local archive     {local_file_count(local)} files at {local}")
+    else:
+        print(f"    local archive     absent ({local})")
+
+    if dest:
+        db = args.db or dest["db"]
+        remote_dir = f"{dest['host_path']}/{archive}"
+        probe = (f"test -d {shlex.quote(remote_dir)} && "
+                 f"find {shlex.quote(remote_dir)} -type f | wc -l || echo absent")
+        found = run(remote(dest.get("ssh"), probe),
+                    dry=args.dry_run, capture=True)
+        print(f"    destination copy  {found.text() or 'unreachable'}")
+        size_sql = f"SELECT pg_size_pretty(pg_database_size('{db}'))"
+        size = run(remote(dest.get("ssh"), container_psql(dest, size_sql)),
+                   dry=args.dry_run, capture=True)
+        print(f"    {db:<16}  {size.text() if size.ok else 'absent or unreachable'}")
+
+    print("")
+    print("  recorded stages")
+    for name in STAGES:
+        entry = state.get("stages", {}).get(name, {})
+        if not entry:
+            print(f"    {name:<9} not started")
+            continue
+        extra = ""
+        if name == "restore":
+            extra = (f"  errors={entry.get('pg_restore_errors')}"
+                     f" exit={entry.get('pg_restore_exit')}"
+                     f" db={entry.get('db')}")
+        if name == "push" and entry.get("reason"):
+            extra = f"  ({entry['reason']})"
+        print(f"    {name:<9} {entry.get('status', '?'):<9} "
+              f"{entry.get('at', '')}{extra}")
+    return 0
+
+
+# --------------------------------------------------------------------------
+# list — so an exact name is never something to remember
+# --------------------------------------------------------------------------
+
+def cmd_list(args, cfg):
+    sources = source_aliases(cfg)
+    destinations = cfg.get("restore_targets") or {}
+
+    if args.aliases_only:
+        # Machine-readable, for shell completion. Postgres only: completing an
+        # MSSQL alias that dump then rejects is a trap.
+        for alias in sorted(sources):
+            if sources[alias].get("type", "postgresql") == "postgresql":
+                print(alias)
+        return 0
+
+    if args.targets_only:
+        for name in sorted(destinations):
+            print(name)
+        return 0
+
+    print("dump sources (read-only; never restore destinations)")
+    print(f"  {'alias':<20} {'type':<11} {'host':<52} {'database':<20} "
+          f"{'bastion':<8} writable")
+    for alias in sorted(sources):
+        cfg_row = sources[alias]
+        print(f"  {alias:<20} {cfg_row.get('type', 'postgresql'):<11} "
+              f"{str(cfg_row.get('host', '?')):<52} "
+              f"{str(cfg_row.get('dbname', '?')):<20} "
+              f"{'yes' if cfg_row.get('bastion') else 'no':<8} "
+              f"{'yes' if cfg_row.get('writable') else 'no'}")
+
+    print("")
+    print("restore destinations (--to; the only places a restore may land)")
+    print(f"  {'name':<20} {'ssh':<11} {'container':<32} database")
+    for name in sorted(destinations):
+        row = destinations[name] or {}
+        print(f"  {name:<20} {str(row.get('ssh') or 'local'):<11} "
+              f"{str(row.get('container', '?')):<32} {row.get('db', '?')}")
+
+    print("")
+    print(f"dump_dir  {cfg.get('dump_dir', '(unset)')}")
+    return 0
+
+
+# --------------------------------------------------------------------------
+# completion — the values only the config knows, read at completion time
+# --------------------------------------------------------------------------
+
+COMPLETION_FISH = r"""# aaa-db-dump completions for fish
+# Regenerate with: aaa-db-dump completion fish
+
+set -l __add_stages dump fetch push restore clean run status list completion
+set -l __add_takes_alias dump fetch push restore clean run status
+
+complete -c aaa-db-dump -f
+complete -c aaa-db-dump -n "not __fish_seen_subcommand_from $__add_stages" \
+    -a "$__add_stages"
+complete -c aaa-db-dump -n "__fish_seen_subcommand_from $__add_takes_alias" \
+    -a "(aaa-db-dump list --aliases-only)" -d "source alias"
+complete -c aaa-db-dump -n "__fish_seen_subcommand_from completion" \
+    -a "fish bash zsh" -d shell
+complete -c aaa-db-dump -l to -x -a "(aaa-db-dump list --targets-only)" \
+    -d "restore destination"
+complete -c aaa-db-dump -l db -x -d "database name inside the destination"
+complete -c aaa-db-dump -l redo -x -a "dump fetch push restore clean"
+complete -c aaa-db-dump -l stop-after -x -a "dump fetch push restore clean"
+complete -c aaa-db-dump -l dry-run -d "print commands, execute nothing"
+complete -c aaa-db-dump -l yes -d "confirm a destructive restore"
+complete -c aaa-db-dump -l follow -d "tail progress"
+complete -c aaa-db-dump -l no-follow -d "do not tail"
+complete -c aaa-db-dump -l force-dump -d "dump despite a running pg_dump"
+complete -c aaa-db-dump -l force-clean -d "clean despite a failed restore"
+complete -c aaa-db-dump -n "__fish_seen_subcommand_from list" \
+    -l aliases-only -l targets-only
+"""
+
+COMPLETION_BASH = r"""# aaa-db-dump completions for bash
+# Regenerate with: aaa-db-dump completion bash
+_aaa_db_dump() {
+    local cur prev stages flags
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    stages="dump fetch push restore clean run status list completion"
+    flags="--to --db --dry-run --yes --follow --no-follow --force-dump
+           --force-clean --redo --stop-after --aliases-only --targets-only
+           --help"
+
+    case "$prev" in
+        --to)
+            COMPREPLY=($(compgen -W "$(aaa-db-dump list --targets-only)" -- "$cur"))
+            return ;;
+        --db)
+            COMPREPLY=()
+            return ;;
+        --redo|--stop-after)
+            COMPREPLY=($(compgen -W "dump fetch push restore clean" -- "$cur"))
+            return ;;
+        completion)
+            COMPREPLY=($(compgen -W "fish bash zsh" -- "$cur"))
+            return ;;
+    esac
+
+    if [[ "$cur" == -* ]]; then
+        COMPREPLY=($(compgen -W "$flags" -- "$cur"))
+        return
+    fi
+    if [[ $COMP_CWORD -eq 1 ]]; then
+        COMPREPLY=($(compgen -W "$stages" -- "$cur"))
+        return
+    fi
+    COMPREPLY=($(compgen -W "$(aaa-db-dump list --aliases-only)" -- "$cur"))
+}
+complete -F _aaa_db_dump aaa-db-dump
+"""
+
+COMPLETION_ZSH = r"""#compdef aaa-db-dump
+# aaa-db-dump completions for zsh
+# Regenerate with: aaa-db-dump completion zsh
+_aaa_db_dump() {
+    local state
+    _arguments -C \
+        '1:stage:(dump fetch push restore clean run status list completion)' \
+        '--to[restore destination]:destination:->destinations' \
+        '--db[database name inside the destination]:database:' \
+        '--redo[re-run one stage]:stage:(dump fetch push restore clean)' \
+        '--stop-after[stop after one stage]:stage:(dump fetch push restore clean)' \
+        '--dry-run[print commands, execute nothing]' \
+        '--yes[confirm a destructive restore]' \
+        '--follow[tail progress]' \
+        '--no-follow[do not tail]' \
+        '--force-dump[dump despite a running pg_dump]' \
+        '--force-clean[clean despite a failed restore]' \
+        '--aliases-only[bare source alias names]' \
+        '--targets-only[bare destination names]' \
+        '*:alias:->aliases'
+
+    case "$state" in
+        destinations)
+            _values 'destination' ${(f)"$(aaa-db-dump list --targets-only)"} ;;
+        aliases)
+            _values 'alias' ${(f)"$(aaa-db-dump list --aliases-only)"} ;;
+    esac
+}
+_aaa_db_dump "$@"
+"""
+
+COMPLETIONS = {
+    "fish": COMPLETION_FISH,
+    "bash": COMPLETION_BASH,
+    "zsh": COMPLETION_ZSH,
+}
+
+
+def cmd_completion(args, _cfg=None):
+    sys.stdout.write(COMPLETIONS[args.shell])
+    return 0
+
+
+# --------------------------------------------------------------------------
+# CLI
+# --------------------------------------------------------------------------
+
+def build_parser():
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("alias", help="source alias from databases.yaml")
+    common.add_argument("--to", metavar="NAME",
+                        help="restore destination (a key of restore_targets)")
+    common.add_argument("--db", metavar="NAME",
+                        help="database name inside the resolved destination; "
+                             "cannot change host, container, or ssh hop")
+    common.add_argument("--yes", action="store_true",
+                        help="confirm the destructive restore")
+    # Two separate gates, so one flag cannot silently disarm the other: a
+    # --force meant for a stale pgrep match must not also let clean delete a
+    # dump after a failed restore.
+    common.add_argument("--force-dump", action="store_true",
+                        help="start a dump despite a matching pg_dump process")
+    common.add_argument("--force-clean", action="store_true",
+                        help="delete from the bastion despite a failed restore")
+    common.add_argument("--dry-run", action="store_true",
+                        help="print every command, execute nothing")
+    common.add_argument("--follow", dest="follow", action="store_true",
+                        default=True, help="tail progress (default)")
+    common.add_argument("--no-follow", dest="follow", action="store_false",
+                        help="return immediately instead of tailing")
+
+    parser = argparse.ArgumentParser(
+        prog="aaa-db-dump",
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    sub = parser.add_subparsers(
+        dest="command", required=True,
+        metavar="{" + ",".join(SUBCOMMANDS) + "}")
+
+    helps = {
+        "dump": "run pg_dump on the bastion, detached",
+        "fetch": "rsync the archive down and verify it",
+        "push": "rsync the archive to the destination host",
+        "restore": "recreate the database and pg_restore into it",
+        "clean": "remove the archive and password-bearing script from the bastion",
+    }
+    for name in STAGES:
+        sub.add_parser(name, parents=[common], help=helps[name])
+
+    run_parser = sub.add_parser("run", parents=[common],
+                                help="all five stages, gated and resumable")
+    run_parser.add_argument("--redo", choices=STAGES, metavar="STAGE",
+                            help="re-run a stage already marked complete")
+    run_parser.add_argument("--stop-after", choices=STAGES, metavar="STAGE",
+                            help="stop once this stage finishes")
+
+    sub.add_parser("status", parents=[common],
+                   help="where this alias is up to, re-checked live")
+
+    list_parser = sub.add_parser("list", help="source aliases and destinations")
+    list_parser.add_argument("--aliases-only", action="store_true",
+                             help="bare postgres alias names, one per line")
+    list_parser.add_argument("--targets-only", action="store_true",
+                             help="bare restore destination names, one per line")
+
+    completion_parser = sub.add_parser(
+        "completion", help="print a completion script for fish, bash, or zsh")
+    completion_parser.add_argument("shell", choices=["fish", "bash", "zsh"])
+
+    return parser
+
+
+def main():
+    args = build_parser().parse_args()
+
+    if args.command == "completion":
+        return cmd_completion(args)
+
+    cfg = load_config()
+
+    if args.command == "list":
+        return cmd_list(args, cfg)
+
+    if args.command in ("push", "restore", "run") and not args.to:
+        legal = ", ".join(sorted(cfg.get("restore_targets") or {})) or "none"
+        die(f"{args.command} needs --to NAME; legal destinations: {legal}\n"
+            "  source aliases are dump sources only, never destinations")
+
+    handlers = {
+        "dump": cmd_dump,
+        "fetch": cmd_fetch,
+        "push": cmd_push,
+        "restore": cmd_restore,
+        "clean": cmd_clean,
+        "run": cmd_run,
+        "status": cmd_status,
+    }
+    return handlers[args.command](args, cfg)
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main() or 0)
+    except KeyboardInterrupt:
+        print("\ninterrupted. Work already detached on a bastion keeps running;")
+        print("re-attach with: aaa-db-dump status <alias>")
+        sys.exit(130)
