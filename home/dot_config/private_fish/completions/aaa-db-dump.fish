@@ -14,6 +14,8 @@ complete -c aaa-db-dump -n "__fish_seen_subcommand_from completion" \
 complete -c aaa-db-dump -l to -x -a "(aaa-db-dump list --targets-only)" \
     -d "restore destination"
 complete -c aaa-db-dump -l db -x -d "database name inside the destination"
+complete -c aaa-db-dump -l archive -r -F \
+    -d "a dump already on this machine (skips dump and fetch)"
 complete -c aaa-db-dump -l redo -x -a "dump fetch push restore clean"
 complete -c aaa-db-dump -l stop-after -x -a "dump fetch push restore clean"
 complete -c aaa-db-dump -l dry-run -d "print commands, execute nothing"

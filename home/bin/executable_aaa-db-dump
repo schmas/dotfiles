@@ -10,6 +10,20 @@ Five stages, each gated on an independent re-check that its input really exists:
     aaa-db-dump status uat2 --to win-dev
     aaa-db-dump list
 
+Two shapes skip stages rather than run all five:
+
+    aaa-db-dump dump uat2                       # dump on the bastion, nothing else
+    aaa-db-dump run uat2 --stop-after fetch     # dump and bring it down, no restore
+
+    # a dump obtained by hand: no bastion, no dump, no fetch
+    aaa-db-dump run uat2 --to win-dev --yes \
+        --archive ~/Downloads/nationaluat2-2026_09_02-1400
+
+--archive takes a pg_dump directory or a single dump file already on this
+machine, and drives push and restore from it. It never writes state["archive"],
+so `clean` still refuses to delete a bastion dump that this restore did not
+come from.
+
 Dump sources and restore destinations are separate namespaces. --to resolves
 only against restore_targets in databases.yaml, so a team-environment source
 alias can never be a destination.
@@ -19,6 +33,7 @@ what makes --dry-run a trustworthy preview of a real run.
 """
 
 import argparse
+import base64
 import json
 import os
 import re
@@ -52,6 +67,11 @@ SUBCOMMANDS = STAGES + ["run", "status", "list", "completion"]
 DUMP_JOBS = 4
 DUMP_COMPRESS = "gzip:6"
 RESTORE_JOBS = 4
+
+# How many dumps of one database may sit on the shared bastion at once, the
+# one about to be written included. Each is ~10 GB, so this is a disk budget,
+# not a preference: the dump stage deletes the oldest ones down to this.
+BASTION_KEEP = 2
 
 # Values that must never reach a terminal, a log, or an argv.
 _SECRETS = set()
@@ -111,7 +131,7 @@ def run(cmd, *, dry, capture=False, stdin_text=None, tee=None, stop_on=None,
         # password out of argv. Fail loudly rather than send an empty script.
         raise ValueError("stdin_text cannot be combined with a streaming read")
 
-    printable = redact(shlex.join(cmd))
+    printable = redact(getattr(cmd, "display", None) or shlex.join(cmd))
     if dry:
         print(f"  $ {printable}")
         if stdin_text is not None:
@@ -166,10 +186,38 @@ def run(cmd, *, dry, capture=False, stdin_text=None, tee=None, stop_on=None,
     return Result(1 if rc is None else rc, out, "", stopped)
 
 
+class Cmd(list):
+    """argv that remembers the readable command it wraps.
+
+    remote() ships commands base64-encoded, which is unreadable. --dry-run has
+    to keep printing what will actually run, so the readable form travels with
+    the argv rather than being reconstructed from it.
+    """
+
+    __slots__ = ("display",)
+
+
 def remote(host, command):
-    """argv running a shell command on `host`, or locally when host is falsy."""
+    """argv running a shell command on `host`, or locally when host is falsy.
+
+    The remote login shell is not ours to choose. win-dev logs into fish, which
+    rejects POSIX `$?` and brace groups -- so a compound command exits 127
+    while the simple ones in the same stage succeed, which is how a restore
+    came to DROP a database and then never reload it. Quoting cannot bridge
+    that: fish does not accept the `'"'"'` escape shlex.quote emits, so any
+    psql -c '...' would break in turn.
+
+    Base64 is the one encoding every shell forwards untouched -- no quotes left
+    for a login shell to reinterpret -- so the command reaches bash verbatim
+    whatever the user's shell happens to be. Remote hosts are Linux, where
+    `base64 -d` is GNU coreutils.
+    """
     if host:
-        return ["ssh", host, command]
+        blob = base64.b64encode(command.encode()).decode()
+        cmd = Cmd(["ssh", host,
+                   f"echo {blob} | base64 -d | bash --noprofile --norc"])
+        cmd.display = f"ssh {shlex.quote(host)} {shlex.quote(command)}"
+        return cmd
     return ["bash", "-c", command]
 
 
@@ -223,6 +271,11 @@ def get_source(alias, cfg, *, need_bastion=False):
                if not src.get(k)]
     if missing:
         die(f"source alias {alias!r} is missing {', '.join(missing)}")
+    # The database name reaches a remote shell (the bastion dump path and the
+    # glob that drives the retention sweep) and the local filesystem, so it is
+    # held to the same rule as --db rather than trusted because it came from a
+    # file the user owns.
+    src["dbname"] = check_identifier(src["dbname"], f"{alias} dbname")
     if src.get("password"):
         _SECRETS.add(str(src["password"]))
     if need_bastion and not src.get("bastion"):
@@ -265,28 +318,61 @@ def get_dump_dir(cfg):
     return Path(str(value)).expanduser()
 
 
-def archive_name(dbname, date=None):
-    """<dbname>-<YYYY_MM_DD>, the one naming rule every stage shares."""
-    # UTC, to match now(): a local date would name a different directory
-    # than the run that created it during the early-morning offset.
-    stamp = date or datetime.now(timezone.utc).strftime("%Y_%m_%d")
-    return f"{dbname}-{stamp}"
+# An archive name becomes a directory component inside a remote shell command,
+# an rsync path, and a container path — three places that would each need their
+# own quoting. Refusing the awkward names at the door is one rule instead.
+ARCHIVE_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 
 
-def bastion_out(dbname):
+def check_archive_name(name, what):
+    if not ARCHIVE_NAME_RE.match(str(name or "")):
+        die(f"{what} {name!r} is not a usable archive name.\n"
+            "  letters, digits, dot, dash and underscore only, starting with "
+            "a letter or a digit. Rename it and try again.")
+    return str(name)
+
+
+def archive_name(dbname, stamp=None):
+    """<dbname>-<YYYY_MM_DD-HHMM>, the one naming rule every stage shares.
+
+    Local time, so the directory name reads back as the wall clock of whoever
+    started the dump. The clock is a label here, not a key: the dump records
+    this name in the state file and every later stage reads it back, so a run
+    that spans midnight or a timezone change still agrees on one directory.
+    """
+    stamp = stamp or datetime.now().strftime("%Y_%m_%d-%H%M")
+    return check_archive_name(f"{dbname}-{stamp}", "the generated archive name")
+
+
+def bastion_out(archive):
     """Where pg_dump writes on the bastion. $HOME is the bastion's, not ours,
-    so it is left for the remote shell to expand."""
-    return f"$HOME/dumps/{dbname}"
+    so it is left for the remote shell to expand.
+
+    Keyed on the archive name, not the database name: the name carries the
+    dump's time, so a second dump never overwrites the first, and `fetch` can
+    name the exact directory it came for instead of hoping only one exists.
+    """
+    return f"$HOME/dumps/{archive}"
 
 
-def bastion_out_rel(dbname):
+def bastion_glob(dbname):
+    """Every dump directory of one database on the bastion, as a shell glob.
+
+    The stamp sorts lexicographically, so `ls -1d | sort` is chronological.
+    A pre-timestamp directory (plain `dumps/<dbname>`) does not match, and is
+    therefore never deleted by the retention sweep.
+    """
+    return f"$HOME/dumps/{dbname}-*"
+
+
+def bastion_out_rel(archive):
     """The same directory as an rsync source.
 
     rsync resolves a remote path relative to the remote user's home, so this
     form needs no shell expansion — openrsync gives no guarantee that a $HOME
     inside a remote path is ever expanded.
     """
-    return f"dumps/{dbname}"
+    return f"dumps/{archive}"
 
 
 # --------------------------------------------------------------------------
@@ -355,19 +441,65 @@ def stage_status(state, stage):
     return state.get("stages", {}).get(stage, {}).get("status")
 
 
-def resolved_archive(state, dbname, *, dry):
-    """Reuse the archive name the dump recorded; fall back to today's date.
+def resolved_archive(state, dbname, *, cfg, dry):
+    """Reuse the archive name the dump recorded; else take the newest on disk.
 
     A dump made yesterday and fetched today must still agree on one directory
-    name, so the state file is the carrier rather than the clock.
+    name, so the state file is the carrier rather than the clock. Since the
+    name carries a time, a later stage cannot re-derive it from the clock the
+    way a date-only name allowed -- so when state is missing, the newest
+    <dbname>-* directory already in dump_dir is the only honest guess. The
+    stamp sorts lexicographically, so the newest name is the last one.
     """
     name = state.get("archive")
     if name:
+        # The state file is on disk and hand-editable; it does not get to name
+        # a directory that later stages splice into a remote command.
+        return check_archive_name(name, "the archive recorded in state")
+    on_disk = sorted(p.name for p in get_dump_dir(cfg).glob(f"{dbname}-*")
+                     if p.is_dir())
+    if on_disk:
+        name = check_archive_name(on_disk[-1], "the newest archive in dump_dir")
+        if not dry and state.get("stages"):
+            print(f"  # no archive recorded in state; using the newest in "
+                  f"dump_dir: {name}")
         return name
     name = archive_name(dbname)
     if not dry and state.get("stages"):
-        print(f"  # no archive recorded in state; assuming {name}")
+        print(f"  # no archive recorded in state and none in dump_dir; "
+              f"assuming {name}")
     return name
+
+
+def manual_archive(args):
+    """The path given with --archive, resolved once, or None.
+
+    Resolved here rather than at each use so every stage of one invocation
+    agrees on a single absolute path and a single directory name.
+    """
+    value = getattr(args, "archive", None)
+    if not value:
+        return None
+    path = Path(value).expanduser()
+    if not path.exists():
+        die(f"--archive {value}: no such file or directory")
+    # Its last component travels to the destination as a directory or file
+    # name, through ssh and rsync. A space alone would break the rsync path.
+    check_archive_name(path.name, "--archive")
+    return path.resolve()
+
+
+def archive_for(args, state, dbname, *, cfg, dry):
+    """(local path, archive name) for the stage about to run.
+
+    With --archive the caller supplied both, and nothing is read from state:
+    a hand-downloaded dump has no dump or fetch record to read.
+    """
+    manual = manual_archive(args)
+    if manual:
+        return manual, manual.name
+    name = resolved_archive(state, dbname, cfg=cfg, dry=dry)
+    return get_dump_dir(cfg) / name, name
 
 
 def log_path(alias, stage):
@@ -437,6 +569,14 @@ def parse_count(text, what):
 
 
 def local_file_count(path):
+    """Members of a directory archive, or 1 for a single-file archive.
+
+    os.walk on a file yields nothing, which would read as an empty archive and
+    trip the restore pre-flight for every custom-format dump.
+    """
+    path = Path(path)
+    if path.is_file():
+        return 1
     return sum(len(files) for _, _, files in os.walk(path))
 
 
@@ -470,15 +610,78 @@ def verify_archive(local_archive, *, dry):
 # Stage: dump
 # --------------------------------------------------------------------------
 
+def prune_bastion_dumps(bastion, dbname, *, dry):
+    """Delete the oldest dumps of `dbname` so the new one lands under the cap.
+
+    Run before the dump, not after: the point is to free the disk the next
+    ~10 GB needs. Listed and deleted in two steps so the exact directories
+    appear on the terminal — this deletes a dump that took 20 minutes to make.
+    """
+    keep = max(BASTION_KEEP - 1, 0)  # the dump about to start takes a slot
+    print(f"  gate: at most {BASTION_KEEP} dumps of {dbname} stay on {bastion}")
+    listing = run(remote(bastion, f"ls -1d {bastion_glob(dbname)} 2>/dev/null || true"),
+                  dry=dry, capture=True)
+    if dry:
+        print("    --dry-run: the listing above was not read, so nothing is "
+              "shown as removable")
+        return
+    if not listing.ok:
+        # `|| true` hides ls's status, so a non-zero one here is ssh itself
+        # failing. An empty answer would then read as "no old dumps", which is
+        # the wrong basis for both the count and the deletions.
+        die(f"could not list the dumps on {bastion} (ssh exited {listing.rc}), "
+            "so there is no safe way to decide what to delete. Nothing was "
+            "removed and no dump was started.", code=1)
+
+    # Every line here would become an `rm -rf` argument, and remote stdout is
+    # not a list of paths: a login shell prints banners (the same reason
+    # parse_count exists). A stray line also sorts after real paths, so it
+    # would take the keep slot and the newest dump would be deleted in its
+    # place. Anything not shaped like a dump of this database stops the sweep
+    # rather than being quietly dropped.
+    wanted = re.compile(rf"^/.*/dumps/{re.escape(dbname)}-[^/]+$")
+    found, junk = [], []
+    for line in listing.text().splitlines():
+        line = line.strip().rstrip("/")
+        if line:
+            (found if wanted.match(line) else junk).append(line)
+    if junk:
+        die(f"unexpected output while listing dumps on {bastion}:\n"
+            + "\n".join(f"    {line}" for line in junk)
+            + "\n  each of those would have become an `rm -rf` argument. "
+              "Nothing was removed and no dump was started.", code=1)
+
+    # The stamp makes lexicographic order chronological, so the last entries
+    # are the ones worth keeping.
+    found.sort()
+    stale = found[:-keep] if keep else found
+    print(f"    {len(found)} already there; removing {len(stale)}")
+    if not stale:
+        return
+    for path in stale:
+        print(f"    rm -rf {path}")
+    pruned = run(remote(bastion, "rm -rf " + " ".join(shlex.quote(p) for p in stale)),
+                 dry=dry, capture=True)
+    if not pruned.ok:
+        die(f"could not remove older dumps from {bastion}, so the new one may "
+            f"not fit: {pruned.err.strip()[:300]}", code=1)
+
+
 def cmd_dump(args, cfg):
     src = get_source(args.alias, cfg, need_bastion=True)
     bastion, dbname = src["bastion"], src["dbname"]
-    out = bastion_out(dbname)
+    # Named once, here. The name carries minutes, so deriving it a second time
+    # after the ssh round trips below could roll to the next minute and leave
+    # the bastion directory and the recorded name pointing at each other's
+    # neighbour.
+    archive = archive_name(dbname)
+    out = bastion_out(archive)
     script = f"$HOME/dump-{args.alias}.sh"
     remote_log = f"$HOME/dump-{args.alias}.log"
     state = load_state(args.alias)
 
     print(f"dump {args.alias} ({dbname}) on {bastion}")
+    print(f"  archive {archive}")
     if args.command == "dump":
         print("  this takes ~20 min. To follow it and still walk away:")
         print(f"    {zmx_hint(args.alias)}")
@@ -529,6 +732,11 @@ def cmd_dump(args, cfg):
         die("the generated dump script failed bash -n on the bastion "
             f"(no dump started):\n{check.err.strip()}")
 
+    # Last, not first: this deletes a dump that took 20 minutes to make. Every
+    # reason the new dump might never start — an ssh drop, a bad script — has
+    # already been ruled out by the two gates above.
+    prune_bastion_dumps(bastion, dbname, dry=args.dry_run)
+
     launch = (
         "command -v setsid >/dev/null 2>&1 && SETSID=setsid || SETSID=; "
         f"rm -f {remote_log}; "
@@ -540,14 +748,14 @@ def cmd_dump(args, cfg):
         die(f"could not launch the dump: {launched.err.strip()}")
 
     state["dbname"] = dbname
-    state["archive"] = archive_name(dbname)
+    state["archive"] = archive
     state["bastion"] = bastion
     # A new dump invalidates everything downstream. Without this, `run` would
     # skip fetch/push/restore as "already done" and leave the destination
     # holding the previous dump's data.
     clear_stages(state, "fetch", "push", "restore", "clean")
     record(state, "dump", status="running", out=out, log=remote_log,
-           script=script, archive=state["archive"], started_at=now())
+           script=script, archive=archive, started_at=now())
     save_state(state, dry=args.dry_run)
     print(f"  dump running detached; log: {bastion}:{remote_log}")
     print(f"  re-attach any time with: aaa-db-dump status {args.alias}")
@@ -571,10 +779,10 @@ def cmd_dump(args, cfg):
 def cmd_fetch(args, cfg):
     src = get_source(args.alias, cfg, need_bastion=True)
     bastion, dbname = src["bastion"], src["dbname"]
-    out = bastion_out(dbname)
     remote_log = f"$HOME/dump-{args.alias}.log"
     state = load_state(args.alias)
-    archive = resolved_archive(state, dbname, dry=args.dry_run)
+    archive = resolved_archive(state, dbname, cfg=cfg, dry=args.dry_run)
+    out = bastion_out(archive)
     dest = get_dump_dir(cfg) / archive
 
     print(f"fetch {args.alias} -> {dest}")
@@ -585,21 +793,35 @@ def cmd_fetch(args, cfg):
         die(f"{remote_log} on {bastion} has no DUMP_DONE line — the dump is "
             "still running or it failed. Nothing was fetched.")
 
+    # The archive name now carries a time, so a stale state file names a
+    # directory that may simply not be there. Say which one, and say what is.
+    print(f"  gate: {out} exists on the bastion")
+    probe = run(remote(bastion, f'test -d "{out}" && echo present || echo absent'),
+                dry=args.dry_run, capture=True)
+    if not args.dry_run and probe.text().splitlines()[-1:] != ["present"]:
+        listing = run(remote(bastion, f"ls -1d {bastion_glob(dbname)} 2>/dev/null || true"),
+                      dry=False, capture=True)
+        have = listing.text() or "    (no dump directory for this database)"
+        die(f"{out} is not on {bastion}.\n"
+            f"  the state file names {archive!r}; the bastion holds:\n{have}\n"
+            f"  run `aaa-db-dump dump {args.alias}` to make a fresh one. "
+            "Nothing was fetched.")
+
     run(["mkdir", "-p", str(dest)], dry=args.dry_run)
     # -a and -P are the intersection of GNU rsync and macOS openrsync.
     # Re-running resumes; never start over.
-    # --delete removes members left by an earlier dump of the same day.
-    # Without it a re-dump leaves orphans, local_count stays above the
-    # bastion's, and the count check below can never pass again.
+    # --delete removes members left by an earlier interrupted fetch of this
+    # same archive. Without it, orphans keep local_count above the bastion's
+    # and the count check below can never pass again.
     rsync = run(["rsync", "-a", "-P", "--delete",
-                 f"{bastion}:{bastion_out_rel(dbname)}/", f"{dest}/"],
+                 f"{bastion}:{bastion_out_rel(archive)}/", f"{dest}/"],
                 dry=args.dry_run)
     if not args.dry_run and not rsync.ok:
         die(f"rsync exited {rsync.rc}. Re-run `aaa-db-dump fetch {args.alias}` "
             "— it resumes where it stopped.", code=1)
 
     print("  check: local file count equals the bastion's")
-    counted = run(remote(bastion, f'find {out} -type f | wc -l'),
+    counted = run(remote(bastion, f'find "{out}" -type f | wc -l'),
                   dry=args.dry_run, capture=True)
     local_count = 0 if args.dry_run else local_file_count(dest)
     if not args.dry_run:
@@ -634,47 +856,65 @@ def cmd_push(args, cfg):
     src = get_source(args.alias, cfg)
     dest = get_target(args.to, cfg)
     state = load_state(args.alias)
-    archive = resolved_archive(state, src["dbname"], dry=args.dry_run)
-    dump_dir = get_dump_dir(cfg)
-    local = dump_dir / archive
+    local, archive = archive_for(args, state, src["dbname"],
+                                 cfg=cfg, dry=args.dry_run)
+    manual = manual_archive(args) is not None
 
     print(f"push {args.alias} -> {dest['name']}")
+    print(f"  archive {local}")
     print("  gate: the local archive is verified")
-    if not args.dry_run and not state.get("stages", {}).get("fetch", {}).get("verified"):
-        print("  no verified flag in state; re-verifying now")
+    verified = state.get("stages", {}).get("fetch", {}).get("verified")
+    # A hand-supplied archive has no fetch record, and nothing in this pipeline
+    # has ever read it — which is exactly when the check earns its minute.
+    if not args.dry_run and (manual or not verified):
+        print("  verifying now: full decompress, output discarded")
         if not verify_archive(local, dry=False).ok:
             die(f"{local} did not pass pg_restore --file=/dev/null; "
                 "nothing was pushed", code=1)
-        record(state, "fetch", verified=True)
-        save_state(state, dry=False)
+        if not manual:
+            # Never recorded for --archive: the flag would then vouch for a
+            # different archive on the next run of this alias.
+            record(state, "fetch", verified=True)
+            save_state(state, dry=False)
 
     # Path-based skip, not name-based: a target with no ssh hop whose host_path
-    # is already dump_dir needs no copy. An ssh target always copies, even if
-    # its path string happens to match ours — it is a different machine.
-    same_place = (not dest.get("ssh")
-                  and Path(dest["host_path"]).expanduser() == dump_dir)
+    # already holds this archive needs no copy. An ssh target always copies,
+    # even if its path string happens to match ours — it is a different machine.
+    host_path = Path(dest["host_path"]).expanduser()
+    same_place = not dest.get("ssh") and local.parent == host_path
     if same_place:
-        print(f"  skipped: dump_dir is {dest['name']}'s container mount "
-              f"({dump_dir}) — the archive is already in place")
+        print(f"  skipped: {host_path} is {dest['name']}'s container mount "
+              "— the archive is already in place")
         record(state, "push", status="skipped",
-               reason="dump_dir is the container mount",
-               destination=dest["name"])
+               reason="the archive already sits in the container mount",
+               destination=dest["name"], archive=archive)
         save_state(state, dry=args.dry_run)
         return 0
 
-    remote_dir = f"{dest['host_path']}/{archive}"
     ssh = dest.get("ssh")
-    run(remote(ssh, f"mkdir -p {shlex.quote(remote_dir)}"), dry=args.dry_run)
-    # A destination with no ssh key is a path on this machine, so rsync gets a
-    # plain local path. Using dest["ssh"] unconditionally raised KeyError.
-    destination = f"{ssh}:{remote_dir}/" if ssh else f"{remote_dir}/"
-    pushed = run(["rsync", "-a", "-P", "--delete", f"{local}/", destination],
-                 dry=args.dry_run)
+    if local.is_file():
+        # A single-file archive is one member, not a tree. It is copied into
+        # the mount directory, and without --delete: that flag against a
+        # directory of unrelated archives would erase all of them.
+        run(remote(ssh, f"mkdir -p {shlex.quote(dest['host_path'])}"),
+            dry=args.dry_run)
+        into = f"{ssh}:{dest['host_path']}/" if ssh else f"{dest['host_path']}/"
+        cmd = ["rsync", "-a", "-P", str(local), into]
+        remote_dir = f"{dest['host_path']}/{archive}"
+    else:
+        remote_dir = f"{dest['host_path']}/{archive}"
+        run(remote(ssh, f"mkdir -p {shlex.quote(remote_dir)}"), dry=args.dry_run)
+        # A destination with no ssh key is a path on this machine, so rsync
+        # gets a plain local path. Using dest["ssh"] unconditionally raised
+        # KeyError.
+        into = f"{ssh}:{remote_dir}/" if ssh else f"{remote_dir}/"
+        cmd = ["rsync", "-a", "-P", "--delete", f"{local}/", into]
+    pushed = run(cmd, dry=args.dry_run)
     if not args.dry_run and not pushed.ok:
         die(f"rsync exited {pushed.rc}. Re-run push — it resumes.", code=1)
 
     record(state, "push", status="complete", destination=dest["name"],
-           path=remote_dir)
+           archive=archive, path=remote_dir)
     save_state(state, dry=args.dry_run)
     print(f"  archive on {dest['name']} at {remote_dir}")
     return 0
@@ -694,8 +934,9 @@ def cmd_restore(args, cfg):
     ssh = dest.get("ssh")
     hop = ssh or "localhost (no ssh hop)"
     state = load_state(args.alias)
-    archive = resolved_archive(state, src["dbname"], dry=args.dry_run)
-    local = get_dump_dir(cfg) / archive
+    local, archive = archive_for(args, state, src["dbname"],
+                                 cfg=cfg, dry=args.dry_run)
+    manual = manual_archive(args) is not None
     in_container = f"{dest['container_path']}/{archive}"
 
     print(f"restore {args.alias} -> {dest['name']}")
@@ -719,7 +960,15 @@ def cmd_restore(args, cfg):
         remote(ssh, f"docker exec {shlex.quote(dest['container'])} "
                     f"sh -c {shlex.quote(inner)}"),
         dry=args.dry_run, capture=True)
+    # The fetch record's count was written only after the archive passed
+    # verification, so it is the number worth comparing against: a live count
+    # of an archive that lost members after verification would agree with the
+    # container and let the loss through. A hand-supplied archive has no such
+    # record, and push verified it moments ago, so there the live count is the
+    # honest one.
     expected = state.get("stages", {}).get("fetch", {}).get("file_count")
+    if manual or expected is None:
+        expected = local_file_count(local) if local.exists() else None
     if not args.dry_run:
         seen = parse_count(listed.text(), "the container file count")
         print(f"  container sees {seen} files, expected {expected or 'unknown'}")
@@ -969,8 +1218,11 @@ def cmd_clean(args, cfg):
 
     # $HOME stays unquoted so the remote shell expands it; everything after it
     # is quoted, because this is the one destructive command in the script.
+    # Only the archive this run is about, never the whole dumps/ tree: another
+    # dump of the same database may legitimately still be sitting beside it.
+    target = archive or resolved_archive(state, dbname, cfg=cfg, dry=args.dry_run)
     paths = [
-        f"$HOME/dumps/{shlex.quote(dbname)}",
+        f"$HOME/dumps/{shlex.quote(target)}",
         f"$HOME/{shlex.quote(f'dump-{args.alias}.sh')}",
         f"$HOME/{shlex.quote(f'dump-{args.alias}.log')}",
         f"$HOME/{shlex.quote(f'follow-{args.alias}.sh')}",
@@ -1007,15 +1259,33 @@ def stage_output_intact(stage, state):
 def cmd_run(args, cfg):
     # Resolve the destination up front, so an unknown one costs nothing —
     # never after a 20-minute dump.
-    dest = get_target(args.to, cfg)
-    get_source(args.alias, cfg, need_bastion=True)
-    stages = [("dump", cmd_dump), ("fetch", cmd_fetch), ("push", cmd_push),
-              ("restore", cmd_restore), ("clean", cmd_clean)]
+    manual = manual_archive(args) is not None
+    dest = get_target(args.to, cfg) if args.to else None
+    # A hand-supplied archive needs no bastion: nothing is dumped on one, and
+    # nothing is deleted from one afterwards.
+    src = get_source(args.alias, cfg, need_bastion=not manual)
 
-    print(f"run {args.alias} -> {dest['name']} "
-          f"(database {args.db or dest['db']})")
-    print("  all five stages take ~50 min. To follow them and still walk away:")
-    print(f"    {zmx_hint(args.alias)}")
+    if manual:
+        stages = [("push", cmd_push), ("restore", cmd_restore)]
+    else:
+        stages = [("dump", cmd_dump), ("fetch", cmd_fetch), ("push", cmd_push),
+                  ("restore", cmd_restore), ("clean", cmd_clean)]
+
+    where = dest["name"] if dest else "nowhere (stopping before push)"
+    db = args.db or (dest["db"] if dest else "n/a")
+    print(f"run {args.alias} -> {where} (database {db})")
+    if manual:
+        print("  --archive: dump, fetch and clean are skipped; this run only "
+              "pushes and restores what you supplied.")
+    elif args.stop_after:
+        print(f"  stopping after [{args.stop_after}]. To follow it and still "
+              "walk away:")
+        print(f"    {zmx_hint(args.alias)}")
+    else:
+        print("  all five stages take ~50 min. To follow them and still walk "
+              "away:")
+        print(f"    {zmx_hint(args.alias)}")
+
 
     # A dump replaces the input of every later stage. cmd_dump clears them in
     # the state file, but --dry-run writes nothing, so track it here as well —
@@ -1026,14 +1296,24 @@ def cmd_run(args, cfg):
     for index, (name, handler) in enumerate(stages):
         state = load_state(args.alias)
         done = stage_status(state, name)
+        # Re-read per stage: the dump that just ran named a new archive, and a
+        # stage recorded against a different one is not "already done" for this
+        # run — it belongs to another dump.
+        _, current_archive = archive_for(args, state, src["dbname"],
+                                         cfg=cfg, dry=args.dry_run)
+        recorded = state.get("stages", {}).get(name, {}).get("archive")
+        other_archive = bool(recorded) and recorded != current_archive
         if (done in ("complete", "skipped") and args.redo != name
-                and name not in invalidated):
+                and name not in invalidated and not other_archive):
             if stage_output_intact(name, state):
                 print(f"\n[{name}] already done (use --redo {name} to force)")
                 if args.stop_after == name:
                     return 0
                 continue
             print(f"\n[{name}] marked {done} but its output is gone; re-running")
+        elif other_archive:
+            print(f"\n[{name}] was recorded against {recorded}, not "
+                  f"{current_archive}; re-running")
         print(f"\n[{name}]")
         rc = handler(args, cfg)
         if name == "dump" and not rc:
@@ -1062,8 +1342,7 @@ def cmd_status(args, cfg):
     src = get_source(args.alias, cfg)
     state = load_state(args.alias)
     dbname = src["dbname"]
-    archive = resolved_archive(state, dbname, dry=True)
-    local = get_dump_dir(cfg) / archive
+    local, archive = archive_for(args, state, dbname, cfg=cfg, dry=True)
 
     print(f"{args.alias}  ({dbname})")
     print(f"  archive        {archive}")
@@ -1081,14 +1360,25 @@ def cmd_status(args, cfg):
     print("  live checks")
     bastion = src.get("bastion")
     if bastion:
-        probe = (f"test -d $HOME/dumps/{dbname} && "
-                 f"find $HOME/dumps/{dbname} -type f | wc -l || echo absent")
-        found = run(remote(bastion, probe), dry=args.dry_run, capture=True)
-        print(f"    bastion archive   {found.text() or 'unreachable'}")
+        if manual_archive(args):
+            # The bastion never held this archive, so probing it for that name
+            # would report an absence that means nothing.
+            print("    bastion archive   n/a (--archive names a local dump)")
+        else:
+            out = bastion_out(archive)
+            probe = f'test -d "{out}" && find "{out}" -type f | wc -l || echo absent'
+            found = run(remote(bastion, probe), dry=args.dry_run, capture=True)
+            print(f"    bastion archive   {found.text() or 'unreachable'}")
+        # At most BASTION_KEEP of these exist; showing them makes the retention
+        # sweep's next victim visible before it runs.
+        listing = run(remote(bastion, f"ls -1d {bastion_glob(dbname)} 2>/dev/null || true"),
+                      dry=args.dry_run, capture=True)
+        for line in listing.text().splitlines():
+            print(f"    on bastion        {line.rstrip('/')}")
     else:
         print("    bastion archive   n/a (alias has no bastion)")
 
-    if local.is_dir():
+    if local.exists():
         print(f"    local archive     {local_file_count(local)} files at {local}")
     else:
         print(f"    local archive     absent ({local})")
@@ -1190,6 +1480,8 @@ complete -c aaa-db-dump -n "__fish_seen_subcommand_from completion" \
 complete -c aaa-db-dump -l to -x -a "(aaa-db-dump list --targets-only)" \
     -d "restore destination"
 complete -c aaa-db-dump -l db -x -d "database name inside the destination"
+complete -c aaa-db-dump -l archive -r -F \
+    -d "a dump already on this machine (skips dump and fetch)"
 complete -c aaa-db-dump -l redo -x -a "dump fetch push restore clean"
 complete -c aaa-db-dump -l stop-after -x -a "dump fetch push restore clean"
 complete -c aaa-db-dump -l dry-run -d "print commands, execute nothing"
@@ -1209,13 +1501,16 @@ _aaa_db_dump() {
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
     stages="dump fetch push restore clean run status list completion"
-    flags="--to --db --dry-run --yes --follow --no-follow --force-dump
-           --force-clean --redo --stop-after --aliases-only --targets-only
-           --help"
+    flags="--to --db --archive --dry-run --yes --follow --no-follow
+           --force-dump --force-clean --redo --stop-after --aliases-only
+           --targets-only --help"
 
     case "$prev" in
         --to)
             COMPREPLY=($(compgen -W "$(aaa-db-dump list --targets-only)" -- "$cur"))
+            return ;;
+        --archive)
+            COMPREPLY=($(compgen -f -- "$cur"))
             return ;;
         --db)
             COMPREPLY=()
@@ -1250,6 +1545,7 @@ _aaa_db_dump() {
         '1:stage:(dump fetch push restore clean run status list completion)' \
         '--to[restore destination]:destination:->destinations' \
         '--db[database name inside the destination]:database:' \
+        '--archive[a dump already on this machine; skips dump and fetch]:path:_files' \
         '--redo[re-run one stage]:stage:(dump fetch push restore clean)' \
         '--stop-after[stop after one stage]:stage:(dump fetch push restore clean)' \
         '--dry-run[print commands, execute nothing]' \
@@ -1296,6 +1592,11 @@ def build_parser():
     common.add_argument("--db", metavar="NAME",
                         help="database name inside the resolved destination; "
                              "cannot change host, container, or ssh hop")
+    common.add_argument("--archive", metavar="PATH",
+                        help="a dump already on this machine — a pg_dump "
+                             "directory or a single dump file. push, restore "
+                             "and run take it as their input, so no dump and "
+                             "no fetch happen. Always re-verified before use")
     common.add_argument("--yes", action="store_true",
                         help="confirm the destructive restore")
     # Two separate gates, so one flag cannot silently disarm the other: a
@@ -1365,7 +1666,22 @@ def main():
     if args.command == "list":
         return cmd_list(args, cfg)
 
-    if args.command in ("push", "restore", "run") and not args.to:
+    # --archive names a dump that already exists here, so the three stages that
+    # make or delete one on the bastion have nothing to apply it to. Silently
+    # ignoring it would let `run --archive` look like it had honoured the flag.
+    if getattr(args, "archive", None) and args.command in ("dump", "fetch", "clean"):
+        die(f"--archive has no meaning for {args.command}, which works on the "
+            "bastion. Use it with push, restore, run, or status.")
+
+    stop_after = getattr(args, "stop_after", None)
+    if getattr(args, "archive", None) and stop_after in ("dump", "fetch"):
+        die(f"--archive and --stop-after {stop_after} contradict each other: "
+            "an archive you supplied means no dump and no fetch run at all.")
+
+    # `run --stop-after dump` (or fetch) never reaches a destination, so
+    # demanding one would block the commonest dump-only shape.
+    dump_only = args.command == "run" and stop_after in ("dump", "fetch")
+    if args.command in ("push", "restore", "run") and not args.to and not dump_only:
         legal = ", ".join(sorted(cfg.get("restore_targets") or {})) or "none"
         die(f"{args.command} needs --to NAME; legal destinations: {legal}\n"
             "  source aliases are dump sources only, never destinations")
