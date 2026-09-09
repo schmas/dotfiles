@@ -463,7 +463,9 @@ AGENTS.md
 .claude/session-state
 .handoffs/
 .serena/
-.agents/
+# Track the agent docs (evergreen, reviewed); keep plans/journals/reports local.
+.agents/*
+!.agents/docs/
 .agent/
 
 
