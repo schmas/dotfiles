@@ -7,12 +7,12 @@ Personal dotfiles repository managed by **chezmoi** for cross-platform shell con
 
 ## Quick Links
 
-- **Getting Started:** [Deployment & Installation Guide](./docs/deployment-guide.md)
-- **Project Overview:** [Project Overview & PDR](./docs/project-overview-pdr.md)
-- **Architecture:** [System Architecture](./docs/system-architecture.md)
-- **Code Standards:** [Development Guidelines](./docs/code-standards.md)
-- **Roadmap:** [Project Roadmap & Status](./docs/project-roadmap.md)
-- **Codebase:** [Codebase Summary](./docs/codebase-summary.md)
+- **Getting Started:** [Deployment & Installation Guide](./.agents/docs/deployment-guide.md)
+- **Project Overview:** [Project Overview & PDR](./.agents/docs/project-overview-pdr.md)
+- **Architecture:** [System Architecture](./.agents/docs/system-architecture.md)
+- **Code Standards:** [Development Guidelines](./.agents/docs/code-standards.md)
+- **Roadmap:** [Project Roadmap & Status](./.agents/docs/project-roadmap.md)
+- **Codebase:** [Codebase Summary](./.agents/docs/codebase-summary.md)
 - **Aliases & Functions:** [Shell Reference](SHELL-REFERENCE.md)
 
 ## What are Dotfiles?
@@ -30,10 +30,10 @@ Dotfiles are configuration files in Unix-like systems that begin with a dot (.) 
 
 ```
 home/                          # Chezmoi source root
-├── private_fish/             # Fish shell configuration
-├── private_zsh/              # Zsh shell configuration
-├── private_bash/             # Bash shell configuration
 ├── dot_config/               # Application configs
+│   ├── private_fish/         # Fish shell configuration
+│   ├── private_zsh/          # Zsh shell configuration
+│   ├── private_bash/         # Bash shell configuration
 │   ├── git/, tmux/, zellij/, atuin/, yazi/, lazygit/
 │   ├── starship.toml, mise/, karabiner/, editors/
 │   └── ghostty/, wezterm/, readline, ssh, gpg-agent configs
@@ -44,7 +44,7 @@ home/                          # Chezmoi source root
 └── .chezmoiignore            # OS-specific excludes
 ```
 
-For detailed structure, see [Codebase Summary](./docs/codebase-summary.md).
+For detailed structure, see [Codebase Summary](./.agents/docs/codebase-summary.md).
 
 ## Getting Started (5 minutes)
 
@@ -141,7 +141,7 @@ Automatic scripts handle:
 - **Mise** - Dev runtime installation (Node, Python, etc.)
 - **Shell plugins** - Fisher (Fish), Sheldon (Zsh/Bash)
 
-For detailed setup instructions, see **[Deployment & Installation Guide](./docs/deployment-guide.md)**
+For detailed setup instructions, see **[Deployment & Installation Guide](./.agents/docs/deployment-guide.md)**
 
 ## Key Features
 
@@ -159,12 +159,12 @@ Comprehensive documentation organized by topic:
 
 | Document | Purpose |
 |----------|---------|
-| [Deployment Guide](./docs/deployment-guide.md) | Installation, setup, and troubleshooting |
-| [Project Overview](./docs/project-overview-pdr.md) | Goals, features, design principles, PDR |
-| [Code Standards](./docs/code-standards.md) | Naming conventions, templates, patterns |
-| [System Architecture](./docs/system-architecture.md) | Technical design, data flow, plugins |
-| [Project Roadmap](./docs/project-roadmap.md) | Current status, planned improvements |
-| [Codebase Summary](./docs/codebase-summary.md) | Navigation map: concern → location |
+| [Deployment Guide](./.agents/docs/deployment-guide.md) | Installation, setup, and troubleshooting |
+| [Project Overview](./.agents/docs/project-overview-pdr.md) | Goals, features, design principles, PDR |
+| [Code Standards](./.agents/docs/code-standards.md) | Naming conventions, templates, patterns |
+| [System Architecture](./.agents/docs/system-architecture.md) | Technical design, data flow, plugins |
+| [Project Roadmap](./.agents/docs/project-roadmap.md) | Current status, planned improvements |
+| [Codebase Summary](./.agents/docs/codebase-summary.md) | Navigation map: concern → location |
 | [Shell Reference](SHELL-REFERENCE.md) | All aliases, functions, abbreviations |
 | [Shortcuts Reference](SHORTCUTS-REFERENCE.md) | Terminal keyboard shortcuts by tool |
 
@@ -210,7 +210,7 @@ upall
 
 ## Unresolved Questions
 
-See **[Project Roadmap](./docs/project-roadmap.md)** for:
+See **[Project Roadmap](./.agents/docs/project-roadmap.md)** for:
 - Atuin sync status across machines
 - Zellij vs Tmux multiplexer selection
 - Profile purposes (ct, aaa clarification)

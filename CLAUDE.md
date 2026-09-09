@@ -37,19 +37,24 @@ chezmoi execute-template < path/to/file.tmpl
 - `executable_` → script with 755 permissions
 - `.tmpl` suffix → Go template processed at apply time
 
-**Shell config load order (numeric prefix):**
+**Shell config load order** (numeric prefix in each
+`home/dot_config/private_{fish,zsh,bash}/conf.d/`):
 
 ```
-00-*  Setup (plugin managers, Homebrew)
-05-*  Shared configs (centralized ~/.config/env/*.env + ~/.config/path/*.path)
-10-*  Shell-specific env (LANG, EDITOR, GPG_TTY, HIST*, ZSH_*)
-20-*  OS-specific (darwin/linux)
-50-*  Completions
-70-*  Tool init (Starship, Zellij)
-98-*  Plugin managers (Sheldon)
-99-*  Aliases (always last)
-zzz-* Fish late-load (Mise, FZF)
+00-*   Plugin-manager and Homebrew shellenv bootstrap
+05-*   Source the shared ~/.config/env/*.env + ~/.config/path/*.path files
+10-*   Common env, abbreviations, colors
+20-*   OS-specific env (darwin/linux)
+49-50  Readline input, completions
+70-*   Tool init (Starship, Zellij, Worktrunk, Yazi)
+98-*   Sheldon (Zsh/Bash)
+99-*   Aliases (Zsh/Bash, templated)
+zzz-*  Late load — Mise, FZF, Atuin, Television
 ```
+
+Nothing may depend on a module with an equal or higher prefix; a new module takes
+the lowest prefix its dependencies allow. Owning table:
+[System Architecture](./.agents/docs/system-architecture.md#shell-configuration-numeric-load-order).
 
 **Profile system:** `chezmoi init` prompts for `default` (full) or `server` (minimal). `is_p_ct`/`is_p_aaa`/`is_p_csaa` remain as data flags but are not prompted. Owner: `home/.chezmoi.yaml.tmpl`.
 
@@ -57,15 +62,15 @@ zzz-* Fish late-load (Mise, FZF)
 
 ```
 home/
-├── dot_config/etc/Brewfile.tmpl  # All packages (brews + casks)
-├── private_fish/conf.d/     # Fish shell modules
-├── private_zsh/conf.d/      # Zsh shell modules
-├── private_bash/conf.d/     # Bash shell modules
-├── bin/                     # Utility scripts (~20)
-├── dot_config/              # App configs (21 tools)
+├── dot_config/                  # App configs
+│   ├── etc/Brewfile.tmpl        # All packages (brews + casks)
+│   ├── private_fish/conf.d/     # Fish shell modules
+│   ├── private_zsh/conf.d/      # Zsh shell modules
+│   └── private_bash/conf.d/     # Bash shell modules
+├── bin/                         # Utility scripts
 └── .chezmoiscripts/
-    ├── 00-run-before/       # Pre-apply: Homebrew, packages
-    └── 01-common/           # Post-apply: macOS defaults, Linux setup, tools
+    ├── 00-run-before/           # Pre-apply: 1Password, Homebrew, packages
+    └── 01-common/               # Post-apply: macOS defaults, Linux setup, tools
 ```
 
 ## Package Management
@@ -85,8 +90,8 @@ chezmoi apply
 
 Scripts automatically install packages during `chezmoi apply`:
 
-- **macOS:** `run_before_02-install-packages-from-brewfile.sh.tmpl`
-- **Linux:** `run_once_after_00-linux-system-setup.sh.tmpl`
+- **macOS:** `.chezmoiscripts/00-run-before/run_onchange_before_02-install-packages-from-brewfile.sh.tmpl`
+- **Linux:** `.chezmoiscripts/01-common/run_onchange_after_00-linux-system-setup.sh.tmpl`
 
 ## Template Patterns
 
@@ -115,7 +120,8 @@ Scripts automatically install packages during `chezmoi apply`:
 ## Plugin Systems
 
 - **Fish:** Fisher plugins in `fish_plugins`, auto-installed via `00-install_fisher.fish`
-- **Zsh/Bash:** Sheldon plugins in `etc/sheldon/plugins.toml`, init in `98-sheldon.*`
+- **Zsh/Bash:** Sheldon plugins in `dot_config/private_{zsh,bash}/etc/sheldon/plugins.toml`
+  (one list per shell), init in `98-sheldon.*`
 
 ## Cross-Shell Consistency
 
