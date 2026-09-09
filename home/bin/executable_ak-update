@@ -106,7 +106,16 @@ step_kit() {
     return $?
   fi
 
-  return "$rc"
+  # Every other failure collapses into a bare "Error: Command failed." that
+  # names no cause. The hard gates checked first — CLI older than the kit's
+  # requiredCliVersion (a 2.15.0 kit rejects a 2.15.0-beta.N binary, since a
+  # prerelease sorts below its own release), manager-owned binary, pending
+  # restart — all abort before any kit mutation, so retrying verbose either
+  # prints the blocking reason or completes the refresh. Its status is the
+  # honest one to report.
+  printf '  refresh failed (exit %s); retrying with --verbose to surface the cause\n' "$rc"
+  ak kit refresh engineer --global --yes --verbose
+  return $?
 }
 
 step_naming() {
