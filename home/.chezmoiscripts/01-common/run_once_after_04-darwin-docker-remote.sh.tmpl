@@ -15,8 +15,8 @@ echo ""
 
 {{ template "brew-shellenv" . }}
 
-# Use the real Homebrew docker client. The podman->docker shim has been removed
-# (see .chezmoiremove), so `docker` now resolves to the Homebrew formula.
+# Use the real Homebrew docker client. OrbStack also ships a `docker` binary, but
+# the Homebrew formula stays first on PATH and talks to whichever context is set.
 if ! command -v docker &>/dev/null; then
   echo "docker CLI not found — skipping. (Brewfile installs it on the next apply.)"
   exit 0
@@ -33,9 +33,9 @@ if ! docker context inspect server &>/dev/null; then
 fi
 
 # Default to the remote daemon so work runs off-box and frees local resources.
-# Toggle back to the local podman VM any time with `dlocal` (docker context use
-# default); `dremote` switches back. The `default` context reaches podman via the
-# /var/run/docker.sock symlink that podman-mac-helper installs.
+# Toggle back to the local engine any time with `dlocal` (docker context use
+# default); `dremote` switches back. The `default` context reaches OrbStack via
+# the /var/run/docker.sock symlink that OrbStack installs on first launch.
 docker context use server
 
 # Make the Homebrew compose plugin discoverable by `docker compose`. Homebrew
@@ -47,15 +47,12 @@ if [[ -x "$compose_plugin" ]]; then
   ln -sf "$compose_plugin" "$HOME/.docker/cli-plugins/docker-compose"
 fi
 
-# Local toggle prerequisite: podman-mac-helper points /var/run/docker.sock at the
-# podman VM so `docker context use default` works. Install only if absent (needs
-# sudo); never abort setup if it fails — `podman` still works directly.
-if [[ ! -e /var/run/docker.sock ]] && command -v podman-mac-helper &>/dev/null; then
-  echo "Installing podman-mac-helper (sudo) for the local docker toggle..."
-  sudo podman-mac-helper install \
-    || echo "Note: podman-mac-helper install failed; use 'podman' directly for local containers. Continuing."
+# Local toggle prerequisite: OrbStack creates /var/run/docker.sock itself when the
+# app first launches. Warn only — the remote context above works without it.
+if [[ ! -e /var/run/docker.sock ]]; then
+  echo "Note: /var/run/docker.sock is missing. Launch OrbStack once to enable 'dlocal'."
 fi
 
 echo ""
 echo "Docker remote context ready. Active context: $(docker context show)"
-echo "Toggle: dremote (win-dev) / dlocal (local podman VM)."
+echo "Toggle: dremote (win-dev) / dlocal (local OrbStack)."

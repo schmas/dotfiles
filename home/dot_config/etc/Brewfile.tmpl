@@ -189,7 +189,6 @@ cask "claude"
 cask "cursor"
 cask "ghostty"
 cask "jetbrains-toolbox"
-cask "podman-desktop"
 cask "postman"
 cask "supacode"
 cask "visual-studio-code"
@@ -197,8 +196,9 @@ cask "wezterm"
 cask "zed"
 
 # ── Containers (macOS) ────────────────────────────────────────────────────
-brew "podman"
-brew "podman-compose"
+# OrbStack is the local container engine. It owns /var/run/docker.sock, so the
+# `default` docker context reaches it with no helper and no always-on VM.
+cask "orbstack"
 
 # ── Browsers & Communication ──────────────────────────────────────────────
 cask "brave-browser"
