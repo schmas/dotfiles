@@ -5,18 +5,18 @@ Five stages, each gated on an independent re-check that its input really exists:
 
     dump (on bastion) -> fetch (to Mac) -> push (to target) -> restore -> clean
 
-    aaa-db-dump run uat2 --to win-dev --yes
-    aaa-db-dump run uat2 --to local --yes
-    aaa-db-dump status uat2 --to win-dev
+    aaa-db-dump run national-uat2 --to win-dev --yes
+    aaa-db-dump run national-uat2 --to local --yes
+    aaa-db-dump status national-uat2 --to win-dev
     aaa-db-dump list
 
 Two shapes skip stages rather than run all five:
 
-    aaa-db-dump dump uat2                       # dump on the bastion, nothing else
-    aaa-db-dump run uat2 --stop-after fetch     # dump and bring it down, no restore
+    aaa-db-dump dump national-uat2                       # dump on the bastion, nothing else
+    aaa-db-dump run national-uat2 --stop-after fetch     # dump and bring it down, no restore
 
     # a dump obtained by hand: no bastion, no dump, no fetch
-    aaa-db-dump run uat2 --to win-dev --yes \
+    aaa-db-dump run national-uat2 --to win-dev --yes \
         --archive ~/Downloads/nationaluat2-2026_09_02-1400
 
 --archive takes a pg_dump directory or a single dump file already on this

@@ -17,8 +17,8 @@
 {{- $nationalautouat2s := onepasswordItemFields "ctzizvhb546o5gqrapmx4kvjra" "AAA" }}
 {{- $nhcuat2 := onepasswordDetailsFields "deu5m7iikvlfffoc4cmijm2alm" "AAA" }}
 {{- $nhcuat2s := onepasswordItemFields "deu5m7iikvlfffoc4cmijm2alm" "AAA" }}
-{{- $shelbyuat2 := onepasswordDetailsFields "o7prevn6evr5v7rhl7lug5tdyu" "AAA" }}
-{{- $shelbyuat2s := onepasswordItemFields "o7prevn6evr5v7rhl7lug5tdyu" "AAA" }}
+{{- $sheuat2 := onepasswordDetailsFields "o7prevn6evr5v7rhl7lug5tdyu" "AAA" }}
+{{- $sheuat2s := onepasswordItemFields "o7prevn6evr5v7rhl7lug5tdyu" "AAA" }}
 {{- $feature1uat2 := onepasswordDetailsFields "peop3xvxrsjczlaei34qxrrxpa" "AAA" }}
 {{- $feature1uat2s := onepasswordItemFields "peop3xvxrsjczlaei34qxrrxpa" "AAA" }}
 {{- $datastaginguat2 := onepasswordDetailsFields "5wfjvu67eas6yvcl7ux7nzdbim" "AAA" }}
@@ -108,13 +108,13 @@ nhc-uat2:
   type: postgresql
   writable: false
 
-shelby-uat2:
-  host: {{ (index $shelbyuat2 "hostname").value }}
-  port: {{ (index $shelbyuat2 "port").value }}
-  dbname: {{ (index $shelbyuat2 "database").value }}
-  user: {{ (index $shelbyuat2 "username").value }}
-  password: {{ (index $shelbyuat2 "password").value }}
-  bastion: {{ (index $shelbyuat2s "user").value }}@{{ (index $shelbyuat2s "host").value }}
+she-uat2:
+  host: {{ (index $sheuat2 "hostname").value }}
+  port: {{ (index $sheuat2 "port").value }}
+  dbname: {{ (index $sheuat2 "database").value }}
+  user: {{ (index $sheuat2 "username").value }}
+  password: {{ (index $sheuat2 "password").value }}
+  bastion: {{ (index $sheuat2s "user").value }}@{{ (index $sheuat2s "host").value }}
   sslmode: require
   type: postgresql
   writable: false
