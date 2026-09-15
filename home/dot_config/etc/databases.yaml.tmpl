@@ -1,42 +1,54 @@
 # AAA Database Configurations - managed by chezmoi
 # Credentials fetched from 1Password AAA vault
 # Uses onepasswordDetailsFields/onepasswordItemFields for batch fetching (1 call per function per item)
-{{- $dev2 := onepasswordDetailsFields "nchz62ceagslahw55ipbh6vwxm" "AAA" }}
-{{- $dev2s := onepasswordItemFields "nchz62ceagslahw55ipbh6vwxm" "AAA" }}
-{{- $uat2 := onepasswordDetailsFields "v3nmfgeghluczj7u6nv5vcx5ki" "AAA" }}
-{{- $uat2s := onepasswordItemFields "v3nmfgeghluczj7u6nv5vcx5ki" "AAA" }}
-{{- $datastaging := onepasswordDetailsFields "5wfjvu67eas6yvcl7ux7nzdbim" "AAA" }}
-{{- $datastagings := onepasswordItemFields "5wfjvu67eas6yvcl7ux7nzdbim" "AAA" }}
-{{- $datatesting := onepasswordDetailsFields "ruqmcbnk5ppeovi7qksquzkmby" "AAA" }}
-{{- $datatestings := onepasswordItemFields "ruqmcbnk5ppeovi7qksquzkmby" "AAA" }}
-{{- $datatesting2uat2 := onepasswordDetailsFields "ns7avfbaqnbwg4bltjvbtl222m" "AAA" }}
-{{- $datatesting2uat2s := onepasswordItemFields "ns7avfbaqnbwg4bltjvbtl222m" "AAA" }}
+# Alias names follow the Confluence "Environments + Versions" page and the 1Password item titles.
+# The bsg-prod and hoosier-prod items exist in 1Password but are deliberately not aliased here.
+{{- $nationaldev2 := onepasswordDetailsFields "nchz62ceagslahw55ipbh6vwxm" "AAA" }}
+{{- $nationaldev2s := onepasswordItemFields "nchz62ceagslahw55ipbh6vwxm" "AAA" }}
+{{- $nationaluat2 := onepasswordDetailsFields "v3nmfgeghluczj7u6nv5vcx5ki" "AAA" }}
+{{- $nationaluat2s := onepasswordItemFields "v3nmfgeghluczj7u6nv5vcx5ki" "AAA" }}
 {{- $hoosieruat2 := onepasswordDetailsFields "ymliolxaipistvct2iur7sbxtm" "AAA" }}
 {{- $hoosieruat2s := onepasswordItemFields "ymliolxaipistvct2iur7sbxtm" "AAA" }}
 {{- $bsguat2 := onepasswordDetailsFields "nuyft7egt2ivl3nqlpxculftjm" "AAA" }}
 {{- $bsguat2s := onepasswordItemFields "nuyft7egt2ivl3nqlpxculftjm" "AAA" }}
+{{- $bsg2uat2 := onepasswordDetailsFields "w73du4efnixwfzjvizzrn45gxe" "AAA" }}
+{{- $bsg2uat2s := onepasswordItemFields "w73du4efnixwfzjvizzrn45gxe" "AAA" }}
 {{- $nationalautouat2 := onepasswordDetailsFields "ctzizvhb546o5gqrapmx4kvjra" "AAA" }}
 {{- $nationalautouat2s := onepasswordItemFields "ctzizvhb546o5gqrapmx4kvjra" "AAA" }}
+{{- $nhcuat2 := onepasswordDetailsFields "deu5m7iikvlfffoc4cmijm2alm" "AAA" }}
+{{- $nhcuat2s := onepasswordItemFields "deu5m7iikvlfffoc4cmijm2alm" "AAA" }}
+{{- $shelbyuat2 := onepasswordDetailsFields "o7prevn6evr5v7rhl7lug5tdyu" "AAA" }}
+{{- $shelbyuat2s := onepasswordItemFields "o7prevn6evr5v7rhl7lug5tdyu" "AAA" }}
+{{- $feature1uat2 := onepasswordDetailsFields "peop3xvxrsjczlaei34qxrrxpa" "AAA" }}
+{{- $feature1uat2s := onepasswordItemFields "peop3xvxrsjczlaei34qxrrxpa" "AAA" }}
+{{- $datastaginguat2 := onepasswordDetailsFields "5wfjvu67eas6yvcl7ux7nzdbim" "AAA" }}
+{{- $datastaginguat2s := onepasswordItemFields "5wfjvu67eas6yvcl7ux7nzdbim" "AAA" }}
+{{- $datastaging2uat2 := onepasswordDetailsFields "v6pxzzyrxzv6rtq7dki74yu77m" "AAA" }}
+{{- $datastaging2uat2s := onepasswordItemFields "v6pxzzyrxzv6rtq7dki74yu77m" "AAA" }}
+{{- $datatestinguat2 := onepasswordDetailsFields "ruqmcbnk5ppeovi7qksquzkmby" "AAA" }}
+{{- $datatestinguat2s := onepasswordItemFields "ruqmcbnk5ppeovi7qksquzkmby" "AAA" }}
+{{- $datatesting2uat2 := onepasswordDetailsFields "ns7avfbaqnbwg4bltjvbtl222m" "AAA" }}
+{{- $datatesting2uat2s := onepasswordItemFields "ns7avfbaqnbwg4bltjvbtl222m" "AAA" }}
 {{- $appdev5 := onepasswordDetailsFields "g6wgv73g64trzumjwq54jdmfam" "AAA" }}
 
-dev2:
-  host: {{ (index $dev2 "hostname").value }}
-  port: {{ (index $dev2 "port").value }}
-  dbname: {{ (index $dev2 "database").value }}
-  user: {{ (index $dev2 "username").value }}
-  password: {{ (index $dev2 "password").value }}
-  bastion: {{ (index $dev2s "user").value }}@{{ (index $dev2s "host").value }}
+national-dev2:
+  host: {{ (index $nationaldev2 "hostname").value }}
+  port: {{ (index $nationaldev2 "port").value }}
+  dbname: {{ (index $nationaldev2 "database").value }}
+  user: {{ (index $nationaldev2 "username").value }}
+  password: {{ (index $nationaldev2 "password").value }}
+  bastion: {{ (index $nationaldev2s "user").value }}@{{ (index $nationaldev2s "host").value }}
   sslmode: require
   type: postgresql
   writable: false
 
-uat2:
-  host: {{ (index $uat2 "hostname").value }}
-  port: {{ (index $uat2 "port").value }}
-  dbname: {{ (index $uat2 "database").value }}
-  user: {{ (index $uat2 "username").value }}
-  password: {{ (index $uat2 "password").value }}
-  bastion: {{ (index $uat2s "user").value }}@{{ (index $uat2s "host").value }}
+national-uat2:
+  host: {{ (index $nationaluat2 "hostname").value }}
+  port: {{ (index $nationaluat2 "port").value }}
+  dbname: {{ (index $nationaluat2 "database").value }}
+  user: {{ (index $nationaluat2 "username").value }}
+  password: {{ (index $nationaluat2 "password").value }}
+  bastion: {{ (index $nationaluat2s "user").value }}@{{ (index $nationaluat2s "host").value }}
   sslmode: require
   type: postgresql
   writable: false
@@ -63,6 +75,17 @@ bsg-uat2:
   type: postgresql
   writable: false
 
+bsg2-uat2:
+  host: {{ (index $bsg2uat2 "hostname").value }}
+  port: {{ (index $bsg2uat2 "port").value }}
+  dbname: {{ (index $bsg2uat2 "database").value }}
+  user: {{ (index $bsg2uat2 "username").value }}
+  password: {{ (index $bsg2uat2 "password").value }}
+  bastion: {{ (index $bsg2uat2s "user").value }}@{{ (index $bsg2uat2s "host").value }}
+  sslmode: require
+  type: postgresql
+  writable: false
+
 nationalauto-uat2:
   host: {{ (index $nationalautouat2 "hostname").value }}
   port: {{ (index $nationalautouat2 "port").value }}
@@ -74,24 +97,68 @@ nationalauto-uat2:
   type: postgresql
   writable: false
 
-datastaging:
-  host: {{ (index $datastaging "hostname").value }}
-  port: {{ (index $datastaging "port").value }}
-  dbname: {{ (index $datastaging "database").value }}
-  user: {{ (index $datastaging "username").value }}
-  password: {{ (index $datastaging "password").value }}
-  bastion: {{ (index $datastagings "user").value }}@{{ (index $datastagings "host").value }}
+nhc-uat2:
+  host: {{ (index $nhcuat2 "hostname").value }}
+  port: {{ (index $nhcuat2 "port").value }}
+  dbname: {{ (index $nhcuat2 "database").value }}
+  user: {{ (index $nhcuat2 "username").value }}
+  password: {{ (index $nhcuat2 "password").value }}
+  bastion: {{ (index $nhcuat2s "user").value }}@{{ (index $nhcuat2s "host").value }}
   sslmode: require
   type: postgresql
   writable: false
 
-datatesting:
-  host: {{ (index $datatesting "hostname").value }}
-  port: {{ (index $datatesting "port").value }}
-  dbname: {{ (index $datatesting "database").value }}
-  user: {{ (index $datatesting "username").value }}
-  password: {{ (index $datatesting "password").value }}
-  bastion: {{ (index $datatestings "user").value }}@{{ (index $datatestings "host").value }}
+shelby-uat2:
+  host: {{ (index $shelbyuat2 "hostname").value }}
+  port: {{ (index $shelbyuat2 "port").value }}
+  dbname: {{ (index $shelbyuat2 "database").value }}
+  user: {{ (index $shelbyuat2 "username").value }}
+  password: {{ (index $shelbyuat2 "password").value }}
+  bastion: {{ (index $shelbyuat2s "user").value }}@{{ (index $shelbyuat2s "host").value }}
+  sslmode: require
+  type: postgresql
+  writable: false
+
+feature1-uat2:
+  host: {{ (index $feature1uat2 "hostname").value }}
+  port: {{ (index $feature1uat2 "port").value }}
+  dbname: {{ (index $feature1uat2 "database").value }}
+  user: {{ (index $feature1uat2 "username").value }}
+  password: {{ (index $feature1uat2 "password").value }}
+  bastion: {{ (index $feature1uat2s "user").value }}@{{ (index $feature1uat2s "host").value }}
+  sslmode: require
+  type: postgresql
+  writable: false
+
+datastaging-uat2:
+  host: {{ (index $datastaginguat2 "hostname").value }}
+  port: {{ (index $datastaginguat2 "port").value }}
+  dbname: {{ (index $datastaginguat2 "database").value }}
+  user: {{ (index $datastaginguat2 "username").value }}
+  password: {{ (index $datastaginguat2 "password").value }}
+  bastion: {{ (index $datastaginguat2s "user").value }}@{{ (index $datastaginguat2s "host").value }}
+  sslmode: require
+  type: postgresql
+  writable: false
+
+datastaging2-uat2:
+  host: {{ (index $datastaging2uat2 "hostname").value }}
+  port: {{ (index $datastaging2uat2 "port").value }}
+  dbname: {{ (index $datastaging2uat2 "database").value }}
+  user: {{ (index $datastaging2uat2 "username").value }}
+  password: {{ (index $datastaging2uat2 "password").value }}
+  bastion: {{ (index $datastaging2uat2s "user").value }}@{{ (index $datastaging2uat2s "host").value }}
+  sslmode: require
+  type: postgresql
+  writable: false
+
+datatesting-uat2:
+  host: {{ (index $datatestinguat2 "hostname").value }}
+  port: {{ (index $datatestinguat2 "port").value }}
+  dbname: {{ (index $datatestinguat2 "database").value }}
+  user: {{ (index $datatestinguat2 "username").value }}
+  password: {{ (index $datatestinguat2 "password").value }}
+  bastion: {{ (index $datatestinguat2s "user").value }}@{{ (index $datatestinguat2s "host").value }}
   sslmode: require
   type: postgresql
   writable: false
