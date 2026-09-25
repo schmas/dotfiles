@@ -461,6 +461,8 @@ cython_debug/
 .ck-*/
 AGENTS.md
 .claude/session-state
+.claude/settings.local.json
+.claude/agent-memory/
 .handoffs/
 .serena/
 # Track the agent docs (evergreen, reviewed); keep plans/journals/reports local.
