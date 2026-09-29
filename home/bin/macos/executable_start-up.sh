@@ -27,6 +27,6 @@ sleep 0.5
 # sleep 0.5
 open "/Applications/Slack.app"
 sleep 0.5
-open "/Applications/Notion Calendar.app"
-sleep 0.5
+# open "/Applications/Notion Calendar.app"
+# sleep 0.5
 
