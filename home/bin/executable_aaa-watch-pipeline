@@ -591,6 +591,11 @@ RENDER_EVERY=$(to_seconds "$INTERVAL")
 [ "$RENDER_EVERY" -lt 10 ] && RENDER_EVERY=10
 [ "$RENDER_EVERY" -gt 30 ] && RENDER_EVERY=30
 
+# ── Start on a clean screen, like `clear`: the live view owns the whole terminal
+#    from the top row. Earlier output moves to scrollback (no \033[3J), and
+#    piped/CI output is left untouched ───────────────────────────────────────────
+[ "$TTY" = true ] && printf '\033[H\033[2J'
+
 # ── Mode selection: explicit pipeline, explicit PR id, auto-detected open PR,
 #    else the current branch's pipelines ───────────────────────────────────────
 #    Each run_*_mode exits, so the dispatch below never falls through.
