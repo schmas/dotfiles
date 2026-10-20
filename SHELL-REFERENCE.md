@@ -465,3 +465,9 @@ Zsh includes all the Bash aliases plus the following:
 | ---------------------- | -------------------------------------------------------------------------- |
 | `wt-sync-all`          | Sync AI agent files across all worktrees, both directions (newest wins)    |
 | `wt-cleanup-leftovers` | Remove leftover worktree folders git no longer tracks (dry-run by default) |
+
+### AAA Scripts
+
+| Script         | Description                                                                                 |
+| -------------- | ------------------------------------------------------------------------------------------- |
+| `aaa-pull-all` | Run `git pf` in every checkout of the Connect+ repos; browse each output in an fzf tree     |

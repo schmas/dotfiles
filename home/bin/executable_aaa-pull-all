@@ -1,0 +1,254 @@
+#!/usr/bin/env bash
+# aaa-pull-all — Run `git pf` in every checkout of the AAA Connect+ repos, then
+# browse each checkout's output in an fzf tree.
+#
+# A checkout is the primary clone or any worktree that git still tracks
+# (`git worktree list`). A worktree whose folder is gone is skipped. The repos
+# pull in parallel. The checkouts of one repo pull one after another: they share
+# one ref store, so parallel fetches there fail with "cannot lock ref".
+#
+# Each checkout pulls the branch it has checked out. Nothing is stashed or
+# rebased. A failed pull (dirty tree, conflict, detached HEAD) shows ✗, and its
+# output tells why. A branch with no upstream (not pushed yet) cannot pull; it
+# shows "no upstream" and does not count as a failure.
+#
+# The picker lists each repo with its checkouts under it as a tree. The right
+# pane shows the selected checkout's output, or a summary when a repo line is
+# selected. The left pane is only as wide as its longest line; the right pane
+# takes the rest of the window and follows resizes. The right pane hides fetch's
+# "= [up to date]" ref lines (hundreds per repo) and shows their count; enter
+# opens the full output.
+#
+# Usage:
+#   aaa-pull-all          pull every checkout, then open the picker
+#   aaa-pull-all --last   reopen the picker on the last run's output, no pull
+#   aaa-pull-all -h       show this help
+#
+# Keys: ↑/↓ move · shift-↑/↓ scroll the output · enter open in $PAGER · esc quit
+#
+# Exit codes: 0 all pulls passed · 1 a pull failed · 2 usage/preflight error
+#
+# Env:
+#   AAA_DIR   parent dir of the repos (default: ~/projects/work/aaa)
+#   NO_COLOR  disable ANSI colors
+#
+# Output is kept in ${XDG_STATE_HOME:-~/.local/state}/aaa-pull-all/ and is
+# replaced on each run.
+#
+# Requires: git with the `pf` alias, fzf (without fzf, only the summary prints).
+
+set -uo pipefail
+
+AAA_DIR="${AAA_DIR:-$HOME/projects/work/aaa}"
+REPOS=(connect-plus-backend connect-plus-frontend connect-plus-data-migration)
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/aaa-pull-all"
+SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+
+# Colors: on for a terminal, and for the list/preview modes, whose stdout is
+# fzf's pipe but whose output fzf renders with --ansi.
+case "${1:-}" in --list | --preview) color_ok=1 ;; *) [[ -t 1 ]] && color_ok=1 || color_ok=0 ;; esac
+if [[ $color_ok == 1 && -z "${NO_COLOR:-}" ]]; then
+  BOLD=$'\033[1m' DIM=$'\033[2m' GREEN=$'\033[32m' RED=$'\033[31m' YELLOW=$'\033[33m' RESET=$'\033[0m'
+else
+  BOLD='' DIM='' GREEN='' RED='' YELLOW='' RESET=''
+fi
+
+usage() { sed -n '2,/^$/{s/^# \{0,1\}//;p;}' "$SELF"; }
+
+# ── Run state ───────────────────────────────────────────────────────────────
+# Per checkout <id> (sortable: <repo index>-<checkout index>):
+#   <id>.meta    repo \t branch \t path
+#   <id>.log     cleaned `git pf` output
+#   <id>.status  exit code \t new commit count \t upstream (1 = has one)
+#                (absent while still pulling)
+
+# Print "path \t branch" for each checkout of a repo that git tracks and that
+# still exists on disk.
+list_checkouts() {
+  git -C "$AAA_DIR/$1" worktree list --porcelain | awk '
+    /^worktree / { path = substr($0, 10); branch = "(detached)"; prunable = 0 }
+    /^branch /   { branch = substr($0, 8); sub("^refs/heads/", "", branch) }
+    /^prunable/  { prunable = 1 }
+    /^$/         { if (!prunable) print path "\t" branch }'
+}
+
+# Status mark and count text for one checkout id.
+status_of() {
+  local rc new upstream
+  if [[ ! -f "$STATE_DIR/$1.status" ]]; then
+    printf '%s?%s\t%s\n' "$YELLOW" "$RESET" "${YELLOW}unfinished${RESET}"
+    return
+  fi
+  IFS=$'\t' read -r rc new upstream < "$STATE_DIR/$1.status"
+  if [[ $upstream != 1 ]]; then
+    printf '%s–%s\t%s\n' "$YELLOW" "$RESET" "${YELLOW}no upstream${RESET}"
+  elif [[ $rc != 0 ]]; then
+    printf '%s✗%s\t%s\n' "$RED" "$RESET" "${RED}failed${RESET}"
+  elif [[ $new -gt 0 ]]; then
+    printf '%s✓%s\t%s\n' "$GREEN" "$RESET" "${GREEN}+$new${RESET}"
+  else
+    printf '%s✓%s\t%s\n' "$GREEN" "$RESET" "${DIM}+0${RESET}"
+  fi
+}
+
+pull_checkout() { # id path
+  local id=$1 path=$2 before after rc new=0 upstream=1
+  git -C "$path" rev-parse -q --verify '@{upstream}' > /dev/null 2>&1 || upstream=0
+  before=$(git -C "$path" rev-parse -q --verify HEAD)
+  git -C "$path" -c color.ui=always pf < /dev/null > "$STATE_DIR/$id.raw" 2>&1
+  rc=$?
+  # --progress redraws lines with \r; keep only each line's final state.
+  { printf '%s$ git pf%s\n' "$DIM" "$RESET"; sed $'s/\r$//; s/.*\r//' "$STATE_DIR/$id.raw"; } > "$STATE_DIR/$id.log"
+  rm -f "$STATE_DIR/$id.raw"
+  after=$(git -C "$path" rev-parse -q --verify HEAD)
+  [[ $rc == 0 && -n $before && $before != "$after" ]] && new=$(git -C "$path" rev-list --count "$before..$after")
+  printf '%s\t%s\t%s\n' "$rc" "$new" "$upstream" > "$STATE_DIR/$id.status"
+}
+
+pull_repo() { # repo-index repo
+  local idx=$1 repo=$2 n=0 path branch id mark count
+  while IFS=$'\t' read -r path branch; do
+    [[ -d $path ]] || continue
+    n=$((n + 1))
+    id=$(printf '%d-%02d' "$idx" "$n")
+    printf '%s\t%s\t%s\n' "$repo" "$branch" "$path" > "$STATE_DIR/$id.meta"
+    pull_checkout "$id" "$path"
+    IFS=$'\t' read -r mark count < <(status_of "$id")
+    printf '  %s %s %s%s%s %s\n' "$mark" "$repo" "$BOLD" "$branch" "$RESET" "$count"
+  done < <(list_checkouts "$repo")
+}
+
+run_pulls() {
+  local i repo
+  mkdir -p "$STATE_DIR"
+  rm -f "$STATE_DIR"/*
+  date '+%H:%M' > "$STATE_DIR/run"
+  trap 'trap - INT TERM; kill 0' INT TERM
+  echo "${BOLD}Pulling AAA checkouts…${RESET}"
+  for i in "${!REPOS[@]}"; do
+    repo=${REPOS[$i]}
+    if ! git -C "$AAA_DIR/$repo" rev-parse --git-dir > /dev/null 2>&1; then
+      echo "  ${YELLOW}! $repo: not a git repo at $AAA_DIR/$repo, skipped${RESET}"
+      continue
+    fi
+    pull_repo "$((i + 1))" "$repo" &
+  done
+  wait
+  trap - INT TERM
+}
+
+# ── Picker ──────────────────────────────────────────────────────────────────
+
+# fzf input: "<key> \t <display>". Key is a checkout id or "repo:<name>".
+render_list() {
+  local metas=() i id repo branch path prev="" next_repo tee mark count width=0
+  for i in "$STATE_DIR"/*.meta; do [[ -f $i ]] && metas+=("$i"); done
+  for i in "${metas[@]}"; do
+    IFS=$'\t' read -r repo branch path < "$i"
+    ((${#branch} > width)) && width=${#branch}
+  done
+  for i in "${!metas[@]}"; do
+    id=$(basename "${metas[$i]}" .meta)
+    IFS=$'\t' read -r repo branch path < "${metas[$i]}"
+    if [[ $repo != "$prev" ]]; then
+      printf 'repo:%s\t%s%s%s\n' "$repo" "$BOLD" "$repo" "$RESET"
+      prev=$repo
+    fi
+    next_repo=""
+    [[ -n ${metas[$((i + 1))]:-} ]] && IFS=$'\t' read -r next_repo _ < "${metas[$((i + 1))]}"
+    [[ $next_repo == "$repo" ]] && tee='├─' || tee='└─'
+    IFS=$'\t' read -r mark count < <(status_of "$id")
+    printf '%s\t%s%s%s %s %-*s %s\n' "$id" "$DIM" "$tee" "$RESET" "$mark" "$width" "$branch" "$count"
+  done
+}
+
+preview() { # key
+  local key=$1 meta repo branch path id mark count last hidden
+  if [[ $key == repo:* ]]; then
+    echo "${BOLD}${key#repo:}${RESET}"
+    echo
+    for meta in "$STATE_DIR"/*.meta; do
+      IFS=$'\t' read -r repo branch path < "$meta"
+      [[ $repo == "${key#repo:}" ]] || continue
+      id=$(basename "$meta" .meta)
+      IFS=$'\t' read -r mark count < <(status_of "$id")
+      # The pull's result line, else the last line of output.
+      last=$(grep -E 'Already up to date|files? changed|^(fatal|error):|no tracking information' "$STATE_DIR/$id.log" 2> /dev/null | tail -n 1)
+      [[ -n $last ]] || last=$(grep -v '^[[:space:]]*$' "$STATE_DIR/$id.log" 2> /dev/null | tail -n 1)
+      printf '%s %s%s%s %s\n' "$mark" "$BOLD" "$branch" "$RESET" "$count"
+      printf '  %s%s%s\n' "$DIM" "${path/#$HOME/~}" "$RESET"
+      printf '  %s\n\n' "$last"
+    done
+    return
+  fi
+  IFS=$'\t' read -r repo branch path < "$STATE_DIR/$key.meta"
+  printf '%s%s · %s%s\n' "$BOLD" "$repo" "$branch" "$RESET"
+  printf '%s%s%s\n\n' "$DIM" "${path/#$HOME/~}" "$RESET"
+  if [[ ! -f "$STATE_DIR/$key.log" ]]; then
+    echo "${YELLOW}No output: the pull did not finish.${RESET}"
+    return
+  fi
+  grep -v '= \[up to date\]' "$STATE_DIR/$key.log"
+  hidden=$(grep -c '= \[up to date\]' "$STATE_DIR/$key.log")
+  ((hidden > 0)) && printf '\n%s%d refs already up to date are hidden. Press enter for the full output.%s\n' "$DIM" "$hidden" "$RESET"
+}
+
+# Exit 1 when any checkout with an upstream failed, or any did not finish.
+any_failed() {
+  local meta id rc upstream
+  for meta in "$STATE_DIR"/*.meta; do
+    [[ -f $meta ]] || continue
+    id=$(basename "$meta" .meta)
+    [[ -f "$STATE_DIR/$id.status" ]] || return 0
+    IFS=$'\t' read -r rc _ upstream < "$STATE_DIR/$id.status"
+    [[ $rc == 0 || $upstream != 1 ]] || return 0
+  done
+  return 1
+}
+
+open_picker() {
+  local list ok=0 failed=0 skipped=0 line listw=0 plain
+  list=$(render_list)
+  [[ -n $list ]] || { echo "aaa-pull-all: no checkouts found" >&2; return 2; }
+  if ! [[ -t 1 ]] || ! command -v fzf > /dev/null; then
+    printf '%s\n' "$list" | cut -f2-
+    return 0
+  fi
+  while IFS= read -r line; do
+    plain=$(printf '%s' "${line#*$'\t'}" | sed $'s/\033\\[[0-9;]*m//g')
+    ((${#plain} > listw)) && listw=${#plain}
+    [[ $line == repo:* ]] && continue
+    case $plain in
+      *✓*) ok=$((ok + 1)) ;;
+      *–*) skipped=$((skipped + 1)) ;;
+      *) failed=$((failed + 1)) ;;
+    esac
+  done <<< "$list"
+  # List width = longest line + fzf's pointer, borders, gap and scrollbar.
+  listw=$((listw + 10))
+  # fzf runs preview/bind commands with $SHELL, which may be fish.
+  SHELL=/bin/bash fzf <<< "$list" \
+    --ansi --delimiter=$'\t' --with-nth=2.. --layout=reverse --no-sort --height=100% \
+    --header="pulled $(cat "$STATE_DIR/run" 2> /dev/null) · $ok ok · $failed failed · $skipped no upstream" \
+    --preview="'$SELF' --preview {1}" \
+    --preview-window=right \
+    --bind="start,resize:transform:echo \"change-preview-window:\$((FZF_COLUMNS - $listw))\"" \
+    --bind="enter:execute({ cat '$STATE_DIR'/{1}.log 2> /dev/null || '$SELF' --preview {1}; } | ${PAGER:-less} -R)"
+  return 0
+}
+
+# ── Main ────────────────────────────────────────────────────────────────────
+case "${1:-}" in
+  -h | --help) usage; exit 0 ;;
+  --list) render_list; exit 0 ;;
+  --preview) preview "${2:?key}"; exit 0 ;;
+  --last)
+    [[ -f "$STATE_DIR/run" ]] || { echo "aaa-pull-all: no previous run in $STATE_DIR" >&2; exit 2; }
+    ;;
+  "") run_pulls ;;
+  *) usage >&2; exit 2 ;;
+esac
+
+open_picker || exit $?
+any_failed && exit 1
+exit 0
