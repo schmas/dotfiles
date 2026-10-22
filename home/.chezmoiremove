@@ -24,3 +24,8 @@ bin/ck-reapply-claude-naming
 # AgentKit reads ~/.agentkit/config.yaml; .ck.json values are inert and make
 # `ak doctor` report legacy residue. Preferences now live in .agentkit/config.yaml.
 .claude/.ck.json
+
+# AgentKit removed: its binary update script, naming patch and config.
+.agentkit
+bin/ak-update
+bin/ak-reapply-claude-naming
