@@ -29,3 +29,7 @@ bin/ck-reapply-claude-naming
 .agentkit
 bin/ak-update
 bin/ak-reapply-claude-naming
+
+# ELI5-v2 output style retired: replies use the built-in Concise style plus
+# .claude/rules/plain-english.md.
+.claude/output-styles/ELI5-v2.md
