@@ -1,22 +1,26 @@
+{{- $agentKey := includeTemplate "agent-key-item" . | trim -}}
 [user]
 name = {{ onepasswordRead "op://dotfiles/dotfiles_data/git/name" }}
 email = {{ onepasswordRead "op://dotfiles/dotfiles_data/git/email" }}
+{{- if $agentKey }}
+# Sign with this machine's agent key file (1Password vault "Agent", written by
+# chezmoi). git's default signer, ssh-keygen, reads it with no approval prompt.
+signingkey = {{ .chezmoi.homeDir }}/.ssh/id_agent
+{{- else }}
 signingkey = {{ onepasswordRead "op://Dotfiles/e7qsp6u5my2gxxaqsdkyas6dt4/public key" }}
+{{- end }}
 
 [gpg]
   format = ssh
-{{- if eq .chezmoi.os "darwin" }}
+{{- if $agentKey }}
 [gpg "ssh"]
-  program = /Applications/1Password.app/Contents/MacOS/op-ssh-sign
-  #allowedSignersFile = ~/.config/git/allowed-signers
-{{ else if .is_wsl }}
-[gpg "ssh"]
-  # WSL: sign via the Windows 1Password app through the op-ssh-sign bridge
-  program = {{ .chezmoi.homeDir }}/.local/bin/op-ssh-sign
+  allowedSignersFile = ~/.ssh/allowed_signers
+{{- end }}
+{{- if .is_wsl }}
 [core]
-  # WSL: auth git over SSH through the Windows 1Password SSH agent
-  sshCommand = ssh.exe
-{{ end -}}
+  # Bitbucket) keep ssh.exe and the Windows 1Password agent.
+  sshCommand = {{ .chezmoi.homeDir }}/bin/git-ssh-wsl
+{{- end }}
 
 [commit]
   gpgsign = true

@@ -1,0 +1,8 @@
+{{- if includeTemplate "agent-key-item" . | trim -}}
+{{- $email := onepasswordRead "op://dotfiles/dotfiles_data/git/email" | trim -}}
+# Keys that sign commits (git gpg.ssh.allowedSignersFile): one per machine.
+{{ $email }} namespaces="git" {{ onepasswordRead "op://Agent/Agent Key mac/public key" | trim }}
+{{ $email }} namespaces="git" {{ onepasswordRead "op://Agent/Agent Key win-dev/public key" | trim }}
+# Old 1Password signing key: keeps commits signed before the agent keys valid.
+{{ $email }} namespaces="git" {{ onepasswordRead "op://Dotfiles/e7qsp6u5my2gxxaqsdkyas6dt4/public key" | trim }}
+{{ end -}}

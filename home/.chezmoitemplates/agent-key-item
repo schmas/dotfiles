@@ -1,0 +1,9 @@
+{{- /*
+  1Password item (vault "Agent") that holds this machine's agent SSH key.
+  Empty on machines without one, so the key templates render nothing there.
+*/ -}}
+{{- if eq .chezmoi.os "darwin" -}}
+Agent Key mac
+{{- else if .is_wsl -}}
+Agent Key win-dev
+{{- end -}}

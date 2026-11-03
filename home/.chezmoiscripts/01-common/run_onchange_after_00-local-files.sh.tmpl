@@ -57,6 +57,25 @@ if [ ! -f ~/.ssh/config ]; then
   CREATED=1
 fi
 
+# The one-time merge above appends, so a config merged before the agent key
+# existed lacks the Include, or has it below a `Host *` that points at the
+# 1Password agent. ssh keeps the first value it reads, so it must be first.
+AGENT_INCLUDE="Include ~/.ssh/agent_config"
+if ! grep -qxF "$AGENT_INCLUDE" ~/.ssh/config; then
+  echo "Adding the agent key Include to the top of ~/.ssh/config"
+  tmp=$(mktemp)
+  {
+    echo "# Hosts on the per-machine agent key. Keep this above every Host block: ssh"
+    echo "# keeps the first value it reads, so it wins over a later IdentityAgent."
+    echo "$AGENT_INCLUDE"
+    echo ""
+    cat ~/.ssh/config
+  } > "$tmp"
+  mv "$tmp" ~/.ssh/config
+  chmod 600 ~/.ssh/config
+  CREATED=1
+fi
+
 # GnuPG section
 if [ ! -d ~/.gnupg ]; then
   echo "Creating ~/.gnupg directory"

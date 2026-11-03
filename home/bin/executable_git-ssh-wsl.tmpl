@@ -1,0 +1,11 @@
+{{- if .is_wsl -}}
+#!/usr/bin/env bash
+# git core.sshCommand on WSL. github.com goes to Linux ssh, which uses the
+# per-machine agent key (~/.ssh/id_agent) with no approval prompt. Every other
+for arg in "$@"; do
+  case "$arg" in
+    github.com | *@github.com) exec /usr/bin/ssh "$@" ;;
+  esac
+done
+exec ssh.exe "$@"
+{{ end -}}

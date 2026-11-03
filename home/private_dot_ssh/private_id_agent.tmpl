@@ -1,0 +1,9 @@
+{{- /*
+  Per-machine agent key, written as a plain file so ssh and git signing use it
+  without a 1Password approval prompt. Scope: github.com, win-dev and
+  local.schmas.com only (see agent_config). Never export another key this way.
+*/ -}}
+{{- $item := includeTemplate "agent-key-item" . | trim -}}
+{{- if $item -}}
+{{ onepasswordRead (printf "op://Agent/%s/private key?ssh-format=openssh" $item) | trim }}
+{{ end -}}

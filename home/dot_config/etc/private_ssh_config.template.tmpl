@@ -1,3 +1,7 @@
+# Hosts on the per-machine agent key. Keep this above every Host block: ssh
+# keeps the first value it reads, so it wins over a later IdentityAgent.
+Include ~/.ssh/agent_config
+
 # Keep idle SSH sessions alive across NAT/port-proxy idle timeouts, but give up
 # after 3 missed probes (~45s) so a dead path exits cleanly instead of hanging
 # on a stale socket until the kernel TCP timeout fires. Pairs with the
