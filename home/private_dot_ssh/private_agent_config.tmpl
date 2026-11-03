@@ -3,7 +3,6 @@
 # "Agent"). Included at the top of ~/.ssh/config: ssh keeps the first value it
 # reads for each option, so `IdentityAgent none` here wins over a later
 # `Host *` that points at the 1Password agent. These hosts never prompt.
-Host github.com win-dev local.schmas.com
   IdentityFile ~/.ssh/id_agent
   IdentitiesOnly yes
   IdentityAgent none

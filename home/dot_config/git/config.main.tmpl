@@ -18,7 +18,8 @@ signingkey = {{ onepasswordRead "op://Dotfiles/e7qsp6u5my2gxxaqsdkyas6dt4/public
 {{- end }}
 {{- if .is_wsl }}
 [core]
-  # Bitbucket) keep ssh.exe and the Windows 1Password agent.
+  # WSL: github.com and Bitbucket use Linux ssh and the agent key. Other
+  # hosts keep ssh.exe and the Windows 1Password agent.
   sshCommand = {{ .chezmoi.homeDir }}/bin/git-ssh-wsl
 {{- end }}
 

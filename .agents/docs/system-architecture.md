@@ -112,4 +112,3 @@ and self-updates thereafter.
 | Single Brewfile manifest | One owner for packages across OSes |
 | Secrets via 1Password templates | Keep the repo publishable |
 | `.chezmoiignore` for platform gating | One tree, many machine classes |
-| Per-machine agent SSH key on disk for github.com, win-dev, local.schmas.com | Unattended agents push, pull, sign and SSH with no 1Password prompt. Each machine has its own key in 1Password vault `Agent` (item from `.chezmoitemplates/agent-key-item`), so a leak revokes one key. All other hosts stay on the 1Password agent. `~/.ssh/agent_config` must be the first `Include` in `~/.ssh/config`: ssh keeps the first value it reads. On WSL, `git-ssh-wsl` sends github.com to Linux ssh and every other host to `ssh.exe` |
