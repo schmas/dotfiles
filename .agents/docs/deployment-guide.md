@@ -27,6 +27,24 @@ The bootstrap scripts themselves live outside this repo (GitHub gists, kept in
 sync from `home/bin/executable_sync-bootstrap-gist.sh`); the in-repo copies are
 `home/bin/executable_bootstrap-*.sh`.
 
+## Packs (optional, after 1Password and GitHub)
+
+Packs are private chezmoi instances (see
+[System Architecture](./system-architecture.md#packs-private-chezmoi-instances)).
+Install them after the public apply, when `op` is signed in and git can reach
+GitHub:
+
+```bash
+czp install <pack-git-url>             # clone, config, overlap check, apply
+czp install --no-apply <pack-git-url>  # clone and report overlaps only
+czp check                              # verify no target has two owners
+```
+
+`czp install` stops before it clones if `op` is not signed in or the URL is not
+reachable, and stops if the pack is already installed. To remove a pack, delete
+`~/.local/share/chezmoi-<name>` and `~/.config/chezmoi-<name>`, and remove the
+files and drop-ins that the pack wrote.
+
 ## Init prompts
 
 `chezmoi init` collects machine shape via `home/.chezmoi.yaml.tmpl`:
@@ -66,6 +84,7 @@ refresh. The `upall-classic` bash fallback ships in `home/bin/`.
 chezmoi status   # preview drift
 chezmoi update   # pull remote + apply
 upall            # update brew, mise, rust, chezmoi, fisher
+czp update       # chezmoi update on the public repo and every pack
 ```
 
 ## Troubleshooting

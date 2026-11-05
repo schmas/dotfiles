@@ -57,6 +57,26 @@ the lowest prefix its dependencies allow. Owning table:
 [System Architecture](./.agents/docs/system-architecture.md#shell-configuration-numeric-load-order).
 
 
+## Packs (private chezmoi instances)
+
+Private files live in **packs**: separate private repos, each a full chezmoi
+source run as its own instance (source `~/.local/share/chezmoi-<name>`, config
+`~/.config/chezmoi-<name>/chezmoi.toml`). This repo never names a pack and never
+depends on one.
+
+- `czm` = chezmoi on this repo. `czm-<short>` = chezmoi on one pack (owned by
+  the pack). `czp` = all instances: `install <url>`, `list`, `check`, `update`,
+  `apply`, `diff`, `status`.
+- Never add a file here that a pack manages, and never make a pack manage a
+  file this repo manages. Run `czp check` after such a change.
+- Drop-in points for packs: `~/.ssh/config.d/*`, `~/.config/env/*.env`,
+  `~/.config/path/*.path`, `~/.config/upall/steps.d/*.toml`,
+  `~/.config/worktrunk/post-start.d/*`, shell `conf.d`/`functions`/`completions`,
+  `~/bin`. Owning table:
+  [System Architecture](./.agents/docs/system-architecture.md#packs-private-chezmoi-instances).
+- Tests for `czm`/`czp`: `bash tests/czm.test.sh && bash tests/czp.test.sh`
+  (`tests/` is outside the source root, so it is never applied).
+
 ## Key Directories
 
 ```

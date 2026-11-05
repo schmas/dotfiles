@@ -124,6 +124,30 @@ After it finishes, run `ssh-copy-id -p 2222 <user>@<windows-lan-ip>` once from y
 chezmoi init --apply https://github.com/schmas/dotfiles.git
 ```
 
+### Packs (optional private add-ons)
+
+A pack is a private git repo that is a normal chezmoi source, run as its own
+chezmoi instance. It adds files that must not be in this public repo. This repo
+builds a complete machine without any pack.
+
+Install a pack once per machine, after 1Password and GitHub access work:
+
+```bash
+czp install <pack-git-url>   # clone, write its config, check overlaps, apply
+czp list                     # installed packs and their commands
+czp update                   # chezmoi update on this repo, then on every pack
+```
+
+| Command | Acts on |
+|---|---|
+| `czm <chezmoi args>` | this repo (same as `chezmoi`) |
+| `czm-<short> <chezmoi args>` | one pack (the pack installs this script) |
+| `czp install \| list \| check \| update \| apply \| diff \| status` | all instances |
+
+Rule: no two instances manage the same file. `czp check` lists every target
+that more than one instance manages. `czp update` and `czp apply` stop on a
+conflict. See [System Architecture](./.agents/docs/system-architecture.md#packs-private-chezmoi-instances).
+
 ### Initial Setup Prompts
 
 During `chezmoi init`, you'll answer prompts owned by `home/.chezmoi.yaml.tmpl`:

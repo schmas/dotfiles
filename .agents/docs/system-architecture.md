@@ -102,6 +102,42 @@ file is commented out. `upall`, the one artifact that used to live here, is now
 installed by `home/.chezmoiscripts/01-common/run_once_after_05.5-upall-install.sh.tmpl`
 and self-updates thereafter.
 
+## Packs: private chezmoi instances
+
+A pack is a private git repo that is a normal chezmoi source, run as its own
+chezmoi instance. Packs hold files that must not be public. The public repo
+builds a complete machine alone, names no pack, and never depends on one. A
+pack may depend on files the public repo writes.
+
+- Layout per pack `<name>`: source `~/.local/share/chezmoi-<name>`, config
+  `~/.config/chezmoi-<name>/chezmoi.toml` with `sourceDir` and its own
+  `persistentState` (state file in the same directory). `<name>` is the repo
+  name without `.git` and without the `dotfiles-` prefix.
+- Commands: `czm` (public, `home/bin/executable_czm`), `czm-<short>` (one pack,
+  a script in the pack), `czp` (all instances, `home/bin/executable_czp`). `czp`
+  finds packs by directory: a pack counts only if its `chezmoi.toml` exists. An
+  optional repo-root `.czp` file (`command=<czm-short>`) names the pack's
+  command for `czp list`.
+- Order: public first, then packs in name order. One failed instance does not
+  stop the others; `czp` exits non-zero and names the failed instances.
+- Overlap rule: no two instances manage the same file or symlink target.
+  `czp check` compares `chezmoi managed` of every instance. `czp update`,
+  `czp apply` and `czp install` stop on a conflict (`install --no-apply` only
+  reports it). Shared directories (`~/bin`, `conf.d`, ...) are not conflicts.
+
+Drop-in points (the public side never names a pack):
+
+| Shared target | Drop-in | Who adds it |
+|---|---|---|
+| `~/.ssh/config` (unmanaged) | `Include ~/.ssh/config.d/*` directly below the agent Include, above every `Host` block | public: `etc/ssh_config.template` and the local-files script |
+| `~/.config/git/config` (unmanaged) | `[include] path = ~/.config/git/pack-<name>.gitconfig` | the pack's script, with `git config --file`, only if missing |
+| `~/.config/1Password/ssh/agent.toml` | public file is `create_` (written once, never changed), so a pack script can add its `[[ssh-keys]]` block between markers | the pack |
+| Brewfile | the pack's own Brewfile and `brew bundle` script | the pack |
+| upall | `~/.config/upall/steps.d/chezmoi-<name>.toml` running `czm-<short> update` | the pack |
+| worktrunk `post-start` | executables in `~/.config/worktrunk/post-start.d/`, called with `<primary_worktree> <worktree>` | the pack |
+| env, PATH | `~/.config/env/*.env`, `~/.config/path/*.path` | the pack |
+| `~/bin`, shell `conf.d`, `functions`, `completions` | the pack's own files | the pack |
+
 ## Decision ledger
 
 | Decision | Rationale |
@@ -112,3 +148,4 @@ and self-updates thereafter.
 | Single Brewfile manifest | One owner for packages across OSes |
 | Secrets via 1Password templates | Keep the repo publishable |
 | `.chezmoiignore` for platform gating | One tree, many machine classes |
+| Packs: private chezmoi instances (`czm`, `czm-<short>`, `czp`) | Keep the repo public and standalone while private files stay in private repos. One instance per repo, so path commands (`add`, `edit`, `forget`) act on one named repo. Scripts, not aliases, so they work in every shell, in scripts, in upall and for agents. `czp check` enforces that no target has two owners |

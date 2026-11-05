@@ -31,6 +31,7 @@ excluded from apply (`home/.chezmoiignore`).
 | Package manifest (brews + casks) | `dot_config/etc/Brewfile.tmpl` |
 | Other app configs (git, tmux, zellij, atuin, …) | `dot_config/` |
 | Utility scripts | `bin/` (macOS-only in `bin/macos/`) |
+| Pack commands (`czm`, `czp`) | `bin/executable_czm`, `bin/executable_czp`; tests in repo-root `tests/` |
 | Editor configs (IdeaVim, Vim, Zed, LVim) | `dot_ideavimrc`, `dot_vimrc`, `dot_config/zed`, `dot_config/lvim` |
 | Secrets (SSH, GPG agent, gitconfig) | `dot_config/etc/*.tmpl`, `private_dot_ssh/` |
 

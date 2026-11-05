@@ -427,6 +427,8 @@ Zsh includes all the Bash aliases plus the following:
 | Script                         | Description                             |
 | ------------------------------ | --------------------------------------- |
 | `brewup`                       | Updates Homebrew packages               |
+| `czm`                          | `chezmoi` on the public dotfiles (a script, so it also works in scripts and for agents) |
+| `czp`                          | chezmoi on every instance (public + packs): `install <url> [--no-apply]`, `list [--names]`, `check`, `update`, `apply`, `diff`, `status` |
 | `fix-zsh-insecure`             | Fixes zsh insecure directory warnings   |
 | `osupdate.tmpl`                | OS-specific update script template      |
 | `setup-atuin`                  | Sets up Atuin shell history             |
