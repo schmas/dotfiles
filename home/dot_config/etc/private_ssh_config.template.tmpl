@@ -1,7 +1,4 @@
-# Hosts on the per-machine agent key. Keep this above every Host block.
-Include ~/.ssh/agent_config
-
-# Hosts from packs (private chezmoi instances). Keep this above every Host block.
+# Host drop-ins: 00-machine (this machine's key), then pack files. Keep this above every Host block.
 Include ~/.ssh/config.d/*
 
 # Keep idle SSH sessions alive across NAT/port-proxy idle timeouts, but give up

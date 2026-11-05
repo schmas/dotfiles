@@ -1,0 +1,10 @@
+{{- /*
+  Per-machine SSH key, written as a plain file so ssh and git signing use it
+  without a 1Password approval prompt, for you and for agents. Scope: the
+  ~/.ssh/config.d/00-machine hosts and git commit signing only.
+  Do not export other keys this way from this repo.
+*/ -}}
+{{- $item := includeTemplate "machine-key-item" . | trim -}}
+{{- if $item -}}
+{{ onepasswordRead (printf "op://Machine/%s/private key?ssh-format=openssh" $item) | trim }}
+{{ end -}}

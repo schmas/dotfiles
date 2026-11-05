@@ -1,0 +1,12 @@
+{{- if includeTemplate "machine-key-item" . | trim -}}
+# Hosts that use this machine's key (~/.ssh/id_machine, 1Password vault
+# "Machine"). ~/.ssh/config includes ~/.ssh/config.d/* above every Host block,
+# and ssh reads these files in name order and keeps the first value it reads
+# for each option. So `IdentityAgent none` here wins over pack files and over
+# the later `Host *` that points at the 1Password agent. These hosts never
+# prompt. Packs must name their files so they sort after "00-machine".
+Host github.com bitbucket.org ssh.bitbucket.org win-dev local.schmas.com
+  IdentityFile ~/.ssh/id_machine
+  IdentitiesOnly yes
+  IdentityAgent none
+{{ end -}}

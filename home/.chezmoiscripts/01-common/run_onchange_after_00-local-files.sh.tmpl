@@ -97,24 +97,70 @@ ssh_top_include() {
   rm -f "$tmp"
   chmod 600 "$file"
 }
+# ssh_drop_include <file> <line>: remove <line>, the comment lines directly
+# above it and one blank line after it. Return 0 if the file changed, else 1.
+ssh_drop_include() {
+  local file="$1" want="$2" tmp
+  tmp=$(mktemp)
+  awk -v want="$want" '
+    { l[NR] = $0 }
+    END {
+      n = 0
+      for (i = 1; i <= NR; i++) {
+        if (l[i] == want) {
+          while (n > 0 && out[n] ~ /^[ \t]*#/) n--
+          if (l[i + 1] == "") i++
+          continue
+        }
+        out[++n] = l[i]
+      }
+      for (i = 1; i <= n; i++) print out[i]
+    }' "$file" >"$tmp"
+  if cmp -s "$file" "$tmp"; then
+    rm -f "$tmp"
+    return 1
+  fi
+  cat "$tmp" >"$file"
+  rm -f "$tmp"
+  chmod 600 "$file"
+}
+# ssh_replace_line <file> <old> <new>: replace every line equal to <old> with
+# <new>. Return 0 if the file changed, else 1.
+ssh_replace_line() {
+  local file="$1" old="$2" new="$3" tmp
+  tmp=$(mktemp)
+  awk -v old="$old" -v new="$new" '{ print ($0 == old ? new : $0) }' "$file" >"$tmp"
+  if cmp -s "$file" "$tmp"; then
+    rm -f "$tmp"
+    return 1
+  fi
+  cat "$tmp" >"$file"
+  rm -f "$tmp"
+  chmod 600 "$file"
+}
 # <<< ssh_top_include <<<
 
-# ssh keeps the first value it reads, so the per-machine agent key Include must
-# come before a `Host *` that points at the 1Password agent.
-if ssh_top_include ~/.ssh/config "Include ~/.ssh/agent_config" \
-  "# Hosts on the per-machine agent key. Keep this above every Host block."; then
-  echo "Moved the agent key Include above every Host block in ~/.ssh/config"
-  CREATED=1
-fi
-
-# Packs (private chezmoi instances) add host files to ~/.ssh/config.d/.
+# Host drop-ins live in ~/.ssh/config.d/: 00-machine (this machine's key,
+# written by chezmoi) and the pack files. ssh reads them in name order and
+# keeps the first value it reads, so the Include goes above every Host block.
 if [ ! -d ~/.ssh/config.d ]; then
   mkdir -p ~/.ssh/config.d
   chmod 700 ~/.ssh/config.d
 fi
 if ssh_top_include ~/.ssh/config "Include ~/.ssh/config.d/*" \
-  "# Hosts from packs (private chezmoi instances). Keep this above every Host block."; then
-  echo "Moved the pack Include above every Host block in ~/.ssh/config"
+  "# Host drop-ins: 00-machine (this machine's key), then pack files. Keep this above every Host block."; then
+  echo "Moved the config.d Include above every Host block in ~/.ssh/config"
+  CREATED=1
+fi
+if ssh_replace_line ~/.ssh/config \
+  "# Hosts from packs (private chezmoi instances). Keep this above every Host block." \
+  "# Host drop-ins: 00-machine (this machine's key), then pack files. Keep this above every Host block."; then
+  echo "Updated the config.d Include comment in ~/.ssh/config"
+  CREATED=1
+fi
+# The machine key hosts moved from ~/.ssh/agent_config to config.d/00-machine.
+if ssh_drop_include ~/.ssh/config "Include ~/.ssh/agent_config"; then
+  echo "Removed the old agent_config Include from ~/.ssh/config"
   CREATED=1
 fi
 

@@ -1,7 +1,7 @@
 {{- if .is_wsl -}}
 #!/usr/bin/env bash
 # git core.sshCommand on WSL. github.com and Bitbucket go to Linux ssh, which
-# uses the per-machine agent key (~/.ssh/id_agent) with no approval prompt.
+# uses the per-machine key (~/.ssh/id_machine) with no approval prompt.
 # Every other host goes to ssh.exe and the Windows 1Password agent.
 for arg in "$@"; do
   case "$arg" in

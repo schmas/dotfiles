@@ -33,3 +33,9 @@ bin/ak-reapply-claude-naming
 # ELI5-v2 output style retired: replies use the built-in Concise style plus
 # .claude/rules/plain-english.md.
 .claude/output-styles/ELI5-v2.md
+
+# The per-machine key was renamed from "agent" to "machine": its hosts moved to
+# ~/.ssh/config.d/00-machine and the key to ~/.ssh/id_machine.
+.ssh/agent_config
+.ssh/id_agent
+.ssh/id_agent.pub

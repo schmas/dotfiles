@@ -1,4 +1,0 @@
-{{- $item := includeTemplate "agent-key-item" . | trim -}}
-{{- if $item -}}
-{{ onepasswordRead (printf "op://Agent/%s/public key" $item) | trim }}
-{{ end -}}

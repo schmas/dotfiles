@@ -1,0 +1,4 @@
+{{- $item := includeTemplate "machine-key-item" . | trim -}}
+{{- if $item -}}
+{{ onepasswordRead (printf "op://Machine/%s/public key" $item) | trim }}
+{{ end -}}

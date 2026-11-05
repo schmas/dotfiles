@@ -1,24 +1,24 @@
-{{- $agentKey := includeTemplate "agent-key-item" . | trim -}}
+{{- $machineKey := includeTemplate "machine-key-item" . | trim -}}
 [user]
 name = {{ onepasswordRead "op://dotfiles/dotfiles_data/git/name" }}
 email = {{ onepasswordRead "op://dotfiles/dotfiles_data/git/email" }}
-{{- if $agentKey }}
-# Sign with this machine's agent key file (1Password vault "Agent", written by
+{{- if $machineKey }}
+# Sign with this machine's key file (1Password vault "Machine", written by
 # chezmoi). git's default signer, ssh-keygen, reads it with no approval prompt.
-signingkey = {{ .chezmoi.homeDir }}/.ssh/id_agent
+signingkey = {{ .chezmoi.homeDir }}/.ssh/id_machine
 {{- else }}
 signingkey = {{ onepasswordRead "op://Dotfiles/e7qsp6u5my2gxxaqsdkyas6dt4/public key" }}
 {{- end }}
 
 [gpg]
   format = ssh
-{{- if $agentKey }}
+{{- if $machineKey }}
 [gpg "ssh"]
   allowedSignersFile = ~/.ssh/allowed_signers
 {{- end }}
 {{- if .is_wsl }}
 [core]
-  # WSL: github.com and Bitbucket use Linux ssh and the agent key. Other
+  # WSL: github.com and Bitbucket use Linux ssh and the machine key. Other
   # hosts keep ssh.exe and the Windows 1Password agent.
   sshCommand = {{ .chezmoi.homeDir }}/bin/git-ssh-wsl
 {{- end }}

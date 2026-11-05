@@ -1,0 +1,12 @@
+{{- /*
+  1Password item (vault "Machine") that holds this machine's SSH key, by item
+  ID so a title change does not break it. Empty on machines without one, so
+  the key templates render nothing there.
+    rolebxikgmvdi2j3ydjnxd365u  Machine Key mac
+    joqpxowvvpqwabvvxmzhgh2kqi  Machine Key win-dev
+*/ -}}
+{{- if eq .chezmoi.os "darwin" -}}
+rolebxikgmvdi2j3ydjnxd365u
+{{- else if .is_wsl -}}
+joqpxowvvpqwabvvxmzhgh2kqi
+{{- end -}}
