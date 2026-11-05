@@ -71,7 +71,8 @@ assert_contains "$(czp status 2>&1)" ".x" "status: shows the pack's pending targ
 
 # --- install ----------------------------------------------------------------
 
-assert_eq hs "$(czp _name https://github.com/schmas/dotfiles-hs)" "name: https URL without .git"
+assert_eq foo "$(czp _name git@github.com:someone/dotfiles-foo.git)" "name: ssh URL"
+assert_eq bar "$(czp _name https://github.com/someone/dotfiles-bar)" "name: https URL without .git"
 assert_eq demo "$(czp _name "file:///some path/dotfiles-demo.git/")" "name: file URL with a trailing slash"
 assert_status 1 "name: rejects main" -- czp _name git@github.com:me/dotfiles-main.git
 
@@ -108,5 +109,18 @@ make_home; repo="$(make_remote_pack demo x)"; fake_op signed-in; add_public x
 code=0; out="$(czp install --no-apply "$repo" 2>&1)" || code=$?
 assert_eq 0 "$code" "install --no-apply: overlap is reported, exit 0"
 assert_contains "$out" "/.x: main demo" "install --no-apply: prints the overlap"
+
+# --- update: overlap that arrives with the pull ------------------------------
+
+make_home; add_public y; git_public; repo="$(make_remote_pack demo x)"; fake_op signed-in
+czp install "$repo" >/dev/null 2>&1
+push_to_pack "$repo" y pack
+code=0; out="$(czp update 2>&1)" || code=$?
+assert_eq 1 "$code" "update: an overlap pulled from upstream exits 1"
+assert_contains "$out" "/.y: main demo" "update: prints the pulled overlap"
+assert_eq no "$([ "$(cat "$HOME/.y" 2>/dev/null)" = pack ] && echo yes || echo no)" "update: pack does not overwrite the public target"
+
+make_home; git_public
+assert_status 0 "update: no packs updates main only" -- czp update
 
 finish
