@@ -1,7 +1,7 @@
 {{- /*
   Per-machine agent key, written as a plain file so ssh and git signing use it
-  without a 1Password approval prompt. Scope: github.com, win-dev and
-  local.schmas.com only (see agent_config). Never export another key this way.
+  without a 1Password approval prompt. Scope: the agent_config hosts only.
+  this way. Do not add more.
 */ -}}
 {{- $item := includeTemplate "agent-key-item" . | trim -}}
 {{- if $item -}}
