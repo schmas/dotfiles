@@ -459,7 +459,6 @@ cython_debug/
 
 .omc
 .ck-*/
-AGENTS.md
 .claude/session-state
 .claude/settings.local.json
 .claude/agent-memory/

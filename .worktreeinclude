@@ -7,9 +7,9 @@
 #
 # A subset of the AI-agent state home/bin/wt-sync-agent-files keeps converged
 # between existing worktrees (see wt-sync-all): only the entries that are
-# actually gitignored here, since Orca skips anything else. CLAUDE.md and
-# AGENTS.md aren't listed for the same reason -- they're tracked in git, so
-# every worktree already has them.
+# actually gitignored here, since Orca skips anything else. AGENTS.md isn't
+# listed for the same reason -- it's tracked in git, so every worktree already
+# has it.
 
 .omc
 .agents/
