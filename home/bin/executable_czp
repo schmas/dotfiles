@@ -1,0 +1,138 @@
+#!/usr/bin/env bash
+# czp: run chezmoi on the public dotfiles and on every installed pack.
+#
+# A pack is a private chezmoi source, run as its own chezmoi instance:
+#   source  ~/.local/share/chezmoi-<name>
+#   config  ~/.config/chezmoi-<name>/chezmoi.toml  (state file next to it)
+# The public instance is called "main". Packs are found by directory only.
+# Run `czp help` for the commands.
+
+set -uo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: czp <command> [args]
+
+Commands:
+  install <url> [--no-apply]  Clone a pack, write its config, check overlaps, apply
+  list [--names]              List the installed packs
+  check                       Fail if two instances manage the same target
+  update | apply | diff | status [args]
+                              Run on main, then on each pack in name order
+
+Per-instance commands: czm (main), czm-<short> (one pack).
+EOF
+}
+
+die() {
+  printf 'czp: %s\n' "$*" >&2
+  exit 1
+}
+
+# czp_packs: installed pack names, one per line, sorted.
+# A pack counts only if its config file exists.
+czp_packs() {
+  local cfg name
+  for cfg in "$HOME"/.config/chezmoi-*/chezmoi.toml; do
+    [ -f "$cfg" ] || continue
+    name="${cfg%/chezmoi.toml}"
+    name="${name##*/chezmoi-}"
+    printf '%s\n' "$name"
+  done | LC_ALL=C sort
+}
+
+# czp_instances: main first, then the packs.
+czp_instances() {
+  printf 'main\n'
+  czp_packs
+}
+
+czp_source() { printf '%s\n' "$HOME/.local/share/chezmoi-$1"; }
+czp_config_dir() { printf '%s\n' "$HOME/.config/chezmoi-$1"; }
+
+# czp_chezmoi <instance> <args...>: run chezmoi for one instance.
+czp_chezmoi() {
+  local inst="$1"
+  shift
+  if [ "$inst" = main ]; then
+    chezmoi "$@"
+  else
+    chezmoi --source "$(czp_source "$inst")" \
+      --config "$(czp_config_dir "$inst")/chezmoi.toml" "$@"
+  fi
+}
+
+# czp_command <pack>: the per-pack command from the pack's .czp file, or "-".
+czp_command() {
+  local f line
+  f="$(czp_source "$1")/.czp"
+  if [ -f "$f" ]; then
+    line="$(grep -m1 '^command=' "$f" 2>/dev/null)"
+    [ -n "$line" ] && {
+      printf '%s\n' "${line#command=}"
+      return
+    }
+  fi
+  printf -- '-\n'
+}
+
+cmd_list() {
+  local names_only=0 inst packs
+  [ "${1:-}" = "--names" ] && names_only=1
+  packs="$(czp_packs)"
+  if [ "$names_only" -eq 1 ]; then
+    [ -n "$packs" ] && printf '%s\n' "$packs"
+    return 0
+  fi
+  if [ -z "$packs" ]; then
+    printf 'czp: no packs installed\n'
+    return 0
+  fi
+  while IFS= read -r inst; do
+    printf '%-16s %-16s %s\n' "$inst" "$(czp_command "$inst")" "$(czp_source "$inst")"
+  done <<<"$packs"
+}
+
+# czp_check: print every target that more than one instance manages.
+# Exit 0 and print one OK line if there is none, else exit 1.
+czp_check() {
+  local tmp inst n=0 conflicts
+  tmp="$(mktemp "${TMPDIR:-/tmp}/czp-check.XXXXXX")" || die "cannot create a temp file"
+  while IFS= read -r inst; do
+    n=$((n + 1))
+    if ! czp_chezmoi "$inst" managed --path-style absolute --include files,symlinks \
+      | awk -v inst="$inst" '{ print $0 "\t" inst }' >>"$tmp"; then
+      rm -f "$tmp"
+      printf 'czp: cannot list the targets of instance "%s"\n' "$inst" >&2
+      return 1
+    fi
+  done < <(czp_instances)
+  # Stable sort keeps the instance order (main, then packs) inside a target.
+  conflicts="$(LC_ALL=C sort -s -t "$(printf '\t')" -k1,1 "$tmp" | awk -F '\t' '
+    $1 == prev { line = line " " $2; c++; next }
+    { if (c > 1) print line; prev = $1; line = $1 ": " $2; c = 1 }
+    END { if (c > 1) print line }')"
+  rm -f "$tmp"
+  if [ -n "$conflicts" ]; then
+    printf '%s\n' "$conflicts"
+    printf 'czp: these targets are managed by more than one instance\n' >&2
+    return 1
+  fi
+  printf 'czp: no overlaps (%d instances)\n' "$n"
+}
+
+main() {
+  local sub="${1:-}"
+  [ $# -gt 0 ] && shift
+  case "$sub" in
+    list) cmd_list "$@" ;;
+    check) czp_check ;;
+    help | -h | --help) usage ;;
+    *)
+      usage >&2
+      exit 2
+      ;;
+  esac
+}
+
+main "$@"
