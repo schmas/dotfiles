@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Supacode worktree lifecycle hook dispatcher.
 # Mirrors the worktrunk agent-file sync + protected-branch guard for Supacode.
-# Reuses wt-sync-agent-files (newest-file-wins rsync) for the actual copy.
+# Reuses wt-sync-agent-files (newest-file-wins rsync) for the actual copy, and
+# runs the ~/.config/worktrunk/post-start.d/ drop-ins on setup.
 #
 # Wired from each repo's supacode.json:
 #   "setupScript":   "$HOME/bin/supacode-worktree-hook setup"
@@ -33,7 +34,10 @@ guard_protected_branch() {
 case "$event" in
   setup)
     wt-sync-agent-files "$primary" "$current"
-    wt-seed-mise-config "$primary" "$current"
+    # Same drop-ins as worktrunk's post-start: packs add executables here.
+    for hook in "$HOME"/.config/worktrunk/post-start.d/*; do
+      if [ -x "$hook" ]; then "$hook" "$primary" "$current"; fi
+    done
     ;;
   archive | delete)
     guard_protected_branch
