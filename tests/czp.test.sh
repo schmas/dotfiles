@@ -110,6 +110,15 @@ code=0; out="$(czp install --no-apply "$repo" 2>&1)" || code=$?
 assert_eq 0 "$code" "install --no-apply: overlap is reported, exit 0"
 assert_contains "$out" "/.x: main demo" "install --no-apply: prints the overlap"
 
+make_home; repo="$(make_remote_pack demo x)"; fake_op signed-in
+printf 'onepassword:\n  command: "%s"\n' "$HOME/bin/op" >>"$HOME/.config/chezmoi/chezmoi.yaml"
+czp install --no-apply "$repo" >/dev/null 2>&1
+assert_contains "$(cat "$HOME/.config/chezmoi-demo/chezmoi.toml" 2>/dev/null)" "command = \"$HOME/bin/op\"" "install: copies onepassword.command from the main config"
+
+make_home; repo="$(make_remote_pack demo x)"; fake_op signed-in
+czp install --no-apply "$repo" >/dev/null 2>&1
+assert_eq 0 "$(grep -c onepassword "$HOME/.config/chezmoi-demo/chezmoi.toml")" "install: no onepassword section for the default op"
+
 # --- update: overlap that arrives with the pull ------------------------------
 
 make_home; add_public y; git_public; repo="$(make_remote_pack demo x)"; fake_op signed-in

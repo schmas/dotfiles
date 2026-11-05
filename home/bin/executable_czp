@@ -160,7 +160,7 @@ toml_str() {
 
 # cmd_install <url> [--no-apply]
 cmd_install() {
-  local url="" no_apply=0 arg name src cfg
+  local url="" no_apply=0 arg name src cfg op_cmd
   for arg in "$@"; do
     case "$arg" in
       --no-apply) no_apply=1 ;;
@@ -191,9 +191,15 @@ cmd_install() {
 
   git clone -q "$url" "$src" || die "git clone of $url failed"
   mkdir -p "$cfg" || die "cannot create $cfg"
+  # Packs read secrets too: use the same 1Password CLI as the main instance
+  # (on WSL that is the bridge to the Windows app, not a Linux op).
+  op_cmd="$(chezmoi execute-template '{{ .chezmoi.config.onepassword.command }}' 2>/dev/null || true)"
   {
     printf 'sourceDir = %s\n' "$(toml_str "$src")"
     printf 'persistentState = %s\n' "$(toml_str "$cfg/chezmoistate.boltdb")"
+    if [ -n "$op_cmd" ] && [ "$op_cmd" != "op" ]; then
+      printf '\n[onepassword]\ncommand = %s\n' "$(toml_str "$op_cmd")"
+    fi
   } >"$cfg/chezmoi.toml" || die "cannot write $cfg/chezmoi.toml"
   printf 'czp: installed pack "%s" in %s\n' "$name" "$src"
 
