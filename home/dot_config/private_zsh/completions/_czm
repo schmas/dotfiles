@@ -1,0 +1,4 @@
+#compdef czm
+# czm wraps chezmoi; reuse chezmoi's completion (it calls `czm __complete`).
+(( $+functions[_chezmoi] )) || source <(chezmoi completion zsh)
+_chezmoi "$@"

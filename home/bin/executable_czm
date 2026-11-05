@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# czm: chezmoi for the public dotfiles instance. Packs have their own czm-<short>.
+exec chezmoi "$@"
