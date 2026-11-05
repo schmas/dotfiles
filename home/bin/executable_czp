@@ -136,10 +136,86 @@ czp_fanout() {
   fi
 }
 
+# czp_pack_name <url>: repo basename without ".git" and without "dotfiles-".
+czp_pack_name() {
+  local n="${1%/}"
+  n="${n##*/}"
+  n="${n##*:}"
+  n="${n%.git}"
+  n="${n#dotfiles-}"
+  case "$n" in
+    "" | main | *[!A-Za-z0-9._-]* | .*)
+      printf 'czp: cannot use "%s" as a pack name (from %s)\n' "$n" "$1" >&2
+      return 1
+      ;;
+  esac
+  printf '%s\n' "$n"
+}
+
+# toml_str <value>: a TOML basic string.
+toml_str() {
+  local v="${1//\\/\\\\}"
+  printf '"%s"' "${v//\"/\\\"}"
+}
+
+# cmd_install <url> [--no-apply]
+cmd_install() {
+  local url="" no_apply=0 arg name src cfg
+  for arg in "$@"; do
+    case "$arg" in
+      --no-apply) no_apply=1 ;;
+      -*) die "unknown option: $arg" ;;
+      *)
+        [ -z "$url" ] || die "install takes one URL"
+        url="$arg"
+        ;;
+    esac
+  done
+  [ -n "$url" ] || die "usage: czp install <url> [--no-apply]"
+  name="$(czp_pack_name "$url")" || exit 1
+  src="$(czp_source "$name")"
+  cfg="$(czp_config_dir "$name")"
+
+  # 1Password must work before anything is cloned: pack templates read secrets.
+  # With app integration, `op whoami` fails until a command unlocks the app,
+  # so try one read before giving up.
+  command -v op >/dev/null 2>&1 || die "1Password CLI (op) is not installed"
+  if ! op whoami >/dev/null 2>&1 && ! op vault list >/dev/null 2>&1; then
+    die "1Password CLI is not signed in. Run: op signin (or unlock the 1Password app), then retry"
+  fi
+  git ls-remote "$url" >/dev/null 2>&1 \
+    || die "cannot reach $url. Check GitHub access (gh auth login, ssh -T git@github.com), then retry"
+  if [ -e "$src" ] || [ -e "$cfg" ]; then
+    die "pack \"$name\" exists. To reinstall it, first run: rm -rf \"$src\" \"$cfg\""
+  fi
+
+  git clone -q "$url" "$src" || die "git clone of $url failed"
+  mkdir -p "$cfg" || die "cannot create $cfg"
+  {
+    printf 'sourceDir = %s\n' "$(toml_str "$src")"
+    printf 'persistentState = %s\n' "$(toml_str "$cfg/chezmoistate.boltdb")"
+  } >"$cfg/chezmoi.toml" || die "cannot write $cfg/chezmoi.toml"
+  printf 'czp: installed pack "%s" in %s\n' "$name" "$src"
+
+  if [ "$no_apply" -eq 1 ]; then
+    czp_check || true
+    printf 'czp: not applied (--no-apply). Apply with: czp apply\n'
+    return 0
+  fi
+  if ! czp_check; then
+    printf 'czp: pack "%s" is cloned but not applied, because of the overlaps above.\n' "$name" >&2
+    printf 'czp: fix them, or remove the pack with: rm -rf "%s" "%s"\n' "$src" "$cfg" >&2
+    return 1
+  fi
+  czp_chezmoi "$name" apply
+}
+
 main() {
   local sub="${1:-}"
   [ $# -gt 0 ] && shift
   case "$sub" in
+    install) cmd_install "$@" ;;
+    _name) czp_pack_name "${1:-}" ;;
     list) cmd_list "$@" ;;
     check) czp_check ;;
     update | apply)

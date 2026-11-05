@@ -69,4 +69,44 @@ make_home; make_pack a x
 assert_contains "$(czp diff 2>&1)" "== a ==" "diff: runs on the pack"
 assert_contains "$(czp status 2>&1)" ".x" "status: shows the pack's pending target"
 
+# --- install ----------------------------------------------------------------
+
+assert_eq hs "$(czp _name https://github.com/schmas/dotfiles-hs)" "name: https URL without .git"
+assert_eq demo "$(czp _name "file:///some path/dotfiles-demo.git/")" "name: file URL with a trailing slash"
+assert_status 1 "name: rejects main" -- czp _name git@github.com:me/dotfiles-main.git
+
+make_home; repo="$(make_remote_pack demo x)"; fake_op signed-in
+czp install "$repo" >/dev/null 2>&1
+assert_eq "hello" "$(cat "$HOME/.x" 2>/dev/null)" "install: applies the pack"
+assert_eq demo "$(czp list --names)" "install: pack is listed"
+cfg="$HOME/.config/chezmoi-demo/chezmoi.toml"
+assert_contains "$(cat "$cfg" 2>/dev/null)" "sourceDir = \"$HOME/.local/share/chezmoi-demo\"" "install: config has sourceDir"
+assert_contains "$(cat "$cfg" 2>/dev/null)" "persistentState = \"$HOME/.config/chezmoi-demo/chezmoistate.boltdb\"" "install: config has its own state file"
+assert_eq yes "$([ -f "$HOME/.config/chezmoi-demo/chezmoistate.boltdb" ] && echo yes || echo no)" "install: state file is in the pack config dir"
+assert_status 1 "install: stops if the pack exists" -- czp install "$repo"
+
+make_home; repo="$(make_remote_pack demo x)"; fake_op signed-in
+czp install --no-apply "$repo" >/dev/null 2>&1
+assert_eq no "$([ -e "$HOME/.x" ] && echo yes || echo no)" "install --no-apply: nothing applied"
+assert_eq demo "$(czp list --names)" "install --no-apply: pack is installed"
+
+make_home; repo="$(make_remote_pack demo x)"; fake_op signed-out
+assert_status 1 "install: stops when op is signed out" -- czp install "$repo"
+assert_eq no "$([ -d "$HOME/.local/share/chezmoi-demo" ] && echo yes || echo no)" "install: nothing cloned when op is signed out"
+assert_contains "$(czp install "$repo" 2>&1)" "op signin" "install: says how to sign in"
+
+make_home; fake_op signed-in
+assert_status 1 "install: stops on an unreachable URL" -- czp install "file:///nope/dotfiles-nope.git"
+assert_eq no "$([ -d "$HOME/.local/share/chezmoi-nope" ] && echo yes || echo no)" "install: nothing cloned for an unreachable URL"
+
+make_home; repo="$(make_remote_pack demo x)"; fake_op signed-in; add_public x
+assert_status 1 "install: stops on an overlap" -- czp install "$repo"
+assert_eq no "$([ -e "$HOME/.x" ] && echo yes || echo no)" "install: nothing applied on an overlap"
+assert_eq demo "$(czp list --names)" "install: pack stays cloned for inspection"
+
+make_home; repo="$(make_remote_pack demo x)"; fake_op signed-in; add_public x
+code=0; out="$(czp install --no-apply "$repo" 2>&1)" || code=$?
+assert_eq 0 "$code" "install --no-apply: overlap is reported, exit 0"
+assert_contains "$out" "/.x: main demo" "install --no-apply: prints the overlap"
+
 finish
