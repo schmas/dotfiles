@@ -193,12 +193,19 @@ cmd_install() {
   mkdir -p "$cfg" || die "cannot create $cfg"
   # Packs read secrets too: use the same 1Password CLI as the main instance
   # (on WSL that is the bridge to the Windows app, not a Linux op).
+  # On WSL the main config also sets prompt = false: chezmoi then skips
+  # `op signin`, and the bridge cannot reach the app right after a signin.
   op_cmd="$(chezmoi execute-template '{{ .chezmoi.config.onepassword.command }}' 2>/dev/null || true)"
+  op_prompt="$(chezmoi execute-template '{{ .chezmoi.config.onepassword.prompt }}' 2>/dev/null || true)"
   {
     printf 'sourceDir = %s\n' "$(toml_str "$src")"
     printf 'persistentState = %s\n' "$(toml_str "$cfg/chezmoistate.boltdb")"
-    if [ -n "$op_cmd" ] && [ "$op_cmd" != "op" ]; then
-      printf '\n[onepassword]\ncommand = %s\n' "$(toml_str "$op_cmd")"
+    if { [ -n "$op_cmd" ] && [ "$op_cmd" != "op" ]; } || [ "$op_prompt" = "false" ]; then
+      printf '\n[onepassword]\n'
+      if [ -n "$op_cmd" ] && [ "$op_cmd" != "op" ]; then
+        printf 'command = %s\n' "$(toml_str "$op_cmd")"
+      fi
+      [ "$op_prompt" = "false" ] && printf 'prompt = false\n'
     fi
   } >"$cfg/chezmoi.toml" || die "cannot write $cfg/chezmoi.toml"
   printf 'czp: installed pack "%s" in %s\n' "$name" "$src"

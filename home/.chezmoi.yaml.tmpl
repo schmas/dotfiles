@@ -63,6 +63,9 @@ edit:
 
 # WSL: the Linux op binary cannot reach the Windows 1Password desktop app, so
 # route secret reads through the op bridge (which calls op.exe via interop).
+# prompt: false skips `op signin`: app integration needs no session, and the
+# bridge cannot reach the app for the op call right after a signin.
 onepassword:
   command: "{{ .chezmoi.homeDir }}/.local/bin/op"
+  prompt: false
 {{ end -}}

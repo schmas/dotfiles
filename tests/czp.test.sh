@@ -119,6 +119,12 @@ make_home; repo="$(make_remote_pack demo x)"; fake_op signed-in
 czp install --no-apply "$repo" >/dev/null 2>&1
 assert_eq 0 "$(grep -c onepassword "$HOME/.config/chezmoi-demo/chezmoi.toml")" "install: no onepassword section for the default op"
 
+make_home; repo="$(make_remote_pack demo x)"; fake_op signed-in
+printf 'onepassword:\n  command: "%s"\n  prompt: false\n' "$HOME/bin/op" >>"$HOME/.config/chezmoi/chezmoi.yaml"
+czp install --no-apply "$repo" >/dev/null 2>&1
+assert_contains "$(cat "$HOME/.config/chezmoi-demo/chezmoi.toml" 2>/dev/null)" "prompt = false" "install: copies onepassword.prompt = false from the main config"
+assert_eq yes "$(chezmoi --config "$HOME/.config/chezmoi-demo/chezmoi.toml" execute-template '{{ .chezmoi.config.onepassword.prompt }}' 2>/dev/null | grep -qx false && echo yes || echo no)" "install: the pack config parses with prompt = false"
+
 # --- update: overlap that arrives with the pull ------------------------------
 
 make_home; add_public y; git_public; repo="$(make_remote_pack demo x)"; fake_op signed-in
