@@ -43,4 +43,30 @@ assert_contains "$out" "/.x: a b" "check: overlap between two packs"
 
 assert_status 2 "unknown subcommand exits 2" -- czp nope
 
+# --- fan-out: update / apply / diff / status --------------------------------
+
+make_home; make_pack b x; make_pack a y
+out="$(czp apply 2>&1)"
+assert_eq "== main ==|== a ==|== b ==" "$(grep '^==' <<<"$out" | paste -sd'|' -)" "apply: main first, then packs in name order"
+assert_eq "hello" "$(cat "$HOME/.x" 2>/dev/null)" "apply: writes pack b's target"
+assert_eq "hello" "$(cat "$HOME/.y" 2>/dev/null)" "apply: writes pack a's target"
+
+make_home; make_pack a x; make_pack b y; break_pack a
+code=0; out="$(czp apply 2>&1)" || code=$?
+assert_eq 1 "$code" "apply: one failed instance exits 1"
+assert_contains "$out" "czp: failed: a" "apply: names the failed instance"
+assert_eq "hello" "$(cat "$HOME/.y" 2>/dev/null)" "apply: b still applied after a failed"
+
+make_home; make_pack a x; add_public x
+assert_status 1 "apply: blocked by an overlap" -- czp apply
+assert_eq "no" "$([ -e "$HOME/.x" ] && echo yes || echo no)" "apply: nothing applied on an overlap"
+assert_status 1 "update: blocked by an overlap" -- czp update
+
+make_home
+assert_status 0 "diff: no packs is ok" -- czp diff
+assert_status 0 "status: no packs is ok" -- czp status
+make_home; make_pack a x
+assert_contains "$(czp diff 2>&1)" "== a ==" "diff: runs on the pack"
+assert_contains "$(czp status 2>&1)" ".x" "status: shows the pack's pending target"
+
 finish

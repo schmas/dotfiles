@@ -121,12 +121,32 @@ czp_check() {
   printf 'czp: no overlaps (%d instances)\n' "$n"
 }
 
+# czp_fanout <chezmoi-subcommand> [args...]: run on main, then each pack.
+# One failure does not stop the others. Exit 1 and name the failed instances.
+czp_fanout() {
+  local inst failed=""
+  # Read the list on fd 3, so chezmoi keeps the terminal on stdin for prompts.
+  while IFS= read -r inst <&3; do
+    printf '== %s ==\n' "$inst"
+    czp_chezmoi "$inst" "$@" || failed="$failed $inst"
+  done 3< <(czp_instances)
+  if [ -n "$failed" ]; then
+    printf 'czp: failed:%s\n' "$failed" >&2
+    return 1
+  fi
+}
+
 main() {
   local sub="${1:-}"
   [ $# -gt 0 ] && shift
   case "$sub" in
     list) cmd_list "$@" ;;
     check) czp_check ;;
+    update | apply)
+      czp_check || die "fix the overlaps above before you run czp $sub"
+      czp_fanout "$sub" "$@"
+      ;;
+    diff | status) czp_fanout "$sub" "$@" ;;
     help | -h | --help) usage ;;
     *)
       usage >&2
