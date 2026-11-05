@@ -57,45 +57,64 @@ if [ ! -f ~/.ssh/config ]; then
   CREATED=1
 fi
 
-# The one-time merge above appends, so a config merged before the agent key
-# existed lacks the Include, or has it below a `Host *` that points at the
-# 1Password agent. ssh keeps the first value it reads, so it must be first.
-AGENT_INCLUDE="Include ~/.ssh/agent_config"
-if ! grep -qxF "$AGENT_INCLUDE" ~/.ssh/config; then
-  echo "Adding the agent key Include to the top of ~/.ssh/config"
+# >>> ssh_top_include >>>
+# ssh_top_include <file> <line> <comment>: put <line> once above the first Host
+# or Match block of <file>, with <comment> above it. An Include inside a block
+# applies only to that block, and the one-time merge above appends the template
+# below the user's own blocks. A copy found lower down is moved up, and a line
+# equal to <comment> is removed there. Return 0 if the file changed, else 1.
+ssh_top_include() {
+  local file="$1" want="$2" comment="$3" tmp
   tmp=$(mktemp)
-  {
-    echo "# Hosts on the per-machine agent key. Keep this above every Host block: ssh"
-    echo "# keeps the first value it reads, so it wins over a later IdentityAgent."
-    echo "$AGENT_INCLUDE"
-    echo ""
-    cat ~/.ssh/config
-  } > "$tmp"
-  mv "$tmp" ~/.ssh/config
-  chmod 600 ~/.ssh/config
+  awk -v want="$want" -v comment="$comment" '
+    { l[NR] = $0 }
+    END {
+      h = NR + 1
+      for (i = 1; i <= NR; i++)
+        if (tolower(l[i]) ~ /^[ \t]*(host|match)([ \t=]|$)/) { h = i; break }
+      for (i = 1; i < h; i++)
+        if (l[i] == want) { for (k = 1; k <= NR; k++) print l[k]; exit }
+      # Insert above the comment lines directly above the first block.
+      p = h
+      while (p > 1 && l[p - 1] ~ /^[ \t]*#/) p--
+      for (i = 1; i < p; i++) print l[i]
+      print comment
+      print want
+      print ""
+      for (i = p; i <= NR; i++) {
+        if (l[i] == want || l[i] == comment) {
+          if (l[i] == want && l[i + 1] == "") i++
+          continue
+        }
+        print l[i]
+      }
+    }' "$file" >"$tmp"
+  if cmp -s "$file" "$tmp"; then
+    rm -f "$tmp"
+    return 1
+  fi
+  cat "$tmp" >"$file"
+  rm -f "$tmp"
+  chmod 600 "$file"
+}
+# <<< ssh_top_include <<<
+
+# ssh keeps the first value it reads, so the per-machine agent key Include must
+# come before a `Host *` that points at the 1Password agent.
+if ssh_top_include ~/.ssh/config "Include ~/.ssh/agent_config" \
+  "# Hosts on the per-machine agent key. Keep this above every Host block."; then
+  echo "Moved the agent key Include above every Host block in ~/.ssh/config"
   CREATED=1
 fi
 
-# Packs (private chezmoi instances) add host files to ~/.ssh/config.d/. The
-# Include goes directly below the agent Include, above every Host block.
-PACK_INCLUDE="Include ~/.ssh/config.d/*"
+# Packs (private chezmoi instances) add host files to ~/.ssh/config.d/.
 if [ ! -d ~/.ssh/config.d ]; then
   mkdir -p ~/.ssh/config.d
   chmod 700 ~/.ssh/config.d
 fi
-if ! grep -qxF "$PACK_INCLUDE" ~/.ssh/config; then
-  echo "Adding the pack Include below the agent key Include in ~/.ssh/config"
-  tmp=$(mktemp)
-  awk -v agent="$AGENT_INCLUDE" -v pack="$PACK_INCLUDE" '
-    { print }
-    $0 == agent && !done {
-      print ""
-      print "# Hosts from packs (private chezmoi instances). Keep this above every Host block."
-      print pack
-      done = 1
-    }' ~/.ssh/config > "$tmp"
-  mv "$tmp" ~/.ssh/config
-  chmod 600 ~/.ssh/config
+if ssh_top_include ~/.ssh/config "Include ~/.ssh/config.d/*" \
+  "# Hosts from packs (private chezmoi instances). Keep this above every Host block."; then
+  echo "Moved the pack Include above every Host block in ~/.ssh/config"
   CREATED=1
 fi
 

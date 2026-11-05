@@ -75,7 +75,8 @@ depends on one.
   `~/.config/worktrunk/post-start.d/*`, shell `conf.d`/`functions`/`completions`,
   `~/bin`. Owning table:
   [System Architecture](./.agents/docs/system-architecture.md#packs-private-chezmoi-instances).
-- Tests for `czm`/`czp`: `bash tests/czm.test.sh && bash tests/czp.test.sh`
+- Tests (`czm`, `czp`, the SSH Include move, the worktrunk drop-ins):
+  `for t in tests/*.test.sh; do bash "$t" || break; done`
   (`tests/` is outside the source root, so it is never applied).
 
 ## Key Directories

@@ -1,9 +1,7 @@
-# Hosts on the per-machine agent key. Keep this above every Host block: ssh
-# keeps the first value it reads, so it wins over a later IdentityAgent.
+# Hosts on the per-machine agent key. Keep this above every Host block.
 Include ~/.ssh/agent_config
 
-# Hosts from packs (private chezmoi instances). Each pack adds its own file to
-# ~/.ssh/config.d/. Keep this above every Host block, for the same reason.
+# Hosts from packs (private chezmoi instances). Keep this above every Host block.
 Include ~/.ssh/config.d/*
 
 # Keep idle SSH sessions alive across NAT/port-proxy idle timeouts, but give up
