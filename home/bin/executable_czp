@@ -218,9 +218,20 @@ main() {
     _name) czp_pack_name "${1:-}" ;;
     list) cmd_list "$@" ;;
     check) czp_check ;;
-    update | apply)
-      czp_check || die "fix the overlaps above before you run czp $sub"
-      czp_fanout "$sub" "$@"
+    update)
+      # Pull every instance first, so an overlap that arrives with the pull is
+      # found before any instance applies.
+      local rc=0
+      printf 'czp: pulling\n'
+      czp_fanout update --apply=false "$@" || rc=1
+      czp_check || die "fix the overlaps above, then run czp apply"
+      printf 'czp: applying\n'
+      czp_fanout apply "$@" || rc=1
+      return "$rc"
+      ;;
+    apply)
+      czp_check || die "fix the overlaps above before you run czp apply"
+      czp_fanout apply "$@"
       ;;
     diff | status) czp_fanout "$sub" "$@" ;;
     help | -h | --help) usage ;;

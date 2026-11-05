@@ -474,3 +474,5 @@ cython_debug/
 # otherwise drop home/bin/lib/, breaking upall/ck-update on fresh clones.
 !home/bin/lib/
 !home/bin/lib/upall-lib.sh
+# Track the shared helpers of the plain-bash tests in tests/.
+!tests/lib/

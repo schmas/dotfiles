@@ -121,9 +121,10 @@ pack may depend on files the public repo writes.
 - Order: public first, then packs in name order. One failed instance does not
   stop the others; `czp` exits non-zero and names the failed instances.
 - Overlap rule: no two instances manage the same file or symlink target.
-  `czp check` compares `chezmoi managed` of every instance. `czp update`,
-  `czp apply` and `czp install` stop on a conflict (`install --no-apply` only
-  reports it). Shared directories (`~/bin`, `conf.d`, ...) are not conflicts.
+  `czp check` compares `chezmoi managed` of every instance. `czp apply` and
+  `czp install` stop on a conflict (`install --no-apply` only reports it).
+  `czp update` pulls every instance first, then checks, then applies, so an
+  overlap that arrives with a pull never applies. Shared directories (`~/bin`, `conf.d`, ...) are not conflicts.
 
 Drop-in points (the public side never names a pack):
 
