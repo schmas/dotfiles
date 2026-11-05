@@ -56,6 +56,7 @@ Nothing may depend on a module with an equal or higher prefix; a new module take
 the lowest prefix its dependencies allow. Owning table:
 [System Architecture](./.agents/docs/system-architecture.md#shell-configuration-numeric-load-order).
 
+**Profile system:** `chezmoi init` prompts for `default` (full) or `server` (minimal). `is_p_ct` remains as a data flag but is not prompted. Owner: `home/.chezmoi.yaml.tmpl`.
 
 ## Packs (private chezmoi instances)
 

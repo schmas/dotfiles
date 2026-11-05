@@ -5,6 +5,7 @@
 # Every other host goes to ssh.exe and the Windows 1Password agent.
 for arg in "$@"; do
   case "$arg" in
+    github.com | *@github.com | bitbucket.org | *@bitbucket.org | ssh.bitbucket.org | *@ssh.bitbucket.org)
       exec /usr/bin/ssh "$@" ;;
   esac
 done

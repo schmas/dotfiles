@@ -284,7 +284,6 @@ This document provides a comprehensive reference for all aliases, functions, and
 | `clear_fish_welcome_message` | Clears the fish welcome message                                                    |
 | `fish_customization_setup`   | Sets up fish customizations                                                        |
 | `fish_user_key_bindings`     | Sets up custom key bindings for fish                                               |
-| `has_aws_token_expired`      | Checks if AWS token has expired                                                    |
 | `install-fisher`             | Installs the Fisher package manager for fish                                       |
 | `install-rust`               | Installs Rust                                                                      |
 | `my_fish_setup`              | Sets up fish shell                                                                 |
@@ -468,6 +467,3 @@ Zsh includes all the Bash aliases plus the following:
 | `wt-sync-all`          | Sync AI agent files across all worktrees, both directions (newest wins)    |
 | `wt-cleanup-leftovers` | Remove leftover worktree folders git no longer tracks (dry-run by default) |
 
-
-| Script         | Description                                                                                 |
-| -------------- | ------------------------------------------------------------------------------------------- |

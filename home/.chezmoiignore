@@ -18,9 +18,6 @@ Library
 bin/linux
 {{ end }}
 
-{{ if not (lookPath "claude") }}
-{{ end }}
-
 # television cable channels: `tv update-channels` owns the upstream defaults,
 # so chezmoi tracks only the channels we customized or authored. To track a new
 # custom channel, add a matching `!` un-ignore line below.

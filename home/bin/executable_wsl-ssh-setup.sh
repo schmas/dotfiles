@@ -126,8 +126,6 @@ vault = "Private"
 
 [[ssh-keys]]
 vault = "Dotfiles"
-
-[[ssh-keys]]
 AGENTEOF
 info "Written to %LOCALAPPDATA%\\1Password\\config\\ssh\\agent.toml"
 info "Restart 1Password on Windows for the change to take effect."

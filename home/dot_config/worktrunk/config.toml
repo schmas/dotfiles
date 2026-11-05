@@ -26,8 +26,6 @@ sync-agent-down = "wt-sync-agent-files {{ primary_worktree_path }} {{ worktree_p
 
 [post-start]
 copy = "wt step copy-ignored"
-# .mise.toml is no longer an ancestor. Seed it into ~/workspaces/<repo>/ so mise
-seed-mise = "wt-seed-mise-config {{ primary_worktree_path }} {{ worktree_path }}"
 # Packs (private chezmoi instances) add post-start hooks as executables in
 # ~/.config/worktrunk/post-start.d/. Each one gets: <primary_worktree> <worktree>.
 drop-ins = 'for h in ~/.config/worktrunk/post-start.d/*; do [ -x "$h" ] && "$h" {{ primary_worktree_path }} {{ worktree_path }}; done; true'

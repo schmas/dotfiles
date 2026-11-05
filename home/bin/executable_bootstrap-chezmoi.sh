@@ -117,8 +117,6 @@ vault = "Private"
 
 [[ssh-keys]]
 vault = "Dotfiles"
-
-[[ssh-keys]]
 TOML
   chmod 600 "$OP_SSH_CFG"
 else

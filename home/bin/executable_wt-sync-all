@@ -49,6 +49,7 @@ Usage: wt-sync-all [-v] [<repo>...]
   print a summary of files moved in each direction.
 
   (no repo)  sync every repo with worktrees under the base (default ~/workspaces).
+  <repo>     sync only the named repo namespace(s), e.g. wt-sync-all my-repo.
   -v|--verbose  list each file moved, grouped by worktree and direction.
 
 Env: WT_BASE overrides the worktree base; NO_COLOR disables colors.

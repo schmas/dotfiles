@@ -1,7 +1,7 @@
 {{- /*
   Per-machine agent key, written as a plain file so ssh and git signing use it
   without a 1Password approval prompt. Scope: the agent_config hosts only.
-  this way. Do not add more.
+  Do not export other keys this way from this repo.
 */ -}}
 {{- $item := includeTemplate "agent-key-item" . | trim -}}
 {{- if $item -}}

@@ -171,6 +171,8 @@ For detailed setup instructions, see **[Deployment & Installation Guide](./.agen
 
 - **Multi-shell support** - Fish, Zsh, Bash with consistent aliases (~230 abbreviations)
 - **1Password integration** - Secure secrets for git signing, SSH, GPG, API tokens
+- **Profile system** - Specialized setups (default, server)
+- **Packs** - Private add-ons as separate chezmoi instances (`czp`)
 - **Modern tools** - Starship prompt, Tmux, Atuin history, FZF completions, Yazi file manager
 - **Version management** - Mise for Node, Python, Go, Java, Rust, and more
 - **Editor setup** - IdeaVim, Zed, LunarVim configurations pre-configured
@@ -236,6 +238,7 @@ upall
 See **[Project Roadmap](./.agents/docs/project-roadmap.md)** for:
 - Atuin sync status across machines
 - Zellij vs Tmux multiplexer selection
+- Profile purposes (ct flag clarification)
 - Custom plugin fork maintenance strategy
 
 ## Related Repositories
