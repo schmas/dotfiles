@@ -1,0 +1,20 @@
+#compdef czp
+# czp: chezmoi on the public dotfiles and every installed pack.
+local -a cmds
+cmds=(
+  'install:clone a pack, check overlaps, apply'
+  'list:list the installed packs'
+  'check:fail if two instances manage the same target'
+  'update:chezmoi update on every instance'
+  'apply:chezmoi apply on every instance'
+  'diff:chezmoi diff on every instance'
+  'status:chezmoi status on every instance'
+)
+if (( CURRENT == 2 )); then
+  _describe -t commands 'czp command' cmds
+  return
+fi
+case "$words[2]" in
+  install) _arguments '--no-apply[clone and check, do not apply]' '*:pack git URL:' ;;
+  list) _arguments '--names[print pack names only]' ;;
+esac
