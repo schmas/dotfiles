@@ -28,4 +28,5 @@ sync-agent-down = "wt-sync-agent-files {{ primary_worktree_path }} {{ worktree_p
 copy = "wt step copy-ignored"
 # Packs (private chezmoi instances) add post-start hooks as executables in
 # ~/.config/worktrunk/post-start.d/. Each one gets: <primary_worktree> <worktree>.
-drop-ins = 'for h in ~/.config/worktrunk/post-start.d/*; do [ -x "$h" ] && "$h" {{ primary_worktree_path }} {{ worktree_path }}; done; true'
+# All of them run; the hook fails and names each one that failed.
+drop-ins = 'rc=0; for h in ~/.config/worktrunk/post-start.d/*; do if [ -x "$h" ]; then "$h" {{ primary_worktree_path }} {{ worktree_path }} || { echo "post-start.d: $h failed" >&2; rc=1; }; fi; done; exit $rc'
