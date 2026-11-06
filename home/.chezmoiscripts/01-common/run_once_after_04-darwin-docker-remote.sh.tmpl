@@ -29,7 +29,7 @@ if ! docker context inspect server &>/dev/null; then
   echo "Creating docker context 'server' -> ssh://win-dev ..."
   docker context create server \
     --docker "host=ssh://win-dev" \
-    --description "Remote docker daemon on win-dev (HEKLA WSL)"
+    --description "Remote docker daemon on win-dev (WSL)"
 fi
 
 # Default to the remote daemon so work runs off-box and frees local resources.
