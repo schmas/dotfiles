@@ -16,13 +16,10 @@ These are unresolved decisions, carried forward from the root README's
 - **Multiplexer** — Zellij vs Tmux. Both are configured
   (`home/dot_config/zellij/`, `home/dot_config/tmux/`); the intent is to settle
   on one default.
-- **Specialized profiles** — `ct` still exists as an `is_p_*` flag in
-  `home/.chezmoi.yaml.tmpl` but is no longer offered as an init choice. Decide
-  whether to restore it as a prompt, keep it as a manual override, or remove
-  the dead flag. Private machine setups belong in packs.
-- **Nix deprecation cleanup** — the `using_nix` init prompt and related branches
-  remain even though nix-config is deprecated (migrated to Homebrew). Decide when
-  to remove the prompt and its conditionals.
+- **Nix deprecation cleanup** — `using_nix` is now always `false` in
+  `home/.chezmoi.yaml.tmpl` (no prompt), but its branches remain in the
+  `00-load-homebrew.*` shell modules and `upall-classic`/`upall-v1`. Decide when
+  to remove them.
 - **Custom fork maintenance** — several tools depend on personal forks
   (`fifc`, `dircolors-neutral`, `nvim_lazy`, `upall`); no defined strategy for
   keeping them current with upstream.

@@ -1,25 +1,9 @@
-# Used to customize configuration when doing a `chezmoi init`.
-#
-# This template file will trigger prompts to fill-in machine-specific
-# templateable values. The resulting file is then created at
-# `~/.config/chezmoi/chezmoi.toml`
-# See https://www.chezmoi.io/docs/reference/#special-files-and-directories
-
-{{- /* Questions */}}
-{{- $profileChoices := list "1-default" "2-server" -}}
-{{- $profile := promptChoice "Profile" $profileChoices "1-default" -}}
-{{- $profile = regexReplaceAll "^\\d-" $profile "" -}}
-
-{{- $using_nix := promptBool "Are you using NIX-CONFIG" false -}}
-
-{{- $editorChoices := list "1-none"  "2-nvim" "3-zed" "4-code" -}}
-{{- $defaultEditor := promptChoice "Choose default editor" $editorChoices "2-nvim" -}}
-{{- $defaultEditor = regexReplaceAll "^\\d-" $defaultEditor "" -}}
-
-{{- /* Variables */}}
-{{ $is_p_default := eq $profile "default" -}}
-{{ $is_p_server := eq $profile "server" -}}
-{{ $is_p_ct := or (eq $profile "ct") -}}
+{{- /*
+  chezmoi config template: `chezmoi init` renders it to
+  ~/.config/chezmoi/chezmoi.yaml. It asks no questions; every value comes from
+  the machine (OS, WSL). After a change here, run `chezmoi init` again.
+  See https://www.chezmoi.io/docs/reference/#special-files-and-directories
+*/ -}}
 
 {{- /* os_id variable: i.e. linux-ubuntu */}}
 {{- $os_id := .chezmoi.os -}}
@@ -41,24 +25,16 @@
   {{- if (.chezmoi.kernel.osrelease | lower | contains "microsoft") -}}
     {{- $is_wsl = true -}}
   {{- end -}}
-{{- end -}}
-
+{{- end }}
 data:
   os_id: {{ $os_id | quote }}
   os_id_like: {{ $os_id_like | quote }}
-  using_nix: {{ $using_nix }}
-  profile: {{ $profile | quote }}
-  is_p_default: {{ $is_p_default }}
-  is_p_server: {{ $is_p_server }}
-  is_p_ct: {{ $is_p_ct }}
+  # nix-config is deprecated; the using_nix branches stay until they are removed.
+  using_nix: false
   is_wsl: {{ $is_wsl }}
 
-{{- if (ne $defaultEditor "none") }}
 edit:
-  command: "{{ $defaultEditor }}"
-  args: ["--wait"]
-{{ end -}}
-
+  command: "nvim"
 {{- if $is_wsl }}
 
 # WSL: the Linux op binary cannot reach the Windows 1Password desktop app, so

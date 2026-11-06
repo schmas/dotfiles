@@ -24,7 +24,7 @@ Dotfiles are configuration files in Unix-like systems that begin with a dot (.) 
 - **Developer tools** (Git with SSH signing, Atuin history, FZF completions)
 - **Editor configurations** (IdeaVim, Zed, LunarVim, Vim)
 - **1Password integration** for secure secrets management
-- **Chezmoi profile system** for per-machine customization
+- **OS and WSL detection** for per-machine customization
 
 ## Repository Structure
 
@@ -85,7 +85,7 @@ Then in the 1Password desktop app: **Settings → Developer** → enable *Integr
 
 > **Vault access:** The CLI only sees vaults you authorize. If chezmoi reads from a non-default vault (e.g. `Dotfiles`), open that vault in the desktop app, click its name → **Manage** and confirm CLI access is on. Verify with `op vault list` in WSL — all required vaults must appear before running the bootstrap. 1Password must also be **unlocked** whenever chezmoi runs.
 
-In **WSL** (download-then-run so the profile prompt stays interactive):
+In **WSL** (download, then run):
 
 ```bash
 curl -fsSL https://gist.githubusercontent.com/schmas/a604b0d433a836c5af8a877a3d0f37df/raw/bootstrap-wsl.sh -o /tmp/bootstrap-wsl.sh
@@ -148,12 +148,10 @@ Rule: no two instances manage the same file. `czp check` lists every target
 that more than one instance manages. `czp update` and `czp apply` stop on a
 conflict. See [System Architecture](./.agents/docs/system-architecture.md#packs-private-chezmoi-instances).
 
-### Initial Setup Prompts
+### chezmoi config
 
-During `chezmoi init`, you'll answer prompts owned by `home/.chezmoi.yaml.tmpl`:
-1. **Profile** - default (full dev setup) or server (minimal)
-2. **NIX-CONFIG** - whether this machine also uses the (deprecated) nix-config
-3. **Editor** - nvim (default), zed, code, or none
+`chezmoi init` asks no questions. `home/.chezmoi.yaml.tmpl` detects the OS and
+WSL. If chezmoi warns `config file template has changed`, run `chezmoi init`.
 
 ### What Gets Installed
 
@@ -171,7 +169,6 @@ For detailed setup instructions, see **[Deployment & Installation Guide](./.agen
 
 - **Multi-shell support** - Fish, Zsh, Bash with consistent aliases (~230 abbreviations)
 - **1Password integration** - Secure secrets for git signing, SSH, GPG, API tokens
-- **Profile system** - Specialized setups (default, server)
 - **Packs** - Private add-ons as separate chezmoi instances (`czp`)
 - **Modern tools** - Starship prompt, Tmux, Atuin history, FZF completions, Yazi file manager
 - **Version management** - Mise for Node, Python, Go, Java, Rust, and more
@@ -213,7 +210,7 @@ Each shell supports local overrides without modifying repo files:
 ### Template System
 
 Files with `.tmpl` suffix use Go text/template syntax:
-- Variables: `{{ .profile }}`, `{{ .chezmoi.os }}`
+- Variables: `{{ .is_wsl }}`, `{{ .chezmoi.os }}`
 - Secrets: `{{ onepasswordRead "op://vault/item/field" }}`
 - Conditions: `{{ if eq .chezmoi.os "darwin" }} ... {{ end }}`
 
@@ -238,7 +235,7 @@ upall
 See **[Project Roadmap](./.agents/docs/project-roadmap.md)** for:
 - Atuin sync status across machines
 - Zellij vs Tmux multiplexer selection
-- Profile purposes (ct flag clarification)
+- Nix branch cleanup
 - Custom plugin fork maintenance strategy
 
 ## Related Repositories

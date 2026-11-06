@@ -15,7 +15,7 @@ excluded from apply (`home/.chezmoiignore`).
 
 | Concern | Location |
 |---|---|
-| Init prompts, profile/OS/WSL gates | `.chezmoi.yaml.tmpl` |
+| chezmoi config: OS/WSL gates (no prompts) | `.chezmoi.yaml.tmpl` |
 | Apply-time setup scripts (before/after) | `.chezmoiscripts/` |
 | Apply-time fetched artifacts (none declared today) | `.chezmoiexternal.toml` |
 | `upall` install (once, then self-updating) | `.chezmoiscripts/01-common/run_once_after_05.5-upall-install.sh.tmpl` |

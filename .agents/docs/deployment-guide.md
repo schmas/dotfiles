@@ -45,16 +45,14 @@ reachable, and stops if the pack is already installed. To remove a pack, delete
 `~/.local/share/chezmoi-<name>` and `~/.config/chezmoi-<name>`, and remove the
 files and drop-ins that the pack wrote.
 
-## Init prompts
+## chezmoi config
 
-`chezmoi init` collects machine shape via `home/.chezmoi.yaml.tmpl`:
+`chezmoi init` renders `home/.chezmoi.yaml.tmpl` to
+`~/.config/chezmoi/chezmoi.yaml` and asks no questions. The data comes from the
+machine: `os_id`, `os_id_like`, `is_wsl`. `using_nix` is always `false`
+(nix-config is deprecated). The `chezmoi edit` editor is `nvim`.
 
-- **Profile** — `default` or `server`.
-- **NIX-CONFIG** — whether this machine also uses the (deprecated) nix-config.
-- **Editor** — `nvim` (default), `zed`, `code`, or `none`.
-
-These answers are written to `~/.config/chezmoi/chezmoi.toml` and gate the rest
-of apply. To change them later, re-run `chezmoi init` or edit that file.
+If chezmoi warns `config file template has changed`, run `chezmoi init`.
 
 ## What runs during apply
 

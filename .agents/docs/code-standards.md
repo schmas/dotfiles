@@ -42,7 +42,7 @@ Files ending `.tmpl` are Go `text/template`, evaluated at apply time. Branch on
 the gates owned by `home/.chezmoi.yaml.tmpl`:
 
 - OS: `{{ if eq .chezmoi.os "darwin" }}…{{ end }}`
-- Profile: `{{ if .is_p_default }}…{{ end }}`
+- WSL: `{{ if .is_wsl }}…{{ end }}`
 - Secret: `{{ onepasswordRead "op://vault/item/field" }}`
 
 Debug output with `chezmoi execute-template < path/to/file.tmpl`. Shared template

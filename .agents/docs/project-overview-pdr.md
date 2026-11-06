@@ -40,12 +40,10 @@ consistent live in [Code Standards](./code-standards.md).
 
 ## Profiles
 
-`chezmoi init` prompts for a profile that gates which machine setup applies. The
-prompt currently offers **default** (full workstation) and **server** (minimal);
-an additional flag (`is_p_ct`) exists in the data model for
-specialized machines but are not offered as prompt choices. The prompt list and
-every derived flag are owned by `home/.chezmoi.yaml.tmpl` — treat that file as
-authoritative over any enumeration in prose.
+There are no profiles now: every machine gets the full setup, and `chezmoi init`
+asks no questions. Machine differences come from the OS and WSL gates in
+`home/.chezmoi.yaml.tmpl`. Private machine setups belong in packs. If a minimal
+(server) setup is needed again, add it back as a gate in that file.
 
 ## Terminology
 

@@ -50,9 +50,9 @@ never to a per-shell module.
 
 ## Profile and OS resolution
 
-`home/.chezmoi.yaml.tmpl` runs the init prompts and derives every gate the rest
-of the repo branches on: `profile`, the `is_p_*` flags, `os_id`/`os_id_like`,
-and `is_wsl` (Linux kernel reporting "microsoft"). All conditional apply logic
+`home/.chezmoi.yaml.tmpl` asks no questions. It derives every gate the rest of
+the repo branches on: `os_id`/`os_id_like` and `is_wsl` (Linux kernel reporting
+"microsoft"). `using_nix` is fixed to `false`. All conditional apply logic
 reads these — this file is the single decision point for machine shape.
 
 ## Plugin managers (deliberately split)
