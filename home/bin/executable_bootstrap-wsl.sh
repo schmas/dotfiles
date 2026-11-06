@@ -8,7 +8,7 @@
 # prerequisites, drops the op bridge that chezmoi calls during apply, then runs
 # chezmoi init --apply.
 #
-# Usage (inside WSL) — download-then-run so chezmoi's profile prompt stays interactive:
+# Usage (inside WSL) — download-then-run so the sudo and 1Password prompts stay interactive:
 #   curl -fsSL https://gist.githubusercontent.com/schmas/a604b0d433a836c5af8a877a3d0f37df/raw/bootstrap-wsl.sh -o /tmp/bootstrap-wsl.sh
 #   bash /tmp/bootstrap-wsl.sh
 #
@@ -147,7 +147,7 @@ if ! "$BIN_DIR/op" vault list >/dev/null 2>&1; then
   die "1Password became unreachable. Unlock the desktop app on Windows and re-run."
 fi
 
-log "Running chezmoi init --apply (answer the profile / editor prompts)..."
+log "Running chezmoi init --apply..."
 "${BIN_DIR}/chezmoi" init --apply "$REPO"
 
 log "Done."

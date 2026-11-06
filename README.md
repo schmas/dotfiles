@@ -85,7 +85,7 @@ Then in the 1Password desktop app: **Settings → Developer** → enable *Integr
 
 > **Vault access:** The CLI only sees vaults you authorize. If chezmoi reads from a non-default vault (e.g. `Dotfiles`), open that vault in the desktop app, click its name → **Manage** and confirm CLI access is on. Verify with `op vault list` in WSL — all required vaults must appear before running the bootstrap. 1Password must also be **unlocked** whenever chezmoi runs.
 
-In **WSL** (download, then run):
+In **WSL** (download-then-run so the sudo and 1Password prompts stay interactive):
 
 ```bash
 curl -fsSL https://gist.githubusercontent.com/schmas/a604b0d433a836c5af8a877a3d0f37df/raw/bootstrap-wsl.sh -o /tmp/bootstrap-wsl.sh
