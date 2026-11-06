@@ -15,7 +15,6 @@ shell = "zsh"
 [templates]
 OMZPATH = 'export ZSH="${SHELDON_CONFIG_DIR}/repos/github.com/ohmyzsh/ohmyzsh"'
 OMZP = 'plugins=(1password colorize command-not-found docker-compose extract git gradle macos mvn pip sudo aws)'
-asdf-completion = 'fpath=(${ASDF_DIR}/completions $fpath)'
 
 [plugins]
 
@@ -55,13 +54,6 @@ github = 'zpm-zsh/colors'
 
 [plugins.dircolors-neutral]
 github = 'schmas/dircolors-neutral'
-
-#################################################
-# asdf - java, maven, node, gradle, python, etc
-#################################################
-[plugins.asdf]
-github = 'asdf-vm/asdf'
-apply = ["source", "asdf-completion"]
 
 #################################################
 # completions

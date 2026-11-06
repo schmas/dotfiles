@@ -366,7 +366,6 @@ This document provides a comprehensive reference for all aliases, functions, and
 | Alias                  | Command                                                                                               | Description                            |
 | ---------------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------- |
 | `opsignin`             | `eval $(op signin)`                                                                                   | Sign in to 1Password                   |
-| `asdfupdate`           | `asdf update && asdf plugin update --all && asdf-install-plugins`                                     | Update asdf and all plugins            |
 | `upprecleanup`         | `echo "No cleanup"`                                                                                   | Placeholder for cleanup before updates |
 | `osupdate`             | `echo "osupdate: OS not supported"`                                                                   | OS-specific update command             |
 | `upall`                | *(Go binary, auto-fetched to `~/.local/bin`)* three-pane TUI updater: os→chezmoi→brew→mise→rust→uv→claude→ck→fisher→atuin | Update everything; `--list`, `--plain`, `upall <keys>` for a subset |
