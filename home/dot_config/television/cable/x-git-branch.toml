@@ -1,6 +1,6 @@
 [metadata]
 name = "x-git-branch"
-description = "Git branches — Enter pastes name, Ctrl-O checkout, Ctrl-F cycles message/diff, Ctrl-S cycles All/Local/Remote (custom)"
+description = "Git branches — Enter pastes name, Ctrl-O checkout, Alt-O/Alt-Y copy with/without origin/, Ctrl-F cycles message/diff, Ctrl-S cycles All/Local/Remote (custom)"
 requirements = ["git"]
 
 [source]
@@ -29,18 +29,35 @@ command = [
 # Enter = confirm_selection (default, unbound here): outputs the branch name so
 # standalone use echoes it and the fish `_tv_branch_picker` (Ctrl-Alt-B) pastes
 # it at the cursor — matching the x-commands / x-zmx-sessions pickers.
-# Checkout/delete/merge/rebase are explicit keys; Ctrl-Y (global) copies the
-# branch name to the clipboard. All actions also reachable via Ctrl-X.
+# Checkout/delete/merge/rebase are explicit keys. Ctrl-Y (global) copies the
+# entry as shown; Alt-O copies it with a remote prefix (origin/ added to local
+# names) and Alt-Y copies it without one. All actions also reachable via Ctrl-X.
 [keybindings]
 ctrl-o = "actions:checkout"
 ctrl-d = "actions:delete"
 ctrl-m = "actions:merge"
 ctrl-r = "actions:rebase"
+alt-o = "actions:copy_with_remote"
+alt-y = "actions:copy_without_remote"
 
 [actions.checkout]
 description = "Checkout the selected branch"
 command = "git checkout '{0}'"
 mode = "execute"
+
+# Copy actions match the prefix against `git remote`, so a local branch such as
+# feature/foo is never mistaken for a remote one.
+[actions.copy_with_remote]
+description = "Copy branch name with remote prefix (adds origin/ to local names)"
+command = '''b='{0}'; for r in $(git remote); do case "$b" in "$r"/*) printf %s "$b" | pbcopy && echo "Copied: $b"; exit;; esac; done; b="origin/$b"; printf %s "$b" | pbcopy && echo "Copied: $b"'''
+shell = "bash"
+mode = "fork"
+
+[actions.copy_without_remote]
+description = "Copy branch name without remote prefix (strips origin/)"
+command = '''b='{0}'; for r in $(git remote); do case "$b" in "$r"/*) b="${b#"$r"/}"; break;; esac; done; printf %s "$b" | pbcopy && echo "Copied: $b"'''
+shell = "bash"
+mode = "fork"
 
 [actions.delete]
 description = "Delete the selected branch"
