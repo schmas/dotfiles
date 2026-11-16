@@ -4,7 +4,6 @@
 "cargo:pay-respects" = "latest"
 "cargo:rust-script" = "latest"
 "npm:@fission-ai/openspec" = "latest"
-"npm:@googleworkspace/cli" = "latest"
 "npm:@mixedbread/mgrep" = "latest"
 "npm:prettier" = "latest"
 "pipx:graphifyy" = "latest"
