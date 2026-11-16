@@ -8,23 +8,27 @@ tap "dlvhdr/formulae"
 # tap "atlassian/homebrew-acli"  # superseded by omar16100/atlassian-cli
 tap "omar16100/atlassian-cli"
 tap "neurosnap/tap"
-tap "jandedobbeleer/oh-my-posh"
+tap "avivsinai/tap"
+tap "openclaw/tap"
+tap "teamookla/speedtest"
+tap "xwmx/taps"
 {{ if eq .chezmoi.os "darwin" }}
 # ── Taps (macOS only) ─────────────────────────────────────────────────────
 tap "slp/krunkit"
+tap "anomalyco/tap"
+tap "fif7y/tap"
+tap "stablyai/orca"
 tap "nikolaeu/numi"
 {{ end }}
 # ── Shells ────────────────────────────────────────────────────────────────
 brew "bash"           # Bash 5.x (newer than macOS default)
 brew "fish"           # Friendly interactive shell
 brew "zsh"            # Zsh (newer than macOS default)
-brew "nushell"        # Modern shell
 
 # ── Core Shell Tools ──────────────────────────────────────────────────────
 brew "atuin"          # Shell history sync
 brew "sheldon"        # Shell plugin manager
 brew "starship"       # Cross-shell prompt
-brew "jandedobbeleer/oh-my-posh/oh-my-posh"  # Prompt theme engine (source build, cross-platform)
 brew "tmux"           # Terminal multiplexer
 brew "herdr"          # Terminal multiplexer
 brew "neurosnap/tap/zmx"  # tmux session manager (fuzzy switcher)
@@ -98,7 +102,7 @@ brew "ast-grep"       # AST-based search
 brew "just"           # Task runner
 brew "luarocks"       # Lua package manager
 brew "mise"           # Dev runtime manager (replaces asdf)
-brew "pkg-config"     # Compiler helper
+brew "pkgconf"        # Compiler helper
 brew "tokei"          # Code statistics
 
 # ── Database ──────────────────────────────────────────────────────────────
@@ -123,7 +127,6 @@ brew "bind"           # DNS tools (dig)
 brew "wishlist"       # SSH endpoint directory (charmbracelet)
 
 # ── Security ──────────────────────────────────────────────────────────────
-brew "openssl"
 brew "gnupg"          # GPG
 brew "sshpass"        # SSH password auth
 brew "pinentry"       # GPG PIN entry
@@ -137,6 +140,21 @@ brew "urlview"        # URL extractor
 # brew "acli"         # Atlassian CLI (official tap, superseded below)
 brew "omar16100/atlassian-cli/atlassian-cli"  # Atlassian CLI
 brew "skate"          # Personal key-value store (charmbracelet)
+brew "actionlint"     # GitHub Actions workflow linter
+brew "avivsinai/tap/bitbucket-cli"  # Bitbucket Cloud CLI (bkt)
+brew "awscli"         # AWS CLI
+brew "cargo-nextest"  # Rust test runner
+brew "git-filter-repo"  # Rewrite git history
+brew "googleworkspace-cli"  # Google Workspace CLI (gws)
+brew "gping"          # Ping with a graph
+brew "openclaw/tap/gogcli"  # Google CLI (gog)
+brew "pv"             # Pipe progress viewer
+brew "rclone"         # Cloud storage sync
+brew "rtk"            # Token-saving CLI proxy
+brew "saml2aws"       # AWS login via SAML
+brew "teamookla/speedtest/speedtest"  # Ookla speed test
+brew "xwmx/taps/nb"  # Notes, bookmarks, knowledge base
+brew "zk"             # Plain-text note taking
 {{ if eq .chezmoi.os "darwin" }}
 # ── macOS-only formulae ───────────────────────────────────────────────────
 brew "pinentry-mac"                # macOS keychain PIN entry
@@ -145,6 +163,7 @@ brew "mole"                        # macOS system cleaner (tw93/Mole)
 brew "reattach-to-user-namespace"  # tmux clipboard fix
 brew "pam-reattach"                # Touch ID in tmux
 brew "dockutil"                    # Dock management
+brew "duti"                        # Default app handlers
 brew "krunkit"                     # Lightweight VM runtime (Virtualization.framework)
 brew "nikolaeu/numi/numi-cli"      # Numi calculator CLI
 brew "terminal-notifier"           # macOS notifications from scripts
@@ -161,24 +180,27 @@ cask "font-symbols-only-nerd-font"
 cask "1password"
 cask "1password-cli"
 cask "gpg-suite-no-mail"
-cask "proton-pass"
 cask "protonvpn"
 cask "twingate"
 
 # ── Productivity ──────────────────────────────────────────────────────────
-cask "alfred"
 cask "antinote"
 cask "busycal"
+cask "bartender"
+cask "cleanmymac"
+cask "fif7y/tap/dimble"
+cask "anomalyco/tap/hex"
+cask "openlogi"
+cask "pen"
+cask "siyuan"
 cask "raycast"
 cask "cleanshot"
 cask "clop"
 cask "doll"
 cask "grammarly-desktop"
 cask "imageoptim"
-cask "keepingyouawake"
 cask "leader-key"
 cask "neohtop"
-cask "notion"
 # cask "notion-calendar"  # Replaced by BusyCal
 cask "numi"
 cask "obsidian"
@@ -191,11 +213,9 @@ cask "antigravity-cli"
 cask "antigravity-ide"
 cask "claude"
 cask "ghostty"
+cask "stablyai/orca/orca"
 cask "jetbrains-toolbox"
-cask "postman"
 cask "supacode"
-cask "visual-studio-code"
-cask "wezterm"
 cask "zed"
 
 # ── Containers (macOS) ────────────────────────────────────────────────────
@@ -207,26 +227,26 @@ cask "orbstack"
 cask "brave-browser"
 cask "discord"
 cask "google-chrome"
+cask "zen@twilight"
 cask "microsoft-teams"
 cask "slack"
-cask "vivaldi"
 cask "zoom"
 
 # ── Cloud Storage ─────────────────────────────────────────────────────────
 cask "google-drive"
-cask "proton-drive"
-cask "proton-mail"
 
 # ── Media ─────────────────────────────────────────────────────────────────
 cask "iina"
 cask "insta360-link-controller"
 cask "spotify"
 cask "steam"
-cask "vlc"
+cask "moonlight"
 
 # ── Mac App Store ─────────────────────────────────────────────────────────
 mas "1Password for Safari", id: 1569813296
-mas "iStat Menus", id: 6499559693
+mas "Infuse", id: 1136220934
+mas "QuickMD", id: 6757681819
+mas "Xcode", id: 497799835
 mas "Telegram", id: 747648890
 mas "The Unarchiver", id: 425424353
 mas "WhatsApp", id: 310633997
