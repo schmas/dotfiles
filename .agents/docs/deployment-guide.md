@@ -45,6 +45,20 @@ reachable, and stops if the pack is already installed. To remove a pack, delete
 `~/.local/share/chezmoi-<name>` and `~/.config/chezmoi-<name>`, and remove the
 files and drop-ins that the pack wrote.
 
+## ~/.agents (not managed by chezmoi)
+
+`~/.agents` holds user-level agent skills and rules. It is a separate private
+git repo, cloned by hand. No dotfiles repo or pack deploys it, and `czp` and
+`upall` do not update it.
+
+- The skills installer writes into `~/.agents/skills/`. Some skills are linked
+  from `~/.claude/skills/`. The repo ignores `skills/` and `handoffs/`.
+- The repo tracks `rules/` and `.skill-lock.json`. The lock file records the
+  source repo and ref of each skill.
+- On a new machine, clone the repo to `~/.agents` and reinstall the skills from
+  the lock file.
+- `~/.claude/rules/` is different. The public dotfiles deploy it.
+
 ## chezmoi config
 
 `chezmoi init` renders `home/.chezmoi.yaml.tmpl` to
