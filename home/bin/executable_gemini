@@ -11,62 +11,108 @@
 # (not ~/.claude) means `ck init` / ck-update never overwrites it, so no
 # reapply patch is needed.
 #
+# agy (>= 1.5.13) needs the prompt as the value of -p and does not read stdin
+# in print mode, so this shim builds the prompt itself:
+#   prompt = stdin (if piped) + "\n\n" + (-p value or positional words)
+#
 # Flag translation:
-#   -y | --yolo            -> --dangerously-skip-permissions
-#   -m | --model <value>   -> --model "<agy display name>" (value mapped; empty dropped)
-#   (print mode)           -> -p injected unless an interactive flag is present
-# Everything else is passed through. Stdin is read natively by agy.
+#   -y | --yolo                 -> --dangerously-skip-permissions
+#   -m | --model <value>        -> --model <agy model id> (old ids mapped; empty dropped)
+#   -p | --prompt | --print <t> -> prompt text (joined with stdin)
+#   positional words            -> prompt text
+#   (print mode)                -> -p "<prompt>" unless an interactive flag is present
+# Other flags are passed through.
 
 set -euo pipefail
 
-args=()
-inject_print=1          # add -p unless caller wants interactive
-model_name=""
-
-# Map an old Gemini API model id (or anything) to an agy display name.
-# agy --model expects names like "Gemini 3.5 Flash (High)".
+# Map an old Gemini model id to an agy model id (`agy models` lists them).
+# Values that already look like agy ids or display names pass through.
 map_model() {
-  local v="${1,,}"
-  case "$v" in
-    "")            echo "" ;;                       # empty -> let agy default
-    *pro*)         echo "Gemini 3.1 Pro (High)" ;;
-    *flash*|*)     echo "Gemini 3.5 Flash (High)" ;;
+  local v="${1:-}"
+  local lv
+  lv="$(printf '%s' "$v" | tr '[:upper:]' '[:lower:]')"
+  case "$lv" in
+    "")                                       echo "" ;;
+    gemini-4-*|gemini-3.8-*|gemini-pro-orchestrator-*|claude-*|gpt-*|*"("*) echo "$v" ;;
+    *pro*)                                    echo "gemini-4-neon-high" ;;
+    *)                                        echo "gemini-3.8-flash-high" ;;
   esac
 }
+
+# agy flags that take a value (keep the value with its flag).
+takes_value() {
+  case "$1" in
+    --add-dir|--agent|--conversation|--effort|--input-format|--json-schema|\
+    --log-file|--mode|--output-format|--print-timeout|--project|--settings) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+args=()
+words=()
+interactive=0
+model=""
+prompt_flag=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -y|--yolo)
-      args+=("--dangerously-skip-permissions")
-      shift
-      ;;
+      args+=("--dangerously-skip-permissions"); shift ;;
     -m|--model)
-      model_name="$(map_model "${2:-}")"
-      shift 2 || shift
-      ;;
-    -i|--prompt-interactive|--continue|-c|--conversation)
-      inject_print=0
-      args+=("$1")
-      shift
-      ;;
+      model="$(map_model "${2:-}")"; shift; [[ $# -gt 0 ]] && shift ;;
+    --model=*)
+      model="$(map_model "${1#*=}")"; shift ;;
     -p|--print|--prompt)
-      inject_print=0
-      args+=("$1")
-      shift
-      ;;
+      prompt_flag="${2:-}"; shift; [[ $# -gt 0 ]] && shift ;;
+    -p=*|--print=*|--prompt=*)
+      prompt_flag="${1#*=}"; shift ;;
+    -i|--prompt-interactive)
+      interactive=1; args+=("-i" "${2:-}"); shift; [[ $# -gt 0 ]] && shift ;;
+    -c|--continue)
+      interactive=1; args+=("$1"); shift ;;
+    --conversation)
+      interactive=1; args+=("$1" "${2:-}"); shift; [[ $# -gt 0 ]] && shift ;;
+    --)
+      shift; words+=("$@"); break ;;
+    -*)
+      if takes_value "$1" && [[ $# -gt 1 ]]; then
+        args+=("$1" "$2"); shift 2
+      else
+        args+=("$1"); shift
+      fi ;;
     *)
-      args+=("$1")
-      shift
-      ;;
+      words+=("$1"); shift ;;
   esac
 done
 
-if [[ -n "$model_name" ]]; then
-  args+=("--model" "$model_name")
+if [[ -n "$model" ]]; then
+  args+=("--model" "$model")
 fi
 
-if [[ "$inject_print" -eq 1 ]]; then
-  args=("-p" "${args[@]}")
+text="$prompt_flag"
+if [[ ${#words[@]} -gt 0 ]]; then
+  text="${text:+$text }${words[*]}"
 fi
 
-exec agy "${args[@]}"
+if [[ "$interactive" -eq 1 ]]; then
+  [[ -n "$text" ]] && args+=("$text")
+  exec agy "${args[@]}"
+fi
+
+stdin=""
+if [[ ! -t 0 ]]; then
+  stdin="$(cat)"
+fi
+
+if [[ -n "$stdin" && -n "$text" ]]; then
+  prompt="$stdin"$'\n\n'"$text"
+else
+  prompt="${stdin}${text}"
+fi
+
+if [[ -z "$prompt" ]]; then
+  # No prompt at all: open agy interactively, like the old CLI did.
+  exec agy "${args[@]}"
+fi
+
+exec agy -p "$prompt" "${args[@]}"
